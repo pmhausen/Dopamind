@@ -26,27 +26,6 @@ Dopamind ist ein intelligentes Planungs-Tool, das speziell für die Bedürfnisse
 * **Bright/Dark Mode:** Sanfte Kontraste zur Reduzierung von Reizüberflutung.
 * **Minimalistic UI:** Fokus auf das Wesentliche, um Ablenkung zu vermeiden.
 
----
-
-## 🛠 Tech Stack (Empfehlung)
-
-* **Frontend:** React.js oder Next.js (für SEO/Performance) mit Tailwind CSS.
-* **Backend:** Node.js (Express) oder Python (FastAPI) für die KI-Zeitprognose.
-* **Integrationen:** * `Nodemailer/ImapFlow` für E-Mails.
-    * `OpenProject API` für Aufgaben-Bridge.
-    * `FullCalendar` für die Visualisierung.
-
----
-
-## 🏗 Installation (Coming Soon)
-
-1. Repo klonen: `git clone https://github.com/user/dopamind.git`
-2. Dependencies installieren: `npm install`
-3. Umgebungsvariablen (`.env`) für IMAP & OpenProject setzen.
-4. Starten: `npm run dev`
-
----
-
 ## 🤝 Contributing
 Wir freuen uns über Feedback von der Neurodiversitäts-Community! Eröffne gerne ein Issue oder erstelle einen Pull-Request.
 
