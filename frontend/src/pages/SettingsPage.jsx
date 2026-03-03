@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useTheme } from "../context/ThemeContext";
 import { useSettings } from "../context/SettingsContext";
+import { useAuth } from "../context/AuthContext";
 import { discoverCalendars } from "../services/calendarService";
-import { Check, Sun, Moon, Globe, Filter, Search, Loader2, SlidersHorizontal, Briefcase, Mail, Calendar, Gamepad2 } from "lucide-react";
+import { Check, Sun, Moon, Globe, Filter, Search, Loader2, SlidersHorizontal, Briefcase, Mail, Calendar, Gamepad2, User, AlertTriangle } from "lucide-react";
 
 function Section({ title, children }) {
   return (
@@ -158,6 +159,134 @@ function CalDavSection({ t, settings, updateSettings }) {
   );
 }
 
+function AccountSection({ t }) {
+  const { user, changePassword, deleteAccount, updateProfile } = useAuth();
+  const [name, setName] = useState(user?.name || "");
+  const [profileMsg, setProfileMsg] = useState("");
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwMsg, setPwMsg] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [deletePw, setDeletePw] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [showDelete, setShowDelete] = useState(false);
+
+  const handleProfileSave = async () => {
+    try {
+      await updateProfile(name);
+      setProfileMsg(t("settings.profileSaved"));
+      setTimeout(() => setProfileMsg(""), 3000);
+    } catch (err) {
+      setProfileMsg(err.message);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPwError("");
+    setPwMsg("");
+    if (newPw !== confirmPw) {
+      setPwError(t("auth.pwMismatch"));
+      return;
+    }
+    try {
+      await changePassword(currentPw, newPw);
+      setPwMsg(t("settings.passwordChanged"));
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
+      setTimeout(() => setPwMsg(""), 3000);
+    } catch (err) {
+      setPwError(err.message);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleteError("");
+    try {
+      await deleteAccount(deletePw);
+    } catch (err) {
+      setDeleteError(err.message);
+    }
+  };
+
+  return (
+    <>
+      <Section title={t("settings.account")}>
+        <Field label={t("settings.profileEmail")}>
+          <p className="text-sm text-muted-light dark:text-muted-dark py-2">{user?.email}</p>
+        </Field>
+        <Field label={t("settings.profileName")}>
+          <Input value={name} onChange={setName} />
+        </Field>
+        <button onClick={handleProfileSave} className="btn-primary text-sm px-4 py-2 rounded-xl">
+          {t("settings.profileSave")}
+        </button>
+        {profileMsg && <p className="text-xs text-accent">{profileMsg}</p>}
+      </Section>
+
+      <Section title={t("settings.changePassword")}>
+        <Field label={t("settings.currentPassword")}>
+          <Input type="password" value={currentPw} onChange={setCurrentPw} />
+        </Field>
+        <Field label={t("settings.newPassword")}>
+          <Input type="password" value={newPw} onChange={setNewPw} />
+        </Field>
+        <Field label={t("settings.confirmNewPassword")}>
+          <Input type="password" value={confirmPw} onChange={setConfirmPw} />
+        </Field>
+        <button
+          onClick={handlePasswordChange}
+          disabled={!currentPw || !newPw || !confirmPw}
+          className="btn-primary text-sm px-4 py-2 rounded-xl disabled:opacity-50"
+        >
+          {t("settings.changePassword")}
+        </button>
+        {pwMsg && <p className="text-xs text-accent">{pwMsg}</p>}
+        {pwError && <p className="text-xs text-danger">{pwError}</p>}
+      </Section>
+
+      <Section title={t("settings.deleteAccount")}>
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30">
+          <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-danger">{t("settings.deleteAccountWarning")}</p>
+        </div>
+        {!showDelete ? (
+          <button
+            onClick={() => setShowDelete(true)}
+            className="text-sm px-4 py-2 rounded-xl bg-red-100 dark:bg-red-900/30 text-danger hover:bg-red-200 dark:hover:bg-red-900/50 transition-all"
+          >
+            {t("settings.deleteAccountButton")}
+          </button>
+        ) : (
+          <>
+            <p className="text-sm">{t("settings.deleteAccountConfirm")}</p>
+            <Field label={t("settings.currentPassword")}>
+              <Input type="password" value={deletePw} onChange={setDeletePw} />
+            </Field>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={!deletePw}
+                className="text-sm px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all disabled:opacity-50"
+              >
+                {t("settings.deleteAccountButton")}
+              </button>
+              <button
+                onClick={() => { setShowDelete(false); setDeletePw(""); setDeleteError(""); }}
+                className="btn-ghost text-sm px-4 py-2"
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+            {deleteError && <p className="text-xs text-danger">{deleteError}</p>}
+          </>
+        )}
+      </Section>
+    </>
+  );
+}
+
 export default function SettingsPage() {
   const { t, lang, switchLang, availableLanguages } = useI18n();
   const { dark, toggle } = useTheme();
@@ -170,6 +299,7 @@ export default function SettingsPage() {
     { key: "email",        icon: Mail,               label: t("settings.tabEmail") },
     { key: "calendar",     icon: Calendar,           label: t("settings.tabCalendar") },
     { key: "gamification", icon: Gamepad2,           label: t("settings.tabGamification") },
+    { key: "account",      icon: User,               label: t("settings.tabAccount") },
   ];
 
   return (
@@ -445,6 +575,11 @@ export default function SettingsPage() {
                 label={t("settings.soundEnabled")}
               />
             </Section>
+          )}
+
+          {/* Account tab */}
+          {activeTab === "account" && (
+            <AccountSection t={t} />
           )}
 
         </div>

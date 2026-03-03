@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect } from "react";
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback } from "react";
+import { apiFetch } from "../services/api";
 
 const AppContext = createContext();
 
@@ -575,13 +576,40 @@ export function AppProvider({ children }) {
     } catch {}
     return init;
   });
+  const saveTimer = useRef(null);
+  const didLoad = useRef(false);
+
+  // Load state from backend on mount
+  useEffect(() => {
+    if (didLoad.current) return;
+    didLoad.current = true;
+    const token = localStorage.getItem("dopamind-token");
+    if (!token) return;
+    apiFetch("/user-data/app_state")
+      .then((res) => {
+        if (res.data && Object.keys(res.data).length > 0) {
+          dispatch({ type: "LOAD_STATE", payload: res.data });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     dispatch({ type: "RESET_DAILY" });
   }, []);
 
+  // Persist to localStorage + debounced backend sync
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const token = localStorage.getItem("dopamind-token");
+      if (!token) return;
+      apiFetch("/user-data/app_state", {
+        method: "PUT",
+        body: JSON.stringify({ data: state }),
+      }).catch(() => {});
+    }, 1000);
   }, [state]);
 
   return (

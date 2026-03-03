@@ -30,6 +30,9 @@ export function AuthProvider({ children }) {
   const clearAuth = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem("dopamind-settings");
+    localStorage.removeItem("dopamind-state");
+    localStorage.removeItem("dopamind-timetracking");
     setToken(null);
     setUser(null);
   }, []);
@@ -93,11 +96,65 @@ export function AuthProvider({ children }) {
     clearAuth();
   }, [clearAuth]);
 
+  const deleteAccount = useCallback(
+    async (password) => {
+      const res = await fetch(`${API_BASE}/auth/account`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Account deletion failed");
+      clearAuth();
+      return data;
+    },
+    [API_BASE, token, clearAuth]
+  );
+
+  const changePassword = useCallback(
+    async (currentPassword, newPassword) => {
+      const res = await fetch(`${API_BASE}/auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Password change failed");
+      return data;
+    },
+    [API_BASE, token]
+  );
+
+  const updateProfile = useCallback(
+    async (name) => {
+      const res = await fetch(`${API_BASE}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Profile update failed");
+      setUser(data);
+      localStorage.setItem(USER_KEY, JSON.stringify(data));
+      return data;
+    },
+    [API_BASE, token]
+  );
+
   const isAdmin = user?.role === "admin";
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, isAdmin }}
+      value={{ user, token, loading, login, register, logout, deleteAccount, changePassword, updateProfile, isAdmin }}
     >
       {children}
     </AuthContext.Provider>
