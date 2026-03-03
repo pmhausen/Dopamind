@@ -315,9 +315,9 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
     const c2 = tw.criticalThreshold2 ?? 0;
     const m1 = tw.moderateThreshold1 ?? 60;
     const m2 = tw.moderateThreshold2 ?? 30;
-    if (totalFreeMin <= c2 || totalFreeMin <= c1) {
+    if (totalFreeMin <= Math.max(c1, c2)) {
       warningLevel = "critical";
-    } else if (totalFreeMin <= m2 || totalFreeMin <= m1) {
+    } else if (totalFreeMin <= Math.max(m1, m2)) {
       warningLevel = "moderate";
     }
   }
@@ -544,7 +544,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                     onBlur={() => handleEditSave(entry.task?.id || entry.subtask?.id)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleEditSave(entry.task?.id || entry.subtask?.id);
-                      if (e.key === "Escape") setEditingTaskId(null);
+                      if (e.key === "Escape") { setEditingTaskId(null); setEditingSubtaskParent(null); }
                     }}
                     className="flex-1 bg-transparent outline-none border-b border-accent min-w-0"
                     onClick={(e) => e.stopPropagation()}
@@ -634,7 +634,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
               )}
               {isSubtask && entry.subtask && !isPast && isEditing && (
                 <button
-                  onClick={() => setEditingTaskId(null)}
+                  onClick={() => { setEditingTaskId(null); setEditingSubtaskParent(null); }}
                   className="w-6 h-6 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center transition-all"
                   title={t("common.cancel")}
                   aria-label={t("common.cancel")}
@@ -692,9 +692,10 @@ export default function HomePage() {
     // Past: show tasks completed on this date
     dayTasks = state.tasks.filter((tk) => {
       if (!tk.completed) return false;
-      // Check if completedAt matches viewDate
+      // Check if completedAt matches viewDate (local timezone)
       if (tk.completedAt) {
-        const completedDate = new Date(tk.completedAt).toISOString().slice(0, 10);
+        const d = new Date(tk.completedAt);
+        const completedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         return completedDate === viewDate;
       }
       return false;
