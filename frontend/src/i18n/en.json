@@ -9,7 +9,8 @@
     "calendar": "Calendar",
     "mail": "Mail",
     "timeTracking": "Time Tracking",
-    "settings": "Settings"
+    "settings": "Settings",
+    "achievements": "Achievements"
   },
   "home": {
     "greeting": "One step at a time.",
@@ -212,11 +213,51 @@
     "masterTag": "Key Tag"
   },
   "rewards": {
-    "levelUp": "Level {level} reached!",
+    "levelUp": "Level {level} reached – {title}!",
     "hatTrick": "Hat-Trick! 3 tasks completed!",
     "focusStreak": "Focus Streak! {count} blocks in a row!",
     "clockedIn": "Clocked in!",
-    "clockedOut": "Clocked out! {hours}h {minutes}min worked."
+    "clockedOut": "Clocked out! {hours}h {minutes}min worked.",
+    "achievement": "Achievement unlocked: {name}",
+    "achievementMedium": "⚡ Medium Achievement: {name} (+{xp} XP)",
+    "achievementLarge": "🏆 MAJOR ACHIEVEMENT: {name} (+{xp} XP)",
+    "streakBonus": "Streak Bonus! ×{multiplier} XP",
+    "dailyBonus": "Daily Bonus! +{xp} XP",
+    "deadlineBonus": "On time! +15 XP Bonus"
+  },
+  "achievements": {
+    "title": "Achievements",
+    "small": "Small Achievements",
+    "medium": "Medium Achievements",
+    "large": "Large Achievements",
+    "locked": "Not yet unlocked",
+    "unlocked": "Unlocked",
+    "xpReward": "+{xp} XP",
+    "first-task":     { "name": "First Step",        "desc": "Complete your first task." },
+    "first-focus":    { "name": "First Focus",       "desc": "Complete your first focus block." },
+    "early-bird":     { "name": "Early Bird",        "desc": "Complete a task before 9 AM." },
+    "night-owl":      { "name": "Night Owl",         "desc": "Complete a task after 9 PM." },
+    "hat-trick":      { "name": "Hat-Trick",         "desc": "Complete 3 tasks in one day." },
+    "focus-duo":      { "name": "Focus Duo",         "desc": "Complete 2 focus blocks in one day." },
+    "quick-starter":  { "name": "Quick Starter",     "desc": "Complete a task within 30 min of creating it." },
+    "subtask-master": { "name": "Subtask Hero",      "desc": "Complete a task with 3+ subtasks." },
+    "daily-5":        { "name": "Five-Task Day",     "desc": "Complete 5 tasks in one day." },
+    "daily-10":       { "name": "Ten-Task Crusher",  "desc": "Complete 10 tasks in one day." },
+    "focus-hour":     { "name": "Focus Hour",        "desc": "60 focus minutes in one day." },
+    "week-warrior":   { "name": "Week Warrior",      "desc": "Complete 20 tasks in one week." },
+    "streak-3":       { "name": "3-Day Streak",      "desc": "Active 3 days in a row." },
+    "streak-7":       { "name": "Week Streak",       "desc": "Active 7 days in a row." },
+    "deadline-hero":  { "name": "Deadline Hero",     "desc": "Complete 5 tasks on time before deadline." },
+    "focus-marathon": { "name": "Focus Marathon",    "desc": "Complete a focus block of 60+ minutes." },
+    "streak-30":      { "name": "Month Legend",      "desc": "Active 30 days in a row." },
+    "streak-100":     { "name": "Hundred Days",      "desc": "Active 100 days in a row." },
+    "month-100":      { "name": "Month Champion",    "desc": "Complete 100 tasks in one month." },
+    "year-365":       { "name": "Year Goal",         "desc": "Complete 365 tasks in one year." },
+    "focus-1000min":  { "name": "Focus Titan",       "desc": "1000 total focus minutes." },
+    "week-50":        { "name": "Ultra Week",        "desc": "Complete 50 tasks in one week." },
+    "level-10":       { "name": "Double Digit",      "desc": "Reach level 10." },
+    "level-25":       { "name": "Quarter Century",   "desc": "Reach level 25." },
+    "level-50":       { "name": "Halfway Hero",      "desc": "Reach level 50." }
   },
   "common": {
     "save": "Save",

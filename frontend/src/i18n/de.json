@@ -9,7 +9,8 @@
     "calendar": "Kalender",
     "mail": "Mail",
     "timeTracking": "Zeiterfassung",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "achievements": "Erfolge"
   },
   "tasks": {
     "title": "Aufgaben",
@@ -212,11 +213,51 @@
     "taskSlot": "Aufgabe"
   },
   "rewards": {
-    "levelUp": "Level {level} erreicht!",
+    "levelUp": "Level {level} erreicht – {title}!",
     "hatTrick": "Hat-Trick! 3 Aufgaben erledigt!",
     "focusStreak": "Fokus-Streak! {count} Blöcke am Stück!",
     "clockedIn": "Eingestempelt!",
-    "clockedOut": "Ausgestempelt! {hours}h {minutes}min gearbeitet."
+    "clockedOut": "Ausgestempelt! {hours}h {minutes}min gearbeitet.",
+    "achievement": "Erfolg freigeschaltet: {name}",
+    "achievementMedium": "⚡ Mittlerer Erfolg: {name} (+{xp} XP)",
+    "achievementLarge": "🏆 GROSSER ERFOLG: {name} (+{xp} XP)",
+    "streakBonus": "Streak-Bonus! ×{multiplier} XP",
+    "dailyBonus": "Tages-Bonus! +{xp} XP",
+    "deadlineBonus": "Pünktlich! +15 XP Bonus"
+  },
+  "achievements": {
+    "title": "Erfolge",
+    "small": "Kleine Erfolge",
+    "medium": "Mittlere Erfolge",
+    "large": "Große Erfolge",
+    "locked": "Noch nicht freigeschaltet",
+    "unlocked": "Freigeschaltet",
+    "xpReward": "+{xp} XP",
+    "first-task":     { "name": "Erster Schritt",       "desc": "Schließe deine erste Aufgabe ab." },
+    "first-focus":    { "name": "Erster Fokus",         "desc": "Schließe deinen ersten Fokus-Block ab." },
+    "early-bird":     { "name": "Frühaufsteher",        "desc": "Erledige eine Aufgabe vor 9 Uhr." },
+    "night-owl":      { "name": "Nachteule",            "desc": "Erledige eine Aufgabe nach 21 Uhr." },
+    "hat-trick":      { "name": "Hat-Trick",            "desc": "3 Aufgaben an einem Tag erledigen." },
+    "focus-duo":      { "name": "Fokus-Duo",            "desc": "2 Fokus-Blöcke an einem Tag." },
+    "quick-starter":  { "name": "Schnellstarter",       "desc": "Aufgabe innerhalb von 30 min nach Erstellung erledigen." },
+    "subtask-master": { "name": "Unteraufgaben-Held",   "desc": "Aufgabe mit 3+ Unteraufgaben abschließen." },
+    "daily-5":        { "name": "Fünfer-Tag",           "desc": "5 Aufgaben an einem Tag erledigen." },
+    "daily-10":       { "name": "Zehn-Crack",           "desc": "10 Aufgaben an einem Tag erledigen." },
+    "focus-hour":     { "name": "Fokus-Stunde",         "desc": "60 Fokus-Minuten an einem Tag." },
+    "week-warrior":   { "name": "Wochen-Krieger",       "desc": "20 Aufgaben in einer Woche." },
+    "streak-3":       { "name": "3-Tage-Streak",        "desc": "3 Tage in Folge aktiv." },
+    "streak-7":       { "name": "Wochen-Streak",        "desc": "7 Tage in Folge aktiv." },
+    "deadline-hero":  { "name": "Deadline-Held",        "desc": "5 Aufgaben pünktlich vor Deadline erledigen." },
+    "focus-marathon": { "name": "Fokus-Marathon",       "desc": "Einen Fokus-Block von 60+ Minuten abschließen." },
+    "streak-30":      { "name": "Monats-Legende",       "desc": "30 Tage in Folge aktiv." },
+    "streak-100":     { "name": "Hundert Tage",         "desc": "100 Tage in Folge aktiv." },
+    "month-100":      { "name": "Monats-Champion",      "desc": "100 Aufgaben in einem Monat." },
+    "year-365":       { "name": "Jahresziel",           "desc": "365 Aufgaben in einem Jahr." },
+    "focus-1000min":  { "name": "Fokus-Titan",          "desc": "1000 Fokus-Minuten gesamt." },
+    "week-50":        { "name": "Ultra-Woche",          "desc": "50 Aufgaben in einer Woche." },
+    "level-10":       { "name": "Zwei-stellig",         "desc": "Level 10 erreichen." },
+    "level-25":       { "name": "Viertelzentury",       "desc": "Level 25 erreichen." },
+    "level-50":       { "name": "Halbzeit-Held",        "desc": "Level 50 erreichen." }
   },
   "common": {
     "save": "Speichern",

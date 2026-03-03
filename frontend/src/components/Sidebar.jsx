@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
-import { useApp } from "../context/AppContext";
+import { useApp, getLevelTitle } from "../context/AppContext";
 import { useTimeTracking } from "../context/TimeTrackingContext";
 import {
   Home,
@@ -11,6 +11,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Trophy,
 } from "lucide-react";
 import { useState } from "react";
 import XpBar from "./XpBar";
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: "/calendar", icon: Calendar, key: "calendar" },
   { to: "/mail", icon: Mail, key: "mail" },
   { to: "/time", icon: Clock, key: "timeTracking" },
+  { to: "/achievements", icon: Trophy, key: "achievements" },
   { to: "/settings", icon: Settings, key: "settings" },
 ];
 
@@ -29,6 +31,8 @@ export default function Sidebar() {
   const { state } = useApp();
   const { state: ttState } = useTimeTracking();
   const [collapsed, setCollapsed] = useState(false);
+  const { lang } = useI18n();
+  const levelTitle = getLevelTitle(state.level, lang);
 
   return (
     <aside
@@ -79,9 +83,10 @@ export default function Sidebar() {
 
         {!collapsed && (
           <div className="px-1">
-            <div className="text-[10px] text-muted-light dark:text-muted-dark mb-1">
+            <div className="text-[10px] text-muted-light dark:text-muted-dark mb-0.5">
               Lv. {state.level}
             </div>
+            <div className="text-[10px] text-muted-light dark:text-muted-dark mb-1">{levelTitle}</div>
             <XpBar />
           </div>
         )}
