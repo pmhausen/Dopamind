@@ -1,17 +1,14 @@
 import { NavLink } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
 import { useSettings } from "../context/SettingsContext";
-import { Home, CheckSquare, Calendar, Mail, Briefcase, Timer, Trophy, Settings } from "lucide-react";
+import { Home, CheckSquare, Calendar, Mail, Clock } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, key: "home" },
   { to: "/tasks", icon: CheckSquare, key: "tasks" },
+  { to: "/time", icon: Clock, key: "time" },
   { to: "/calendar", icon: Calendar, key: "calendar" },
   { to: "/mail", icon: Mail, key: "mail" },
-  { to: "/time", icon: Briefcase, key: "workTime" },
-  { to: "/zeitmanagement", icon: Timer, key: "zeitmanagement" },
-  { to: "/achievements", icon: Trophy, key: "achievements" },
-  { to: "/settings", icon: Settings, key: "settings" },
 ];
 
 export default function MobileNav() {
@@ -22,8 +19,7 @@ export default function MobileNav() {
   const visibleNavItems = NAV_ITEMS.filter(({ key }) => {
     if (key === "mail" && !features.mailEnabled) return false;
     if (key === "calendar" && !features.calendarEnabled) return false;
-    if (key === "workTime" && !features.timeTrackingEnabled) return false;
-    if (key === "achievements" && !features.gamificationEnabled) return false;
+    if (key === "time" && !features.timeTrackingEnabled) return false;
     return true;
   });
 

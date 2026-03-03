@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AppProvider } from "./context/AppContext";
 import { I18nProvider } from "./i18n/I18nContext";
@@ -40,7 +40,7 @@ export default function App() {
                             <Route path="/calendar" element={<CalendarPage />} />
                             <Route path="/mail" element={<MailPage />} />
                             <Route path="/time" element={<TimeTrackingPage />} />
-                            <Route path="/zeitmanagement" element={<TimeManagementPage />} />
+                            <Route path="/zeitmanagement" element={<Navigate to="/time?tab=focus" replace />} />
                             <Route path="/settings" element={<SettingsPage />} />
                             <Route path="/achievements" element={<AchievementsPage />} />
                           </Routes>

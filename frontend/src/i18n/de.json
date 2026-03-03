@@ -10,6 +10,7 @@
     "mail": "Mail",
     "workTime": "Arbeitszeit",
     "zeitmanagement": "Zeitmanagement",
+    "time": "Zeit",
     "settings": "Einstellungen",
     "achievements": "Erfolge"
   },
@@ -35,6 +36,14 @@
     "overdue": "Überfällig",
     "subtasks": "Unteraufgaben",
     "addSubtask": "Unteraufgabe hinzufügen...",
+    "addTag": "Tag hinzufügen...",
+    "sortBy": "Sortieren",
+    "sort": {
+      "priority": "Priorität",
+      "deadline": "Deadline",
+      "created": "Erstellt"
+    },
+    "clearFilter": "Filter löschen",
     "fromMail": "Aus Mail",
     "mailFrom": "Von: {from}",
     "reopen": "Wieder öffnen",
@@ -155,7 +164,9 @@
     "absenceFrom": "Von",
     "absenceTo": "Bis",
     "absenceNote": "Notiz...",
-    "days": "Tage"
+    "days": "Tage",
+    "tabWorkTime": "Arbeitszeit",
+    "tabFocus": "Fokus"
   },
   "settings": {
     "title": "Einstellungen",

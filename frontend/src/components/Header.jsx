@@ -2,7 +2,8 @@ import { useTheme } from "../context/ThemeContext";
 import { useApp, getLevelTitle } from "../context/AppContext";
 import { useSettings } from "../context/SettingsContext";
 import { useI18n } from "../i18n/I18nContext";
-import { Sun, Moon, Globe } from "lucide-react";
+import { Sun, Moon, Globe, Settings, Trophy } from "lucide-react";
+import { Link } from "react-router-dom";
 import XpBar from "./XpBar";
 
 export default function Header() {
@@ -25,6 +26,22 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
+          {features.gamificationEnabled !== false && (
+            <Link
+              to="/achievements"
+              className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-muted-light dark:text-muted-dark"
+              aria-label="Achievements"
+            >
+              <Trophy className="w-4 h-4" />
+            </Link>
+          )}
+          <Link
+            to="/settings"
+            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-muted-light dark:text-muted-dark"
+            aria-label="Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </Link>
           <button
             onClick={() => {
               const idx = availableLanguages.indexOf(lang);

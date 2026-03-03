@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
+import { useSearchParams } from "react-router-dom";
 import { Play, Square, Coffee, Trash2, Plus, Pencil, Check, X } from "lucide-react";
+import FocusTimer from "../components/FocusTimer";
 
 function formatMinutes(min) {
   const h = Math.floor(min / 60);
@@ -25,6 +27,8 @@ export default function TimeTrackingPage() {
   const { t } = useI18n();
   const { state, dispatch, getSessionMinutes, getTodayMinutes, getWeekMinutes, isOnBreak } = useTimeTracking();
   const { settings } = useSettings();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") === "focus" ? "focus" : "workTime");
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
   const [absence, setAbsence] = useState({ startDate: todayStr, endDate: todayStr, type: "vacation", note: "" });
@@ -93,7 +97,36 @@ export default function TimeTrackingPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <h2 className="text-xl font-semibold">{t("timeTracking.title")}</h2>
+      <h2 className="sr-only">{t("timeTracking.title")}</h2>
+      <div className="flex items-center gap-1 border-b border-gray-200/50 dark:border-white/5">
+        <button
+          onClick={() => { setActiveTab("workTime"); setSearchParams({}); }}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "workTime"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted-light dark:text-muted-dark hover:text-foreground-light dark:hover:text-foreground-dark"
+          }`}
+        >
+          {t("timeTracking.tabWorkTime")}
+        </button>
+        <button
+          onClick={() => { setActiveTab("focus"); setSearchParams({ tab: "focus" }); }}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "focus"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted-light dark:text-muted-dark hover:text-foreground-light dark:hover:text-foreground-dark"
+          }`}
+        >
+          {t("timeTracking.tabFocus")}
+        </button>
+      </div>
+
+      {activeTab === "focus" ? (
+        <div className="max-w-sm">
+          <FocusTimer />
+        </div>
+      ) : (
+      <>
 
       {/* Clock Widget */}
       <div className="glass-card p-6">
@@ -412,6 +445,8 @@ export default function TimeTrackingPage() {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
