@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useTheme } from "../context/ThemeContext";
 import { useSettings } from "../context/SettingsContext";
@@ -163,6 +163,10 @@ function AccountSection({ t }) {
   const { user, changePassword, deleteAccount, updateProfile } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [profileMsg, setProfileMsg] = useState("");
+
+  useEffect(() => {
+    setName(user?.name || "");
+  }, [user?.name]);
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");

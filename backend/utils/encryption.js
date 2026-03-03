@@ -37,7 +37,7 @@ function decrypt(ciphertext) {
 
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
-  return decipher.update(encrypted) + decipher.final("utf8");
+  return decipher.update(encrypted, undefined, "utf8") + decipher.final("utf8");
 }
 
 const SENSITIVE_PATHS = [
