@@ -120,11 +120,11 @@ export default function CalendarPage() {
                       {day}
                       {dayEvents.length > 0 && (
                         <div className="flex gap-0.5 mt-0.5">
-                          {dayEvents.slice(0, 3).map((_, i) => (
+                          {dayEvents.slice(0, 3).map((ev, i) => (
                             <div
                               key={i}
                               className={`w-1 h-1 rounded-full ${
-                                isSelected ? "bg-white/80" : "bg-accent"
+                                isSelected ? "bg-white/80" : ev.allDay ? "bg-accent" : "bg-accent/60"
                               }`}
                             />
                           ))}
@@ -166,7 +166,29 @@ export default function CalendarPage() {
             </p>
           ) : (
             <div className="space-y-2">
-              {selectedEvents.map((event) => (
+              {/* All-day events first */}
+              {selectedEvents.filter((e) => e.allDay).map((event) => (
+                <div
+                  key={event.id}
+                  className="group flex items-center gap-3 px-3 py-2 rounded-xl bg-accent/10 dark:bg-accent/20 hover:bg-accent/15 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-accent truncate">{event.title}</p>
+                    <p className="text-[10px] text-accent/70 font-medium">{t("calendar.allDay")}</p>
+                    {event.description && (
+                      <p className="text-xs text-muted-light dark:text-muted-dark mt-0.5 truncate">{event.description}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => deleteEvent(event.id)}
+                    className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg flex items-center justify-center text-accent/50 hover:text-danger transition-all"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              {/* Timed events */}
+              {selectedEvents.filter((e) => !e.allDay).sort((a, b) => (a.start || "").localeCompare(b.start || "")).map((event) => (
                 <div
                   key={event.id}
                   className="group flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
@@ -178,9 +200,6 @@ export default function CalendarPage() {
                       <p className="text-[10px] text-muted-light dark:text-muted-dark font-mono mt-0.5">
                         {event.start} – {event.end}
                       </p>
-                    )}
-                    {event.allDay && (
-                      <p className="text-[10px] text-accent font-medium mt-0.5">{t("calendar.allDay")}</p>
                     )}
                     {event.description && (
                       <p className="text-xs text-muted-light dark:text-muted-dark mt-1 truncate">{event.description}</p>

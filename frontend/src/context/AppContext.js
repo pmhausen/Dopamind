@@ -130,6 +130,14 @@ function reducer(state, action) {
       };
     }
 
+    case "REOPEN_TASK":
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === action.payload ? { ...t, completed: false } : t
+        ),
+      };
+
     case "DELETE_TASK":
       return {
         ...state,

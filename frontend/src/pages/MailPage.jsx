@@ -64,7 +64,7 @@ function MailCompose({ mail, onSend, onDiscard, t }) {
   );
 }
 
-function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onCreateTask, onBack }) {
+function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onUntag, onCreateTask, onBack }) {
   const [showTags, setShowTags] = useState(false);
   const [taskCreated, setTaskCreated] = useState(false);
   return (
@@ -77,8 +77,15 @@ function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onCreateTask
           {mail.date && <><span>&middot;</span><span>{new Date(mail.date).toLocaleString()}</span></>}
         </div>
         {mail.tags?.length > 0 && (
-          <div className="flex gap-1.5 mt-2">
-            {mail.tags.map((tag) => <span key={tag} className={`badge text-[10px] ${TAG_COLORS[tag] || "bg-gray-100 dark:bg-white/5"}`}>{t(`mail.tags.${tag}`) || tag}</span>)}
+          <div className="flex gap-1.5 mt-2 flex-wrap">
+            {mail.tags.map((tag) => (
+              <span key={tag} className={`badge text-[10px] flex items-center gap-1 ${TAG_COLORS[tag] || "bg-gray-100 dark:bg-white/5"}`}>
+                {t(`mail.tags.${tag}`) || tag}
+                <button onClick={() => onUntag(tag)} className="ml-0.5 hover:text-danger transition-colors" title={t("mail.removeTag")}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -90,9 +97,16 @@ function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onCreateTask
           <button onClick={() => setShowTags(!showTags)} className="btn-ghost text-sm flex items-center gap-1.5"><Tag className="w-4 h-4" /> {t("mail.tag")}</button>
           {showTags && (
             <div className="absolute top-full left-0 mt-1 glass-card p-2 min-w-[140px] z-10 space-y-1">
-              {Object.keys(TAG_COLORS).map((tag) => { const I = TAG_ICONS[tag]; return (
-                <button key={tag} onClick={() => { onTag(tag); setShowTags(false); }} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"><I className="w-3.5 h-3.5" /> {t(`mail.tags.${tag}`)}</button>
-              ); })}
+              {Object.keys(TAG_COLORS).map((tag) => {
+                const I = TAG_ICONS[tag];
+                const isActive = mail.tags?.includes(tag);
+                return (
+                  <button key={tag} onClick={() => { isActive ? onUntag(tag) : onTag(tag); setShowTags(false); }} className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors ${isActive ? "font-semibold" : ""}`}>
+                    <I className="w-3.5 h-3.5" /> {t(`mail.tags.${tag}`)}
+                    {isActive && <X className="w-3 h-3 ml-auto text-danger" />}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -106,7 +120,7 @@ function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onCreateTask
 export default function MailPage() {
   const { t } = useI18n();
   const { settings, isMailConfigured } = useSettings();
-  const { state, fetchMails, selectMail, deleteMail, archiveMail, tagMail, sendMail, startCompose, startReply, dispatch } = useMail();
+  const { state, fetchMails, selectMail, deleteMail, archiveMail, tagMail, untagMail, sendMail, startCompose, startReply, dispatch } = useMail();
   const { dispatch: appDispatch } = useApp();
   const [activeFolder, setActiveFolder] = useState("INBOX");
 
@@ -147,7 +161,7 @@ export default function MailPage() {
   }
 
   if (state.composing) return <div className="animate-fade-in max-w-2xl"><MailCompose mail={state.composing} onSend={sendMail} onDiscard={() => dispatch({ type: "SET_COMPOSING", payload: null })} t={t} /></div>;
-  if (state.selectedMail) return <div className="animate-fade-in max-w-3xl"><MailDetail mail={state.selectedMail} t={t} onReply={() => startReply(state.selectedMail)} onDelete={() => deleteMail(state.selectedMail.uid)} onArchive={() => archiveMail(state.selectedMail.uid)} onTag={(tag) => tagMail(state.selectedMail.uid, tag)} onCreateTask={handleCreateTask} onBack={() => selectMail(null)} /></div>;
+  if (state.selectedMail) return <div className="animate-fade-in max-w-3xl"><MailDetail mail={state.selectedMail} t={t} onReply={() => startReply(state.selectedMail)} onDelete={() => deleteMail(state.selectedMail.uid)} onArchive={() => archiveMail(state.selectedMail.uid)} onTag={(tag) => tagMail(state.selectedMail.uid, tag)} onUntag={(tag) => untagMail(state.selectedMail.uid, tag)} onCreateTask={handleCreateTask} onBack={() => selectMail(null)} /></div>;
 
   return (
     <div className="space-y-5 animate-fade-in">

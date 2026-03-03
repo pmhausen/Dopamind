@@ -34,7 +34,9 @@
     "subtasks": "Unteraufgaben",
     "addSubtask": "Unteraufgabe hinzufügen...",
     "fromMail": "Aus Mail",
-    "mailFrom": "Von: {from}"
+    "mailFrom": "Von: {from}",
+    "reopen": "Wieder öffnen",
+    "complete": "Erledigen"
   },
   "focus": {
     "title": "Fokus-Block",
@@ -102,6 +104,7 @@
     "loading": "Mails werden geladen...",
     "connectionError": "Verbindung fehlgeschlagen.",
     "taskCreated": "Aufgabe erstellt",
+    "removeTag": "Tag entfernen",
     "tags": {
       "important": "Wichtig",
       "todo": "ToDo",

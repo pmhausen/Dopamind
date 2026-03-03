@@ -115,6 +115,18 @@ export function MailProvider({ children }) {
     }
   }, [state.mails]);
 
+  const untagMail = useCallback(async (uid, tag) => {
+    try {
+      await mailService.untagMail(uid, tag);
+      const mail = state.mails.find((m) => m.uid === uid);
+      const currentTags = mail?.tags || [];
+      const newTags = currentTags.filter((t) => t !== tag);
+      dispatch({ type: "UPDATE_MAIL", payload: { uid, tags: newTags } });
+    } catch (err) {
+      dispatch({ type: "SET_ERROR", payload: err.message });
+    }
+  }, [state.mails]);
+
   const sendMail = useCallback(async (mailData) => {
     try {
       await mailService.sendMail(mailData);
@@ -144,7 +156,7 @@ export function MailProvider({ children }) {
 
   return (
     <MailContext.Provider
-      value={{ state, dispatch, fetchMails, selectMail, deleteMail, archiveMail, tagMail, sendMail, startCompose, startReply }}
+      value={{ state, dispatch, fetchMails, selectMail, deleteMail, archiveMail, tagMail, untagMail, sendMail, startCompose, startReply }}
     >
       {children}
     </MailContext.Provider>

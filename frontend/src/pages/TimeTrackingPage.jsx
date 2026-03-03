@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
-import { Play, Square, Coffee, Trash2, Plus } from "lucide-react";
+import { Play, Square, Coffee, Trash2, Plus, Pencil, Check, X } from "lucide-react";
 
 function formatMinutes(min) {
   const h = Math.floor(min / 60);
@@ -28,6 +28,10 @@ export default function TimeTrackingPage() {
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
   const [absence, setAbsence] = useState({ startDate: todayStr, endDate: todayStr, type: "vacation", note: "" });
+  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [editEntry, setEditEntry] = useState(null);
+  const [editingAbsenceId, setEditingAbsenceId] = useState(null);
+  const [editAbsence, setEditAbsence] = useState(null);
 
   const isClockedIn = !!state.currentSession;
 
@@ -49,6 +53,42 @@ export default function TimeTrackingPage() {
     setShowAbsenceForm(false);
     const today = new Date().toISOString().slice(0, 10);
     setAbsence({ startDate: today, endDate: today, type: "vacation", note: "" });
+  };
+
+  const startEditEntry = (entry) => {
+    setEditingEntryId(entry.id);
+    const ciDate = new Date(entry.clockIn);
+    const coDate = new Date(entry.clockOut);
+    setEditEntry({
+      date: entry.date,
+      clockInTime: ciDate.toTimeString().slice(0, 5),
+      clockOutTime: coDate.toTimeString().slice(0, 5),
+    });
+  };
+
+  const saveEditEntry = (e, entryId) => {
+    e.preventDefault();
+    const [ciH, ciM] = editEntry.clockInTime.split(":").map(Number);
+    const [coH, coM] = editEntry.clockOutTime.split(":").map(Number);
+    const base = new Date(editEntry.date + "T00:00:00");
+    const clockIn = new Date(base); clockIn.setHours(ciH, ciM, 0, 0);
+    const clockOut = new Date(base); clockOut.setHours(coH, coM, 0, 0);
+    const totalMinutes = Math.max(0, Math.round((clockOut - clockIn) / 60000));
+    dispatch({ type: "UPDATE_ENTRY", payload: { id: entryId, date: editEntry.date, clockIn: clockIn.getTime(), clockOut: clockOut.getTime(), totalMinutes } });
+    setEditingEntryId(null);
+    setEditEntry(null);
+  };
+
+  const startEditAbsence = (a) => {
+    setEditingAbsenceId(a.id);
+    setEditAbsence({ startDate: a.startDate || a.date, endDate: a.endDate || a.date, type: a.type, note: a.note || "" });
+  };
+
+  const saveEditAbsence = (e, absenceId) => {
+    e.preventDefault();
+    dispatch({ type: "UPDATE_ABSENCE", payload: { id: absenceId, ...editAbsence } });
+    setEditingAbsenceId(null);
+    setEditAbsence(null);
   };
 
   return (
@@ -141,36 +181,79 @@ export default function TimeTrackingPage() {
             </p>
           ) : (
             <div className="space-y-2">
-              {state.entries.slice(0, 14).map((entry) => (
-                <div key={entry.id} className="group flex items-center gap-3 py-2 px-1">
-                  <div className="text-xs font-mono text-muted-light dark:text-muted-dark w-20">
-                    {new Date(entry.date).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "2-digit" })}
-                  </div>
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="text-xs font-mono">
-                      {new Date(entry.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                    <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
-                      <div
-                        className="h-full bg-accent rounded-full"
-                        style={{ width: `${Math.min((entry.totalMinutes / targetMinutesDay) * 100, 100)}%` }}
-                      />
+              {state.entries.slice(0, 14).map((entry) => {
+                if (editingEntryId === entry.id) {
+                  return (
+                    <form key={entry.id} onSubmit={(e) => saveEditEntry(e, entry.id)} className="space-y-2 p-2 rounded-xl bg-gray-50 dark:bg-white/5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={editEntry.date}
+                          onChange={(e) => setEditEntry((d) => ({ ...d, date: e.target.value }))}
+                          className="flex-1 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                        />
+                        <input
+                          type="time"
+                          value={editEntry.clockInTime}
+                          onChange={(e) => setEditEntry((d) => ({ ...d, clockInTime: e.target.value }))}
+                          className="w-24 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                        />
+                        <span className="text-xs text-muted-light">–</span>
+                        <input
+                          type="time"
+                          value={editEntry.clockOutTime}
+                          onChange={(e) => setEditEntry((d) => ({ ...d, clockOutTime: e.target.value }))}
+                          className="w-24 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="submit" className="btn-primary text-xs py-1 flex items-center gap-1"><Check className="w-3 h-3" /> {t("common.save")}</button>
+                        <button type="button" onClick={() => setEditingEntryId(null)} className="btn-ghost text-xs py-1"><X className="w-3 h-3" /></button>
+                      </div>
+                    </form>
+                  );
+                }
+                return (
+                  <div key={entry.id} className="group flex items-center gap-3 py-2 px-1">
+                    <div className="text-xs font-mono text-muted-light dark:text-muted-dark w-20">
+                      {new Date(entry.date).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "2-digit" })}
                     </div>
-                    <span className="text-xs font-mono">
-                      {new Date(entry.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="text-xs font-mono">
+                        {new Date(entry.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
+                        <div
+                          className="h-full bg-accent rounded-full"
+                          style={{ width: `${Math.min((entry.totalMinutes / targetMinutesDay) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono">
+                        {new Date(entry.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <span className="text-xs font-mono font-medium w-16 text-right">
+                      {formatMinutes(entry.totalMinutes)}
                     </span>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={() => startEditEntry(entry)}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-accent transition-all"
+                        title={t("common.edit")}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => dispatch({ type: "DELETE_ENTRY", payload: entry.id })}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger transition-all"
+                        title={t("common.delete")}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-xs font-mono font-medium w-16 text-right">
-                    {formatMinutes(entry.totalMinutes)}
-                  </span>
-                  <button
-                    onClick={() => dispatch({ type: "DELETE_ENTRY", payload: entry.id })}
-                    className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -239,6 +322,47 @@ export default function TimeTrackingPage() {
           ) : (
             <div className="space-y-2">
               {state.absences.map((a) => {
+                if (editingAbsenceId === a.id) {
+                  return (
+                    <form key={a.id} onSubmit={(e) => saveEditAbsence(e, a.id)} className="space-y-2 p-2 rounded-xl bg-gray-50 dark:bg-white/5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          value={editAbsence.startDate}
+                          onChange={(e) => setEditAbsence((d) => ({ ...d, startDate: e.target.value, endDate: d.endDate < e.target.value ? e.target.value : d.endDate }))}
+                          className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                        />
+                        <input
+                          type="date"
+                          value={editAbsence.endDate}
+                          min={editAbsence.startDate}
+                          onChange={(e) => setEditAbsence((d) => ({ ...d, endDate: e.target.value }))}
+                          className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                        />
+                      </div>
+                      <select
+                        value={editAbsence.type}
+                        onChange={(e) => setEditAbsence((d) => ({ ...d, type: e.target.value }))}
+                        className="w-full px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                      >
+                        {Object.entries(t("timeTracking.absenceTypes")).map(([key, label]) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={editAbsence.note}
+                        onChange={(e) => setEditAbsence((d) => ({ ...d, note: e.target.value }))}
+                        placeholder={t("timeTracking.absenceNote")}
+                        className="w-full px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                      />
+                      <div className="flex gap-2">
+                        <button type="submit" className="btn-primary text-xs py-1 flex items-center gap-1"><Check className="w-3 h-3" /> {t("common.save")}</button>
+                        <button type="button" onClick={() => setEditingAbsenceId(null)} className="btn-ghost text-xs py-1"><X className="w-3 h-3" /></button>
+                      </div>
+                    </form>
+                  );
+                }
                 const start = a.startDate || a.date;
                 const end = a.endDate || a.date;
                 const isRange = start !== end;
@@ -265,12 +389,22 @@ export default function TimeTrackingPage() {
                       {t(`timeTracking.absenceTypes.${a.type}`)}
                     </span>
                     {a.note && <span className="text-xs text-muted-light dark:text-muted-dark truncate flex-1">{a.note}</span>}
-                    <button
-                      onClick={() => dispatch({ type: "DELETE_ABSENCE", payload: a.id })}
-                      className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-auto">
+                      <button
+                        onClick={() => startEditAbsence(a)}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-accent transition-all"
+                        title={t("common.edit")}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => dispatch({ type: "DELETE_ABSENCE", payload: a.id })}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger transition-all"
+                        title={t("common.delete")}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 );
               })}

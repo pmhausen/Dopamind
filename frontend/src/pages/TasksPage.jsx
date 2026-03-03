@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
+import { useMail } from "../context/MailContext";
 import FocusTimer from "../components/FocusTimer";
 import StatsPanel from "../components/StatsPanel";
-import { Mail, Calendar, Plus, ChevronDown, ChevronRight, CheckSquare, Square, Trash2, AlertCircle } from "lucide-react";
+import { Mail, Calendar, Plus, ChevronDown, ChevronRight, CheckSquare, Square, Trash2, AlertCircle, Pencil, RotateCcw, Check, X } from "lucide-react";
 
 const PRIORITY_CONFIG = {
   high: { dot: "bg-danger", color: "bg-danger/10 text-danger dark:bg-danger/20" },
@@ -36,9 +37,15 @@ function SubtaskItem({ subtask, taskId, t }) {
 
 function TaskItem({ task, t }) {
   const { dispatch } = useApp();
+  const { untagMail } = useMail();
   const priority = PRIORITY_CONFIG[task.priority];
   const [expanded, setExpanded] = useState(false);
   const [subtaskText, setSubtaskText] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(task.text);
+  const [editPriority, setEditPriority] = useState(task.priority);
+  const [editMinutes, setEditMinutes] = useState(task.estimatedMinutes);
+  const [editDeadline, setEditDeadline] = useState(task.deadline || "");
 
   const subtasks = task.subtasks || [];
   const completedSubtasks = subtasks.filter((s) => s.completed).length;
@@ -53,17 +60,86 @@ function TaskItem({ task, t }) {
     setSubtaskText("");
   };
 
+  const handleDelete = () => {
+    if (task.mailRef) {
+      untagMail(task.mailRef.uid, "todo");
+    }
+    dispatch({ type: "DELETE_TASK", payload: task.id });
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editText.trim()) return;
+    dispatch({
+      type: "UPDATE_TASK",
+      payload: { id: task.id, text: editText.trim(), priority: editPriority, estimatedMinutes: editMinutes, deadline: editDeadline || null },
+    });
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="rounded-xl bg-gray-50 dark:bg-white/[0.03] p-3 space-y-2">
+        <form onSubmit={handleSaveEdit} className="space-y-2">
+          <input
+            type="text"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            autoFocus
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1">
+              {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setEditPriority(key)}
+                  className={`px-2 py-1 rounded-lg text-xs transition-all ${editPriority === key ? cfg.color + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                >
+                  {t(`tasks.priority.${key}`)}
+                </button>
+              ))}
+            </div>
+            <input
+              type="date"
+              value={editDeadline}
+              onChange={(e) => setEditDeadline(e.target.value)}
+              className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+            />
+            <div className="flex items-center gap-1 ml-auto">
+              <input
+                type="number"
+                min={5}
+                max={120}
+                step={5}
+                value={editMinutes}
+                onChange={(e) => setEditMinutes(Number(e.target.value))}
+                className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-center text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+              />
+              <span className="text-xs text-muted-light dark:text-muted-dark">{t("common.min")}</span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" className="btn-primary text-xs flex items-center gap-1.5 py-1.5"><Check className="w-3.5 h-3.5" /> {t("common.save")}</button>
+            <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs py-1.5"><X className="w-3.5 h-3.5" /></button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
-    <div className={`group rounded-xl transition-all duration-200 ${task.completed ? "opacity-50 scale-[0.98]" : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"}`}>
+    <div className={`group rounded-xl transition-all duration-200 ${task.completed ? "opacity-60 scale-[0.98]" : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"}`}>
       <div className="flex items-center gap-3 p-3">
         <button
-          onClick={() => !task.completed && dispatch({ type: "COMPLETE_TASK", payload: task.id })}
+          onClick={() => dispatch({ type: task.completed ? "REOPEN_TASK" : "COMPLETE_TASK", payload: task.id })}
           className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
             task.completed
-              ? "border-success bg-success"
+              ? "border-success bg-success hover:bg-success/70 hover:border-success/70"
               : "border-gray-300 dark:border-gray-600 hover:border-accent"
           }`}
-          disabled={task.completed}
+          title={task.completed ? t("tasks.reopen") : t("tasks.complete")}
         >
           {task.completed && (
             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -111,20 +187,37 @@ function TaskItem({ task, t }) {
           </div>
         </div>
 
-        {!task.completed && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
           <button
-            onClick={() => dispatch({ type: "DELETE_TASK", payload: task.id })}
-            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-danger hover:bg-danger/10 transition-all"
+            onClick={() => { setEditText(task.text); setEditPriority(task.priority); setEditMinutes(task.estimatedMinutes); setEditDeadline(task.deadline || ""); setEditing(true); }}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
+            title={t("common.edit")}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          {task.completed && (
+            <button
+              onClick={() => dispatch({ type: "REOPEN_TASK", payload: task.id })}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
+              title={t("tasks.reopen")}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-danger hover:bg-danger/10 transition-all"
+            title={t("common.delete")}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        )}
+        </div>
       </div>
 
       {/* Expanded: subtasks + mail ref */}
-      {expanded && !task.completed && (
+      {expanded && (
         <div className="pb-3 px-3">
           {task.mailRef && (
             <div className="pl-8 pb-2 text-xs text-muted-light dark:text-muted-dark">
@@ -135,16 +228,18 @@ function TaskItem({ task, t }) {
           {subtasks.map((s) => (
             <SubtaskItem key={s.id} subtask={s} taskId={task.id} t={t} />
           ))}
-          <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pl-8 mt-1">
-            <Plus className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-            <input
-              type="text"
-              value={subtaskText}
-              onChange={(e) => setSubtaskText(e.target.value)}
-              placeholder={t("tasks.addSubtask")}
-              className="flex-1 text-xs px-2 py-1 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
-            />
-          </form>
+          {!task.completed && (
+            <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pl-8 mt-1">
+              <Plus className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+              <input
+                type="text"
+                value={subtaskText}
+                onChange={(e) => setSubtaskText(e.target.value)}
+                placeholder={t("tasks.addSubtask")}
+                className="flex-1 text-xs px-2 py-1 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
+              />
+            </form>
+          )}
         </div>
       )}
     </div>

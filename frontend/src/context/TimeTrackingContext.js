@@ -94,6 +94,22 @@ function reducer(state, action) {
         entries: state.entries.filter((e) => e.id !== action.payload),
       };
     }
+    case "UPDATE_ENTRY": {
+      return {
+        ...state,
+        entries: state.entries.map((e) =>
+          e.id === action.payload.id ? { ...e, ...action.payload } : e
+        ),
+      };
+    }
+    case "UPDATE_ABSENCE": {
+      return {
+        ...state,
+        absences: state.absences.map((a) =>
+          a.id === action.payload.id ? { ...a, ...action.payload } : a
+        ),
+      };
+    }
     default:
       return state;
   }

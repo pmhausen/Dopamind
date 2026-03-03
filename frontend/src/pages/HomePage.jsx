@@ -6,23 +6,10 @@ import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
 import FocusTimer from "../components/FocusTimer";
 import {
-  CheckCircle, Clock, Calendar, Plus, Play, Pause,
-  LogIn, LogOut, Coffee, ArrowRight,
+  CheckCircle, Calendar, Plus, Play,
+  LogIn, LogOut, Coffee, AlertCircle,
 } from "lucide-react";
 
-function QuickCard({ icon: Icon, label, value, accent, unit }) {
-  return (
-    <div className="glass-card p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${accent || "bg-accent/10"}`}>
-        <Icon className={`w-5 h-5 ${accent ? "text-white" : "text-accent"}`} />
-      </div>
-      <div>
-        <p className="text-2xl font-bold font-mono">{value}{unit && <span className="text-sm ml-0.5">{unit}</span>}</p>
-        <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{label}</p>
-      </div>
-    </div>
-  );
-}
 
 function ClockWidget({ t }) {
   const { state, dispatch, getSessionMinutes, isOnBreak } = useTimeTracking();
@@ -178,15 +165,21 @@ export default function HomePage() {
   const { t } = useI18n();
   const { state, dispatch } = useApp();
   const { getEventsForDate } = useCalendar();
-  const { getTodayMinutes } = useTimeTracking();
   const { settings } = useSettings();
 
   const today = new Date().toISOString().slice(0, 10);
   const todayEvents = getEventsForDate(today);
 
+  const allDayEvents = todayEvents.filter((ev) => ev.allDay);
+  const timedEvents = todayEvents.filter((ev) => !ev.allDay);
+
   const pendingTasks = state.tasks.filter((tk) => !tk.completed);
+  const overdueTasks = pendingTasks.filter((tk) => tk.deadline && new Date(tk.deadline + "T23:59:59") < new Date());
   const topTasks = [...pendingTasks]
     .sort((a, b) => {
+      const aOverdue = a.deadline && new Date(a.deadline + "T23:59:59") < new Date() ? 0 : 1;
+      const bOverdue = b.deadline && new Date(b.deadline + "T23:59:59") < new Date() ? 0 : 1;
+      if (aOverdue !== bOverdue) return aOverdue - bOverdue;
       const p = { high: 0, medium: 1, low: 2 };
       return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
     })
@@ -197,37 +190,70 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Greeting */}
-      <div>
-        <h2 className="text-xl font-semibold">{t("home.greeting")}</h2>
-        <p className="text-sm text-muted-light dark:text-muted-dark mt-1">{t("home.subtitle")}</p>
+    <div className="space-y-5 animate-fade-in">
+      {/* Greeting + Quick Stats */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">{t("home.greeting")}</h2>
+          <p className="text-sm text-muted-light dark:text-muted-dark mt-0.5">{t("home.subtitle")}</p>
+        </div>
+        <div className="flex gap-3">
+          <div className="glass-card px-4 py-2 text-center">
+            <p className="text-lg font-bold font-mono text-success">{state.completedToday}</p>
+            <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.completed")}</p>
+          </div>
+          <div className="glass-card px-4 py-2 text-center">
+            <p className="text-lg font-bold font-mono">{pendingTasks.length}</p>
+            <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.open")}</p>
+          </div>
+          <div className="glass-card px-4 py-2 text-center">
+            <p className="text-lg font-bold font-mono text-accent">{state.focusMinutesToday}<span className="text-xs ml-0.5">{t("stats.min")}</span></p>
+            <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.focusMin")}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <QuickCard icon={CheckCircle} label={t("stats.completed")} value={state.completedToday} accent="bg-success" />
-        <QuickCard icon={CheckCircle} label={t("stats.open")} value={pendingTasks.length} />
-        <QuickCard icon={Clock} label={t("stats.focusMin")} value={state.focusMinutesToday} unit={t("stats.min")} accent="bg-accent" />
-        <QuickCard icon={Clock} label={t("timeTracking.workHours")} value={getTodayMinutes()} unit={t("stats.min")} />
-      </div>
+      {/* All-day events banner */}
+      {allDayEvents.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {allDayEvents.map((ev) => (
+            <span key={ev.id} className="badge bg-accent/10 text-accent text-xs flex items-center gap-1.5 px-3 py-1.5">
+              <Calendar className="w-3.5 h-3.5" /> {ev.title || ev.summary} <span className="opacity-60 text-[10px]">{t("calendar.allDay")}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
-      {/* Main Content */}
+      {/* Workflow Row 1: Time tracking + Focus */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Clock In/Out */}
+        <div className="lg:col-span-2">
           <ClockWidget t={t} />
+        </div>
+        <div>
+          <FocusTimer />
+        </div>
+      </div>
 
-          {/* Today's Tasks + Quick Add */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-3">{t("home.openTasks")}</h3>
-            <QuickAddTask t={t} onAdd={handleQuickAdd} />
-            {topTasks.length === 0 ? (
-              <p className="text-sm text-muted-light dark:text-muted-dark py-4 text-center">{t("home.noTasks")}</p>
-            ) : (
-              <div className="space-y-1 mt-3">
-                {topTasks.map((task) => (
+      {/* Workflow Row 2: Tasks + Calendar Events */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Tasks column */}
+        <div className="lg:col-span-2 glass-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("home.openTasks")}</h3>
+            {overdueTasks.length > 0 && (
+              <span className="badge bg-danger/10 text-danger text-[10px] flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> {overdueTasks.length} {t("tasks.overdue")}
+              </span>
+            )}
+          </div>
+          <QuickAddTask t={t} onAdd={handleQuickAdd} />
+          {topTasks.length === 0 ? (
+            <p className="text-sm text-muted-light dark:text-muted-dark py-4 text-center">{t("home.noTasks")}</p>
+          ) : (
+            <div className="space-y-1 mt-3">
+              {topTasks.map((task) => {
+                const isOverdue = task.deadline && new Date(task.deadline + "T23:59:59") < new Date();
+                return (
                   <div key={task.id} className="flex items-center gap-3 py-2 group">
                     <button
                       onClick={() => dispatch({ type: "COMPLETE_TASK", payload: task.id })}
@@ -238,46 +264,44 @@ export default function HomePage() {
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                       task.priority === "high" ? "bg-danger" : task.priority === "medium" ? "bg-warn" : "bg-success"
                     }`} />
-                    <span className="text-sm flex-1 truncate">{task.text}</span>
+                    <span className={`text-sm flex-1 truncate ${isOverdue ? "text-danger font-medium" : ""}`}>{task.text}</span>
+                    {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-danger flex-shrink-0" />}
                     <span className="text-[10px] text-muted-light dark:text-muted-dark font-mono">~{task.estimatedMinutes}{t("common.min")}</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Today's Events */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-3">{t("home.upcoming")}</h3>
-            {todayEvents.length === 0 ? (
-              <p className="text-sm text-muted-light dark:text-muted-dark py-4 text-center">{t("home.noEvents")}</p>
-            ) : (
-              <div className="space-y-2">
-                {todayEvents
-                  .sort((a, b) => (a.start || "").localeCompare(b.start || ""))
-                  .map((ev) => (
-                  <div key={ev.id} className="flex items-center gap-3 py-2">
-                    <Calendar className="w-4 h-4 text-accent flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{ev.title || ev.summary}</p>
-                      {ev.start && !ev.allDay && (
-                        <p className="text-[10px] text-muted-light dark:text-muted-dark font-mono">
-                          {new Date(ev.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          {ev.end && <> <ArrowRight className="w-2.5 h-2.5 inline" /> {new Date(ev.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>}
-                        </p>
-                      )}
-                      {ev.allDay && <p className="text-[10px] text-muted-light dark:text-muted-dark">{t("calendar.allDay")}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Right Column */}
+        {/* Calendar Events + Day Plan column */}
         <div className="space-y-5">
-          <FocusTimer />
+          {/* Today's Timed Events */}
+          <div className="glass-card p-5">
+            <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-3">{t("home.upcoming")}</h3>
+            {timedEvents.length === 0 ? (
+              <p className="text-sm text-muted-light dark:text-muted-dark py-2 text-center">{t("home.noEvents")}</p>
+            ) : (
+              <div className="space-y-2">
+                {timedEvents
+                  .sort((a, b) => (a.start || "").localeCompare(b.start || ""))
+                  .map((ev) => (
+                    <div key={ev.id} className="flex items-start gap-2">
+                      <div className="w-1 h-full min-h-[2rem] rounded-full bg-accent flex-shrink-0 mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{ev.title || ev.summary}</p>
+                        {ev.start && (
+                          <p className="text-[10px] text-muted-light dark:text-muted-dark font-mono">
+                            {ev.start} {ev.end && <> – {ev.end}</>}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
           <DayPlan t={t} events={todayEvents} tasks={topTasks} settings={settings} />
         </div>
       </div>

@@ -50,7 +50,9 @@
     "subtasks": "Subtasks",
     "addSubtask": "Add subtask...",
     "fromMail": "From mail",
-    "mailFrom": "From: {from}"
+    "mailFrom": "From: {from}",
+    "reopen": "Reopen",
+    "complete": "Complete"
   },
   "focus": {
     "title": "Focus Block",
@@ -118,6 +120,7 @@
     "loading": "Loading mails...",
     "connectionError": "Connection failed.",
     "taskCreated": "Task created",
+    "removeTag": "Remove tag",
     "tags": {
       "important": "Important",
       "todo": "ToDo",
