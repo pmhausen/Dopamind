@@ -18,13 +18,14 @@ export default function CalendarPage() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ title: "", description: "", date: "", start: "09:00", end: "10:00", allDay: false });
 
-  const selectedDate = new Date(state.selectedDate);
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth();
+  // Parse date parts directly to avoid UTC/local timezone drift
+  const [year, monthNum] = state.selectedDate.split("-").map(Number);
+  const month = monthNum - 1;
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const weeks = useMemo(() => {
     const cells = [];
@@ -38,7 +39,8 @@ export default function CalendarPage() {
 
   const navigateMonth = (delta) => {
     const d = new Date(year, month + delta, 1);
-    dispatch({ type: "SET_DATE", payload: d.toISOString().slice(0, 10) });
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+    dispatch({ type: "SET_DATE", payload: dateStr });
   };
 
   const selectDate = (day) => {

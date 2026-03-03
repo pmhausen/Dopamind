@@ -7,7 +7,7 @@ const initialState = {
   events: [],
   loading: false,
   error: null,
-  selectedDate: new Date().toISOString().slice(0, 10),
+  selectedDate: (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`; })(),
   view: "month",
   fetched: false,
 };
