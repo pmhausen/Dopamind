@@ -57,7 +57,7 @@ async function withImap(config, folder, fn) {
 // POST /api/mail/send
 router.post("/send", async (req, res) => {
   const config = getMailConfig(req);
-  if (!config?.smtp) return res.status(400).json({ error: "SMTP not configured" });
+  if (!config?.smtp?.host) return res.status(400).json({ error: "SMTP not configured – set SMTP host in settings" });
 
   const { to, cc, subject, body } = req.body;
   if (!to || !subject) return res.status(400).json({ error: "Missing to/subject" });

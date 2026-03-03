@@ -37,8 +37,55 @@ function reducer(state, action) {
         estimatedMinutes: action.payload.estimatedMinutes || 25,
         completed: false,
         createdAt: Date.now(),
+        deadline: action.payload.deadline || null,
+        mailRef: action.payload.mailRef || null,
+        subtasks: action.payload.subtasks || [],
       };
       return { ...state, tasks: [...state.tasks, task] };
+    }
+
+    case "UPDATE_TASK":
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === action.payload.id ? { ...t, ...action.payload } : t
+        ),
+      };
+
+    case "ADD_SUBTASK": {
+      const { taskId, text } = action.payload;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, subtasks: [...(t.subtasks || []), { id: Date.now().toString(36), text, completed: false }] }
+            : t
+        ),
+      };
+    }
+
+    case "TOGGLE_SUBTASK": {
+      const { taskId: tId, subtaskId } = action.payload;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === tId
+            ? { ...t, subtasks: (t.subtasks || []).map((s) => s.id === subtaskId ? { ...s, completed: !s.completed } : s) }
+            : t
+        ),
+      };
+    }
+
+    case "DELETE_SUBTASK": {
+      const { taskId: dtId, subtaskId: dsId } = action.payload;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === dtId
+            ? { ...t, subtasks: (t.subtasks || []).filter((s) => s.id !== dsId) }
+            : t
+        ),
+      };
     }
 
     case "COMPLETE_TASK": {

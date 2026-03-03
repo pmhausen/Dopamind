@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useMail } from "../context/MailContext";
+import { useApp } from "../context/AppContext";
 import { useSettings } from "../context/SettingsContext";
 import {
-  Mail, Reply, Trash2, Archive, Tag, Send, X, ChevronLeft,
-  Inbox, FileText, AlertCircle, CheckSquare, Clock, Star, Filter,
+  Mail, Reply, Trash2, Archive, Tag, Send, X, ChevronLeft, Loader,
+  Inbox, FileText, AlertCircle, CheckSquare, Clock, Star, Filter, Link,
 } from "lucide-react";
 
 const TAG_COLORS = {
@@ -28,27 +29,44 @@ function MailCompose({ mail, onSend, onDiscard, t }) {
   const [cc, setCc] = useState(mail?.cc || "");
   const [subject, setSubject] = useState(mail?.subject || "");
   const [body, setBody] = useState(mail?.body || "");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSending(true);
+    setError(null);
+    try {
+      await onSend({ to, cc, subject, body, replyTo: mail?.replyTo });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSend({ to, cc, subject, body, replyTo: mail?.replyTo }); }} className="glass-card p-5 space-y-3 animate-fade-in">
+    <form onSubmit={handleSubmit} className="glass-card p-5 space-y-3 animate-fade-in">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-light dark:text-muted-dark">{mail?.replyTo ? t("mail.reply") : t("mail.compose")}</h3>
         <button type="button" onClick={onDiscard} className="btn-ghost p-1.5"><X className="w-4 h-4" /></button>
       </div>
+      {error && <p className="text-sm text-danger bg-danger/10 rounded-xl px-3 py-2">{error}</p>}
       <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder={t("mail.to")} className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" required />
       <input type="text" value={cc} onChange={(e) => setCc(e.target.value)} placeholder={t("mail.cc")} className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
       <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={t("mail.subject")} className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" required />
       <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={t("mail.body")} rows={8} className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none" />
       <div className="flex gap-2">
-        <button type="submit" className="btn-primary text-sm flex items-center gap-2"><Send className="w-4 h-4" /> {t("mail.send")}</button>
+        <button type="submit" disabled={sending} className="btn-primary text-sm flex items-center gap-2">{sending ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {t("mail.send")}</button>
         <button type="button" onClick={onDiscard} className="btn-ghost text-sm">{t("mail.discard")}</button>
       </div>
     </form>
   );
 }
 
-function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onBack }) {
+function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onCreateTask, onBack }) {
   const [showTags, setShowTags] = useState(false);
+  const [taskCreated, setTaskCreated] = useState(false);
   return (
     <div className="glass-card p-5 animate-fade-in">
       <button onClick={onBack} className="btn-ghost text-sm mb-4 flex items-center gap-1"><ChevronLeft className="w-4 h-4" /> {t("nav.mail")}</button>
@@ -66,6 +84,7 @@ function MailDetail({ mail, t, onReply, onDelete, onArchive, onTag, onBack }) {
       </div>
       <div className="flex gap-2 mb-4 flex-wrap">
         <button onClick={onReply} className="btn-ghost text-sm flex items-center gap-1.5"><Reply className="w-4 h-4" /> {t("mail.reply")}</button>
+        <button onClick={() => { onCreateTask(mail); setTaskCreated(true); }} disabled={taskCreated} className="btn-ghost text-sm flex items-center gap-1.5"><CheckSquare className="w-4 h-4" /> {taskCreated ? t("mail.taskCreated") : t("mail.toTask")}</button>
         <button onClick={onArchive} className="btn-ghost text-sm flex items-center gap-1.5"><Archive className="w-4 h-4" /> {t("mail.archive")}</button>
         <div className="relative">
           <button onClick={() => setShowTags(!showTags)} className="btn-ghost text-sm flex items-center gap-1.5"><Tag className="w-4 h-4" /> {t("mail.tag")}</button>
@@ -88,7 +107,27 @@ export default function MailPage() {
   const { t } = useI18n();
   const { settings, isMailConfigured } = useSettings();
   const { state, fetchMails, selectMail, deleteMail, archiveMail, tagMail, sendMail, startCompose, startReply, dispatch } = useMail();
+  const { dispatch: appDispatch } = useApp();
   const [activeFolder, setActiveFolder] = useState("INBOX");
+
+  const handleCreateTask = (mail) => {
+    // Determine priority from mail tags
+    const priorityMap = { important: "high", todo: "medium", waiting: "low" };
+    const tagPriority = (mail.tags || []).find((tg) => priorityMap[tg]);
+    const priority = tagPriority ? priorityMap[tagPriority] : "medium";
+
+    appDispatch({
+      type: "ADD_TASK",
+      payload: {
+        text: mail.subject || "(no subject)",
+        priority,
+        estimatedMinutes: 25,
+        mailRef: { uid: mail.uid, folder: activeFolder, subject: mail.subject, from: mail.from },
+      },
+    });
+    // Also tag the mail as "todo" on IMAP
+    tagMail(mail.uid, "todo");
+  };
 
   const masterTag = settings.mail?.masterTagEnabled ? settings.mail?.masterTag : null;
 
@@ -108,7 +147,7 @@ export default function MailPage() {
   }
 
   if (state.composing) return <div className="animate-fade-in max-w-2xl"><MailCompose mail={state.composing} onSend={sendMail} onDiscard={() => dispatch({ type: "SET_COMPOSING", payload: null })} t={t} /></div>;
-  if (state.selectedMail) return <div className="animate-fade-in max-w-3xl"><MailDetail mail={state.selectedMail} t={t} onReply={() => startReply(state.selectedMail)} onDelete={() => deleteMail(state.selectedMail.uid)} onArchive={() => archiveMail(state.selectedMail.uid)} onTag={(tag) => tagMail(state.selectedMail.uid, tag)} onBack={() => selectMail(null)} /></div>;
+  if (state.selectedMail) return <div className="animate-fade-in max-w-3xl"><MailDetail mail={state.selectedMail} t={t} onReply={() => startReply(state.selectedMail)} onDelete={() => deleteMail(state.selectedMail.uid)} onArchive={() => archiveMail(state.selectedMail.uid)} onTag={(tag) => tagMail(state.selectedMail.uid, tag)} onCreateTask={handleCreateTask} onBack={() => selectMail(null)} /></div>;
 
   return (
     <div className="space-y-5 animate-fade-in">

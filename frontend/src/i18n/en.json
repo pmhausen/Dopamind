@@ -43,7 +43,14 @@
       "all": "All",
       "open": "Open",
       "done": "Done"
-    }
+    },
+    "deadline": "Deadline",
+    "deadlinePlaceholder": "Due by...",
+    "overdue": "Overdue",
+    "subtasks": "Subtasks",
+    "addSubtask": "Add subtask...",
+    "fromMail": "From mail",
+    "mailFrom": "From: {from}"
   },
   "focus": {
     "title": "Focus Block",
@@ -110,6 +117,7 @@
     "noMails": "Inbox empty.",
     "loading": "Loading mails...",
     "connectionError": "Connection failed.",
+    "taskCreated": "Task created",
     "tags": {
       "important": "Important",
       "todo": "ToDo",
@@ -148,7 +156,11 @@
     "overtime": "Overtime",
     "target": "Target",
     "actual": "Actual",
-    "balance": "Balance"
+    "balance": "Balance",
+    "absenceFrom": "From",
+    "absenceTo": "To",
+    "absenceNote": "Note...",
+    "days": "days"
   },
   "settings": {
     "title": "Settings",

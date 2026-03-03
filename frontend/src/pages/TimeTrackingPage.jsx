@@ -26,7 +26,8 @@ export default function TimeTrackingPage() {
   const { state, dispatch, getSessionMinutes, getTodayMinutes, getWeekMinutes, isOnBreak } = useTimeTracking();
   const { settings } = useSettings();
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
-  const [absence, setAbsence] = useState({ date: new Date().toISOString().slice(0, 10), type: "vacation", note: "" });
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [absence, setAbsence] = useState({ startDate: todayStr, endDate: todayStr, type: "vacation", note: "" });
 
   const isClockedIn = !!state.currentSession;
 
@@ -46,7 +47,8 @@ export default function TimeTrackingPage() {
     e.preventDefault();
     dispatch({ type: "ADD_ABSENCE", payload: absence });
     setShowAbsenceForm(false);
-    setAbsence({ date: new Date().toISOString().slice(0, 10), type: "vacation", note: "" });
+    const today = new Date().toISOString().slice(0, 10);
+    setAbsence({ startDate: today, endDate: today, type: "vacation", note: "" });
   };
 
   return (
@@ -189,12 +191,27 @@ export default function TimeTrackingPage() {
 
           {showAbsenceForm && (
             <form onSubmit={handleAbsenceSubmit} className="space-y-3 mb-4 pb-4 border-b border-gray-200/50 dark:border-white/5">
-              <input
-                type="date"
-                value={absence.date}
-                onChange={(e) => setAbsence((a) => ({ ...a, date: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1 block">{t("timeTracking.absenceFrom")}</label>
+                  <input
+                    type="date"
+                    value={absence.startDate}
+                    onChange={(e) => setAbsence((a) => ({ ...a, startDate: e.target.value, endDate: a.endDate < e.target.value ? e.target.value : a.endDate }))}
+                    className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1 block">{t("timeTracking.absenceTo")}</label>
+                  <input
+                    type="date"
+                    value={absence.endDate}
+                    min={absence.startDate}
+                    onChange={(e) => setAbsence((a) => ({ ...a, endDate: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  />
+                </div>
+              </div>
               <select
                 value={absence.type}
                 onChange={(e) => setAbsence((a) => ({ ...a, type: e.target.value }))}
@@ -208,7 +225,7 @@ export default function TimeTrackingPage() {
                 type="text"
                 value={absence.note}
                 onChange={(e) => setAbsence((a) => ({ ...a, note: e.target.value }))}
-                placeholder="Notiz..."
+                placeholder={t("timeTracking.absenceNote")}
                 className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
               <button type="submit" className="btn-primary text-sm w-full">{t("common.save")}</button>
@@ -221,28 +238,42 @@ export default function TimeTrackingPage() {
             </p>
           ) : (
             <div className="space-y-2">
-              {state.absences.map((a) => (
-                <div key={a.id} className="group flex items-center gap-3 py-2">
-                  <span className="text-xs font-mono text-muted-light dark:text-muted-dark w-20">
-                    {new Date(a.date).toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}
-                  </span>
-                  <span className={`badge text-[10px] ${
-                    a.type === "vacation" ? "bg-accent/10 text-accent" :
-                    a.type === "sick" ? "bg-danger/10 text-danger" :
-                    a.type === "childSick" ? "bg-warn/10 text-amber-700" :
-                    "bg-success/10 text-success"
-                  }`}>
-                    {t(`timeTracking.absenceTypes.${a.type}`)}
-                  </span>
-                  {a.note && <span className="text-xs text-muted-light dark:text-muted-dark truncate flex-1">{a.note}</span>}
-                  <button
-                    onClick={() => dispatch({ type: "DELETE_ABSENCE", payload: a.id })}
-                    className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+              {state.absences.map((a) => {
+                const start = a.startDate || a.date;
+                const end = a.endDate || a.date;
+                const isRange = start !== end;
+                const dayCount = isRange ? Math.round((new Date(end) - new Date(start)) / 86400000) + 1 : 1;
+                return (
+                  <div key={a.id} className="group flex items-center gap-3 py-2">
+                    <span className="text-xs font-mono text-muted-light dark:text-muted-dark min-w-[80px]">
+                      {new Date(start + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}
+                      {isRange && (
+                        <> – {new Date(end + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}</>
+                      )}
+                    </span>
+                    {isRange && (
+                      <span className="text-[10px] text-muted-light dark:text-muted-dark font-mono">
+                        {dayCount} {t("timeTracking.days")}
+                      </span>
+                    )}
+                    <span className={`badge text-[10px] ${
+                      a.type === "vacation" ? "bg-accent/10 text-accent" :
+                      a.type === "sick" ? "bg-danger/10 text-danger" :
+                      a.type === "childSick" ? "bg-warn/10 text-amber-700" :
+                      "bg-success/10 text-success"
+                    }`}>
+                      {t(`timeTracking.absenceTypes.${a.type}`)}
+                    </span>
+                    {a.note && <span className="text-xs text-muted-light dark:text-muted-dark truncate flex-1">{a.note}</span>}
+                    <button
+                      onClick={() => dispatch({ type: "DELETE_ABSENCE", payload: a.id })}
+                      className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

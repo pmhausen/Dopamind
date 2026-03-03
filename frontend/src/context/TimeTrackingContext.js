@@ -6,7 +6,7 @@ const STORAGE_KEY = "dopamind-timetracking";
 const initialState = {
   currentSession: null, // { clockIn: timestamp, breaks: [{ start, end? }] }
   entries: [],          // [{ id, date, clockIn, clockOut, breaks, totalMinutes }]
-  absences: [],         // [{ id, date, type, note }]
+  absences: [],         // [{ id, startDate, endDate, type, note }]
 };
 
 function calcSessionMinutes(session) {

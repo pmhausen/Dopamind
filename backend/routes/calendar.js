@@ -315,11 +315,16 @@ router.post("/test", async (req, res) => {
   const caldavConfig = getCalDavConfig(req);
   if (!caldavConfig?.url) return res.status(400).json({ error: "CalDAV not configured" });
 
+  const testBody = `<?xml version="1.0" encoding="UTF-8"?>
+<d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>`;
+
   try {
-    const result = await caldavRequest(caldavConfig.url, "PROPFIND", null, caldavConfig, 0);
-    if (result.status >= 400) throw new Error(`HTTP ${result.status}`);
+    const result = await caldavRequest(caldavConfig.url, "PROPFIND", testBody, caldavConfig, 0);
+    if (result.status === 401) throw new Error("Authentication failed (401)");
+    if (result.status >= 400) throw new Error(`HTTP ${result.status}: ${result.text.slice(0, 200)}`);
     res.json({ success: true });
   } catch (err) {
+    console.error("CalDAV test error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -329,7 +334,8 @@ router.get("/", async (req, res) => {
   const caldavConfig = getCalDavConfig(req);
   const { start, end } = req.query;
 
-  const calUrl = caldavConfig ? getCalendarUrl(caldavConfig) : null;
+  // Only use CalDAV if a specific calendar collection is selected (not just the base URL)
+  const calUrl = caldavConfig?.calendarUrl ? caldavConfig.calendarUrl.replace(/\/$/, "") : null;
   if (calUrl) {
     try {
       const events = await fetchCalDavEvents(caldavConfig, start, end);
@@ -355,7 +361,7 @@ router.post("/", async (req, res) => {
     id: req.body.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
   };
 
-  const calUrl = caldavConfig ? getCalendarUrl(caldavConfig) : null;
+  const calUrl = caldavConfig?.calendarUrl ? caldavConfig.calendarUrl.replace(/\/$/, "") : null;
   if (calUrl) {
     try {
       const ical = toIcal(event);
@@ -380,7 +386,7 @@ router.put("/:id", async (req, res) => {
   const caldavConfig = getCalDavConfig(req);
   const event = { ...req.body, id: req.params.id };
 
-  const calUrl = caldavConfig ? getCalendarUrl(caldavConfig) : null;
+  const calUrl = caldavConfig?.calendarUrl ? caldavConfig.calendarUrl.replace(/\/$/, "") : null;
   if (calUrl) {
     try {
       const ical = toIcal(event);
@@ -405,7 +411,7 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   const caldavConfig = getCalDavConfig(req);
 
-  const calUrl = caldavConfig ? getCalendarUrl(caldavConfig) : null;
+  const calUrl = caldavConfig?.calendarUrl ? caldavConfig.calendarUrl.replace(/\/$/, "") : null;
   if (calUrl) {
     try {
       const delUrl = `${calUrl}/${req.params.id}.ics`;

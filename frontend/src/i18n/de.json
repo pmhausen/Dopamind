@@ -27,7 +27,14 @@
       "all": "Alle",
       "open": "Offen",
       "done": "Erledigt"
-    }
+    },
+    "deadline": "Deadline",
+    "deadlinePlaceholder": "Erledigen bis...",
+    "overdue": "Überfällig",
+    "subtasks": "Unteraufgaben",
+    "addSubtask": "Unteraufgabe hinzufügen...",
+    "fromMail": "Aus Mail",
+    "mailFrom": "Von: {from}"
   },
   "focus": {
     "title": "Fokus-Block",
@@ -94,6 +101,7 @@
     "noMails": "Posteingang leer.",
     "loading": "Mails werden geladen...",
     "connectionError": "Verbindung fehlgeschlagen.",
+    "taskCreated": "Aufgabe erstellt",
     "tags": {
       "important": "Wichtig",
       "todo": "ToDo",
@@ -132,7 +140,11 @@
     "overtime": "Überstunden",
     "target": "Soll",
     "actual": "Ist",
-    "balance": "Saldo"
+    "balance": "Saldo",
+    "absenceFrom": "Von",
+    "absenceTo": "Bis",
+    "absenceNote": "Notiz...",
+    "days": "Tage"
   },
   "settings": {
     "title": "Einstellungen",
