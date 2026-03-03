@@ -300,27 +300,20 @@ export default function HomePage() {
     dispatch({ type: "ADD_TASK", payload: { text, priority: "medium", estimatedMinutes: 25 } });
   };
 
-  const prevDay = () => {
-    const d = new Date(viewDate + "T00:00:00");
-    d.setDate(d.getDate() - 1);
-    setViewDate(d.toISOString().slice(0, 10));
+  const shiftDate = (dateStr, delta) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10);
   };
 
-  const nextDay = () => {
-    const d = new Date(viewDate + "T00:00:00");
-    d.setDate(d.getDate() + 1);
-    setViewDate(d.toISOString().slice(0, 10));
-  };
+  const prevDay = () => setViewDate((cur) => shiftDate(cur, -1));
+  const nextDay = () => setViewDate((cur) => shiftDate(cur, +1));
 
   const formatViewDate = () => {
     if (isToday) return t("common.today");
-    const tomorrowDate = new Date(todayStr + "T00:00:00");
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    if (viewDate === tomorrowDate.toISOString().slice(0, 10)) return t("common.tomorrow");
-    const yesterdayDate = new Date(todayStr + "T00:00:00");
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    if (viewDate === yesterdayDate.toISOString().slice(0, 10)) return t("common.yesterday");
-    return new Date(viewDate + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit", year: "numeric" });
+    if (viewDate === shiftDate(todayStr, +1)) return t("common.tomorrow");
+    if (viewDate === shiftDate(todayStr, -1)) return t("common.yesterday");
+    const [y, m, d] = viewDate.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
   const features = settings.features || {};
