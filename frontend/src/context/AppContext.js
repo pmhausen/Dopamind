@@ -260,6 +260,7 @@ function reducer(state, action) {
         deadline: action.payload.deadline || null,
         mailRef: action.payload.mailRef || null,
         subtasks: action.payload.subtasks || [],
+        tags: action.payload.tags || [],
       };
       return { ...state, tasks: [...state.tasks, task] };
     }

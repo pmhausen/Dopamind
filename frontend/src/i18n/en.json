@@ -54,6 +54,14 @@
     "overdue": "Overdue",
     "subtasks": "Subtasks",
     "addSubtask": "Add subtask...",
+    "addTag": "Add tag...",
+    "sortBy": "Sort",
+    "sort": {
+      "priority": "Priority",
+      "deadline": "Deadline",
+      "created": "Created"
+    },
+    "clearFilter": "Clear filter",
     "fromMail": "From mail",
     "mailFrom": "From: {from}",
     "reopen": "Reopen",
