@@ -344,6 +344,7 @@
     "activate": "Aktivieren",
     "deactivate": "Deaktivieren",
     "confirmDelete": "Benutzer wirklich löschen?",
+    "deleted": "gelöscht",
     "noAuditLogs": "Keine Einträge.",
     "system": "System"
   }

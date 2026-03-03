@@ -78,7 +78,7 @@ export default function AdminPage() {
         method: "PUT",
         body: JSON.stringify({ active: !u.active }),
       });
-      flash(`${u.email} ${!u.active ? "activated" : "deactivated"}`);
+      flash(`${u.email} ${!u.active ? t("admin.activate") : t("admin.deactivate")}`);
       loadUsers(pagination.page);
     } catch (err) {
       flash(err.message);
@@ -89,7 +89,7 @@ export default function AdminPage() {
     if (!window.confirm(`${t("admin.confirmDelete")} ${u.email}?`)) return;
     try {
       await apiFetch(`/admin/users/${u.id}`, { method: "DELETE" });
-      flash(`${u.email} deleted`);
+      flash(`${u.email} ${t("admin.deleted")}`);
       loadUsers(pagination.page);
     } catch (err) {
       flash(err.message);
