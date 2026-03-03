@@ -227,7 +227,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   // If isToday: tasks/breaks whose scheduled end is in the past get repositioned after nowTotal
   if (isToday) {
     const overdueEntries = entries.filter((e) => e.type !== "event" && e.startMin + e.durationMin <= nowTotal);
-    let pushCursor = Math.max(nowTotal, ...overdueEntries.map(() => nowTotal));
+    let pushCursor = nowTotal;
     // Snap to next grid slot after now
     pushCursor = Math.ceil(pushCursor / STEP) * STEP;
     for (const oe of overdueEntries) {
@@ -381,8 +381,9 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                     const entryHeight = spanSlots * ROW_HEIGHT - 4;
 
                     // Can this entry be rescheduled to next day?
+                    const todayDate = new Date().toISOString().slice(0, 10);
                     const canReschedule = entry.pushedDown && (isTask || isSubtask) && entry.task &&
-                      (!entry.task.deadline || entry.task.deadline > new Date().toISOString().slice(0, 10));
+                      (!entry.task.deadline || entry.task.deadline >= todayDate);
 
                     return (
                       <div
@@ -400,7 +401,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                           ${isSubtask && entry.overdue ? "bg-danger/5 text-danger border-l-2 border-danger/30" : ""}
                           ${isTask && !isParentSummary && entry.overdue ? "bg-danger/10 text-danger border-l-2 border-danger" : ""}
                           ${isTask && !isParentSummary && !entry.overdue ? "bg-gray-100 dark:bg-white/5 border-l-2 border-gray-300 dark:border-white/15" : ""}
-                          ${entry.type === "break" ? "bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 border-l-2 border-amber-400" : ""}
+                          ${entry.type === "break" ? "bg-warn/10 text-amber-700 dark:text-warn border-l-2 border-warn" : ""}
                           ${entry.pushedDown ? "border-dashed !border-l-2 !border-orange-400 bg-orange-50 dark:bg-orange-900/10" : ""}
                         `}
                       >
