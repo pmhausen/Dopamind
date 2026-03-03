@@ -115,6 +115,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   const [editText, setEditText] = useState("");
   const [dragKey, setDragKey] = useState(null);
   const [dragOverSlot, setDragOverSlot] = useState(null);
+  const todayDate = new Date().toISOString().slice(0, 10);
 
   const handleEditSave = (id) => {
     if (editText.trim()) {
@@ -185,10 +186,18 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
         if (isRangeFree(midMin + offset, midMin + offset + breakMin)) { breakStart = midMin + offset; break; }
       }
     }
-    // Match with actual time tracking breaks retrospectively
+    // Match with actual time tracking breaks retrospectively (by time proximity)
     let matchedBreak = null;
     if (timeTrackingBreaks && timeTrackingBreaks.length > 0) {
-      matchedBreak = timeTrackingBreaks[0];
+      const breakMid = breakStart + breakMin / 2;
+      matchedBreak = timeTrackingBreaks.reduce((best, b) => {
+        const bStart = new Date(b.start);
+        const bMid = bStart.getHours() * 60 + bStart.getMinutes() + ((b.end ? new Date(b.end) - bStart : 0) / 120000);
+        const dist = Math.abs(bMid - breakMid);
+        if (!best || dist < best.dist) return { ...b, dist };
+        return best;
+      }, null);
+      if (matchedBreak && matchedBreak.dist > 120) matchedBreak = null; // Only match within 2 hours
     }
     entries.push({ key: "break", type: "break", startMin: breakStart, durationMin: breakMin, label: `${breakMin}${t("common.min")} ${t("timeTracking.break")}`, matchedBreak });
     claimRange(breakStart, breakStart + breakMin);
@@ -368,7 +377,6 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
           const isParentSummary = entry.type === "task-parent";
           const isPastEntry = isPastDay || (isToday && entry.startMin + entry.durationMin <= nowTotal);
           const isEditing = editingTaskId === (entry.task?.id || entry.subtask?.id);
-          const todayDate = new Date().toISOString().slice(0, 10);
           const canReschedule = entry.pushedDown && (isTask || isSubtask) && entry.task &&
             (!entry.task.deadline || entry.task.deadline >= todayDate);
 
@@ -571,7 +579,6 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                     const spanSlots = Math.max(1, Math.ceil(entry.durationMin / STEP));
                     const entryHeight = spanSlots * ROW_HEIGHT - 4;
 
-                    const todayDate = new Date().toISOString().slice(0, 10);
                     const canReschedule = entry.pushedDown && (isTask || isSubtask) && entry.task &&
                       (!entry.task.deadline || entry.task.deadline >= todayDate);
 
