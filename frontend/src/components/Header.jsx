@@ -1,16 +1,18 @@
 import { useTheme } from "../context/ThemeContext";
 import { useApp, getLevelTitle } from "../context/AppContext";
 import { useSettings } from "../context/SettingsContext";
+import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n/I18nContext";
-import { Sun, Moon, Globe, Settings, Trophy } from "lucide-react";
+import { Sun, Moon, Globe, Settings, Trophy, LogOut, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import XpBar from "./XpBar";
 
 export default function Header() {
   const { dark, toggle } = useTheme();
   const { state } = useApp();
-  const { lang, switchLang, availableLanguages } = useI18n();
+  const { lang, switchLang, availableLanguages, t } = useI18n();
   const { settings } = useSettings();
+  const { user, logout } = useAuth();
   const levelTitle = getLevelTitle(state.level, lang);
   const features = settings.features || {};
 
@@ -64,6 +66,23 @@ export default function Header() {
               <Moon className="w-5 h-5 text-gray-500" />
             )}
           </button>
+
+          {/* User info & logout */}
+          {user && (
+            <div className="flex items-center gap-2 ml-1 pl-2 border-l border-gray-200/50 dark:border-white/10">
+              <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-light dark:text-muted-dark">
+                <User className="w-3.5 h-3.5" />
+                <span className="max-w-[120px] truncate">{user.name}</span>
+              </div>
+              <button
+                onClick={logout}
+                className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-light dark:text-muted-dark hover:text-danger transition-colors"
+                title={t("auth.logout")}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

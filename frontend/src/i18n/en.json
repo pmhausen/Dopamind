@@ -12,7 +12,8 @@
     "zeitmanagement": "Time Management",
     "time": "Time",
     "settings": "Settings",
-    "achievements": "Achievements"
+    "achievements": "Achievements",
+    "admin": "Administration"
   },
   "home": {
     "greeting": "One step at a time.",
@@ -308,5 +309,42 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "tomorrow": "Tomorrow"
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Register",
+    "logout": "Log Out",
+    "email": "Email Address",
+    "emailPlaceholder": "name@example.com",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already registered?",
+    "pwMin8": "At least 8 characters",
+    "pwUpper": "One uppercase letter",
+    "pwLower": "One lowercase letter",
+    "pwNumber": "One number",
+    "pwRequirements": "Password does not meet requirements",
+    "pwMismatch": "Passwords do not match"
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Users",
+    "auditLog": "Audit Log",
+    "searchUsers": "Search users...",
+    "search": "Search",
+    "totalUsers": "Total users",
+    "registered": "Registered",
+    "lastLogin": "Last login",
+    "disabled": "Disabled",
+    "makeAdmin": "Make admin",
+    "removeAdmin": "Remove admin",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "confirmDelete": "Really delete user?",
+    "noAuditLogs": "No entries.",
+    "system": "System"
   }
 }

@@ -12,7 +12,8 @@
     "zeitmanagement": "Zeitmanagement",
     "time": "Zeit",
     "settings": "Einstellungen",
-    "achievements": "Erfolge"
+    "achievements": "Erfolge",
+    "admin": "Administration"
   },
   "tasks": {
     "title": "Aufgaben",
@@ -308,5 +309,42 @@
     "today": "Heute",
     "yesterday": "Gestern",
     "tomorrow": "Morgen"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "email": "E-Mail-Adresse",
+    "emailPlaceholder": "name@beispiel.de",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "name": "Name",
+    "namePlaceholder": "Dein Name",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits registriert?",
+    "pwMin8": "Mindestens 8 Zeichen",
+    "pwUpper": "Ein Großbuchstabe",
+    "pwLower": "Ein Kleinbuchstabe",
+    "pwNumber": "Eine Zahl",
+    "pwRequirements": "Passwort erfüllt nicht die Anforderungen",
+    "pwMismatch": "Passwörter stimmen nicht überein"
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Benutzer",
+    "auditLog": "Protokoll",
+    "searchUsers": "Benutzer suchen...",
+    "search": "Suchen",
+    "totalUsers": "Benutzer gesamt",
+    "registered": "Registriert",
+    "lastLogin": "Letzter Login",
+    "disabled": "Deaktiviert",
+    "makeAdmin": "Zum Admin machen",
+    "removeAdmin": "Admin-Rechte entfernen",
+    "activate": "Aktivieren",
+    "deactivate": "Deaktivieren",
+    "confirmDelete": "Benutzer wirklich löschen?",
+    "noAuditLogs": "Keine Einträge.",
+    "system": "System"
   }
 }
