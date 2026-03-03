@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
 import { useMail } from "../context/MailContext";
-import { Mail, Calendar, Plus, ChevronDown, ChevronRight, CheckSquare, Square, Trash2, AlertCircle, Pencil, RotateCcw, Check, X, Tag, Clock, Folder, CalendarDays, Settings2, GripVertical } from "lucide-react";
+import { Mail, Calendar, Plus, ChevronDown, ChevronRight, CheckSquare, Square, Trash2, AlertCircle, Pencil, RotateCcw, Check, X, Tag, Clock, Folder, CalendarDays, Settings2, GripVertical, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 const PRIORITY_CONFIG = {
   high: { dot: "bg-danger", color: "bg-danger/10 text-danger dark:bg-danger/20" },
@@ -448,6 +448,7 @@ export default function TasksPage() {
   const [filterCategory, setFilterCategory] = useState(null);
   const [addFormExpanded, setAddFormExpanded] = useState(false);
   const [managingCategories, setManagingCategories] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newCatName, setNewCatName] = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("📁");
   const [editingCatId, setEditingCatId] = useState(null);
@@ -555,150 +556,179 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="flex gap-4">
-        {/* Category sidebar */}
-        <div className="w-48 flex-shrink-0">
-          <div className="glass-card p-3 space-y-1 sticky top-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("tasks.category")}</h3>
-              <button
-                onClick={() => setManagingCategories((v) => !v)}
-                className="w-5 h-5 rounded flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
-                title={t("tasks.manageCategories")}
-              >
-                <Settings2 className="w-3 h-3" />
-              </button>
-            </div>
+      {/* Header bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-semibold">{t("tasks.title")}</h2>
+          {filterCategory && categories.find((c) => c.id === filterCategory) && (
+            <span className="badge bg-accent/10 text-accent text-xs flex items-center gap-1">
+              {categories.find((c) => c.id === filterCategory)?.emoji} {getCatDisplayName(categories.find((c) => c.id === filterCategory))}
+              <button onClick={() => setFilterCategory(null)} className="ml-0.5 hover:text-danger"><X className="w-3 h-3" /></button>
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
+            title={t("tasks.category")}
+          >
+            {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+          </button>
+          <button type="button" onClick={() => setAddFormExpanded(true)} className="btn-primary text-sm flex items-center gap-2">
+            <Plus className="w-4 h-4" /> {t("tasks.add")}
+          </button>
+        </div>
+      </div>
 
-            {/* "All" category */}
-            <button
-              onClick={() => setFilterCategory(null)}
-              onDragOver={(e) => handleCatDragOver(e, "_none")}
-              onDragLeave={handleCatDragLeave}
-              onDrop={(e) => handleCatDrop(e, "_none")}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all ${
-                !filterCategory ? "bg-accent/10 text-accent font-medium" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"
-              } ${dragOverCatId === "_none" ? "ring-2 ring-accent/40" : ""}`}
-            >
-              <Folder className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="flex-1 text-left truncate">{t("tasks.filter.all")}</span>
-              <span className="text-[10px] font-mono opacity-60">{state.tasks.length}</span>
-            </button>
-
-            {/* Category list — each is a drop target */}
-            {categories.map((cat) => (
-              <div key={cat.id}>
-                {editingCatId === cat.id ? (
-                  <div className="flex items-center gap-1 px-1 py-0.5">
-                    <input
-                      value={editCatEmoji}
-                      onChange={(e) => setEditCatEmoji(e.target.value)}
-                      className="w-7 px-0.5 py-0.5 rounded text-center text-xs bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
-                    />
-                    <input
-                      value={editCatName}
-                      onChange={(e) => setEditCatName(e.target.value)}
-                      className="flex-1 min-w-0 px-1 py-0.5 rounded text-[10px] bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
-                    />
-                    <button
-                      onClick={() => { dispatch({ type: "UPDATE_CATEGORY", payload: { id: cat.id, name: editCatName, emoji: editCatEmoji } }); setEditingCatId(null); }}
-                      className="text-accent"
-                    ><Check className="w-3 h-3" /></button>
-                    <button onClick={() => setEditingCatId(null)} className="text-muted-light"><X className="w-3 h-3" /></button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setFilterCategory(filterCategory === cat.id ? null : cat.id)}
-                    onDragOver={(e) => handleCatDragOver(e, cat.id)}
-                    onDragLeave={handleCatDragLeave}
-                    onDrop={(e) => handleCatDrop(e, cat.id)}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all group/cat ${
-                      filterCategory === cat.id ? (cat.color || "bg-accent/10 text-accent") + " font-medium" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"
-                    } ${dragOverCatId === cat.id ? "ring-2 ring-accent/40 scale-[1.02]" : ""}`}
-                  >
-                    <span className="flex-shrink-0">{cat.emoji}</span>
-                    <span className="flex-1 text-left truncate">{getCatDisplayName(cat)}</span>
-                    <span className="text-[10px] font-mono opacity-60">{taskCountByCategory[cat.id] || 0}</span>
-                    {managingCategories && (
-                      <span className="flex items-center gap-0.5 opacity-0 group-hover/cat:opacity-100 transition-opacity">
-                        <span
-                          onClick={(e) => { e.stopPropagation(); setEditingCatId(cat.id); setEditCatName(cat.name); setEditCatEmoji(cat.emoji); }}
-                          className="cursor-pointer hover:text-accent"
-                        ><Pencil className="w-2.5 h-2.5" /></span>
-                        <span
-                          onClick={(e) => { e.stopPropagation(); dispatch({ type: "DELETE_CATEGORY", payload: cat.id }); }}
-                          className="cursor-pointer hover:text-danger"
-                        ><Trash2 className="w-2.5 h-2.5" /></span>
-                      </span>
-                    )}
-                  </button>
-                )}
-              </div>
-            ))}
-
-            {/* Add category (visible in manage mode) */}
-            {managingCategories && (
-              <div className="pt-1 flex items-center gap-1">
-                <input
-                  value={newCatEmoji}
-                  onChange={(e) => setNewCatEmoji(e.target.value)}
-                  placeholder="📁"
-                  className="w-7 px-0.5 py-0.5 rounded text-center text-xs bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
-                />
-                <input
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder={t("tasks.categoryName")}
-                  className="flex-1 min-w-0 px-1 py-0.5 rounded text-[10px] bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
-                />
+      <div className={`grid grid-cols-1 gap-5 ${sidebarOpen ? "lg:grid-cols-4" : ""}`}>
+        {/* Category sidebar — collapsible, hidden on mobile by default */}
+        {sidebarOpen && (
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="glass-card p-4 space-y-1.5 sticky top-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("tasks.category")}</h3>
                 <button
-                  onClick={() => {
-                    if (!newCatName.trim()) return;
-                    const colorIdx = categories.length % CATEGORY_COLORS.length;
-                    dispatch({ type: "ADD_CATEGORY", payload: { name: newCatName.trim(), emoji: newCatEmoji || "📁", color: CATEGORY_COLORS[colorIdx] } });
-                    setNewCatName("");
-                    setNewCatEmoji("📁");
-                  }}
-                  className="text-accent"
-                ><Plus className="w-3.5 h-3.5" /></button>
+                  onClick={() => setManagingCategories((v) => !v)}
+                  className="w-6 h-6 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
+                  title={t("tasks.manageCategories")}
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                </button>
               </div>
+
+              {/* "All" category */}
+              <button
+                onClick={() => setFilterCategory(null)}
+                onDragOver={(e) => handleCatDragOver(e, "_none")}
+                onDragLeave={handleCatDragLeave}
+                onDrop={(e) => handleCatDrop(e, "_none")}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
+                  !filterCategory ? "bg-accent/10 text-accent dark:bg-accent/20 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
+                } ${dragOverCatId === "_none" ? "ring-2 ring-accent/40" : ""}`}
+              >
+                <Folder className="w-4 h-4 flex-shrink-0" />
+                <span className="flex-1 text-left truncate">{t("tasks.filter.all")}</span>
+                <span className="text-xs font-mono opacity-60">{state.tasks.length}</span>
+              </button>
+
+              {/* Category list — each is a drop target */}
+              {categories.map((cat) => (
+                <div key={cat.id}>
+                  {editingCatId === cat.id ? (
+                    <div className="flex items-center gap-1.5 px-2 py-1">
+                      <input
+                        value={editCatEmoji}
+                        onChange={(e) => setEditCatEmoji(e.target.value)}
+                        className="w-8 px-1 py-1 rounded-lg text-center text-sm bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
+                      />
+                      <input
+                        value={editCatName}
+                        onChange={(e) => setEditCatName(e.target.value)}
+                        className="flex-1 min-w-0 px-2 py-1 rounded-lg text-xs bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => { dispatch({ type: "UPDATE_CATEGORY", payload: { id: cat.id, name: editCatName, emoji: editCatEmoji } }); setEditingCatId(null); }}
+                        className="text-accent"
+                      ><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingCatId(null)} className="text-muted-light"><X className="w-4 h-4" /></button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setFilterCategory(filterCategory === cat.id ? null : cat.id)}
+                      onDragOver={(e) => handleCatDragOver(e, cat.id)}
+                      onDragLeave={handleCatDragLeave}
+                      onDrop={(e) => handleCatDrop(e, cat.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all group/cat ${
+                        filterCategory === cat.id ? (cat.color || "bg-accent/10 text-accent") + " font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
+                      } ${dragOverCatId === cat.id ? "ring-2 ring-accent/40 scale-[1.02]" : ""}`}
+                    >
+                      <span className="flex-shrink-0 text-base">{cat.emoji}</span>
+                      <span className="flex-1 text-left truncate">{getCatDisplayName(cat)}</span>
+                      <span className="text-xs font-mono opacity-60">{taskCountByCategory[cat.id] || 0}</span>
+                      {managingCategories && (
+                        <span className="flex items-center gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
+                          <span
+                            onClick={(e) => { e.stopPropagation(); setEditingCatId(cat.id); setEditCatName(cat.name); setEditCatEmoji(cat.emoji); }}
+                            className="cursor-pointer hover:text-accent"
+                          ><Pencil className="w-3 h-3" /></span>
+                          <span
+                            onClick={(e) => { e.stopPropagation(); dispatch({ type: "DELETE_CATEGORY", payload: cat.id }); }}
+                            className="cursor-pointer hover:text-danger"
+                          ><Trash2 className="w-3 h-3" /></span>
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* Add category (visible in manage mode) */}
+              {managingCategories && (
+                <div className="pt-2 flex items-center gap-1.5">
+                  <input
+                    value={newCatEmoji}
+                    onChange={(e) => setNewCatEmoji(e.target.value)}
+                    placeholder="📁"
+                    className="w-8 px-1 py-1 rounded-lg text-center text-sm bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
+                  />
+                  <input
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder={t("tasks.categoryName")}
+                    className="flex-1 min-w-0 px-2 py-1 rounded-lg text-xs bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!newCatName.trim()) return;
+                      const colorIdx = categories.length % CATEGORY_COLORS.length;
+                      dispatch({ type: "ADD_CATEGORY", payload: { name: newCatName.trim(), emoji: newCatEmoji || "📁", color: CATEGORY_COLORS[colorIdx] } });
+                      setNewCatName("");
+                      setNewCatEmoji("📁");
+                    }}
+                    className="text-accent"
+                  ><Plus className="w-4 h-4" /></button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile category chips (visible on small screens when sidebar hidden) */}
+        <div className="lg:hidden col-span-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Folder className="w-4 h-4 text-muted-light dark:text-muted-dark flex-shrink-0" />
+            {filterCategory && (
+              <button
+                onClick={() => setFilterCategory(null)}
+                className="badge text-xs bg-gray-100 dark:bg-white/10 text-muted-light dark:text-muted-dark flex items-center gap-1"
+              >
+                <X className="w-3 h-3" /> {t("tasks.clearFilter")}
+              </button>
             )}
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setFilterCategory(filterCategory === cat.id ? null : cat.id)}
+                onDragOver={(e) => handleCatDragOver(e, cat.id)}
+                onDragLeave={handleCatDragLeave}
+                onDrop={(e) => handleCatDrop(e, cat.id)}
+                className={`badge text-xs ${cat.color || "bg-gray-100 text-gray-700"} transition-opacity ${filterCategory === cat.id ? "ring-1 ring-current/40" : "opacity-70 hover:opacity-100"} ${dragOverCatId === cat.id ? "ring-2 ring-accent/40" : ""}`}
+              >
+                {cat.emoji} <span className="ml-0.5 font-mono">{taskCountByCategory[cat.id] || 0}</span>
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Main task list */}
-        <div className="flex-1 min-w-0">
-          <div className="glass-card p-5">
-            <h2 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
-              {t("tasks.title")}
-              {filterCategory && categories.find((c) => c.id === filterCategory) && (
-                <span className="ml-2 normal-case font-normal">
-                  — {categories.find((c) => c.id === filterCategory)?.emoji} {getCatDisplayName(categories.find((c) => c.id === filterCategory))}
-                </span>
-              )}
-            </h2>
-
+        <div className={sidebarOpen ? "lg:col-span-3" : "col-span-1"}>
+          <div className="glass-card">
             {/* Collapsible Add form */}
-            {!addFormExpanded ? (
-              <div className="mb-5">
-                <form onSubmit={handleAdd} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onFocus={() => setAddFormExpanded(true)}
-                    placeholder={t("tasks.addPlaceholder")}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm placeholder:text-muted-light dark:placeholder:text-muted-dark focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all"
-                  />
-                  <button type="button" onClick={() => setAddFormExpanded(true)} className="btn-ghost text-xs whitespace-nowrap flex items-center gap-1">
-                    <Plus className="w-3.5 h-3.5" /> {t("tasks.addTaskExpand")}
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <div className="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/5 space-y-3 animate-fade-in">
+            {addFormExpanded && (
+              <div className="p-5 border-b border-gray-200/50 dark:border-white/5 space-y-3 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("tasks.add")}</h3>
+                  <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("tasks.add")}</h3>
                   <button onClick={() => setAddFormExpanded(false)} className="text-xs text-muted-light dark:text-muted-dark hover:text-accent">{t("tasks.addTaskCollapse")}</button>
                 </div>
                 <form onSubmit={handleAdd} className="space-y-3">
@@ -781,7 +811,7 @@ export default function TasksPage() {
                         key={cat.id}
                         type="button"
                         onClick={() => setCategory(category === cat.id ? "" : cat.id)}
-                        className={`px-2 py-1 rounded-lg text-[10px] transition-all ${category === cat.id ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                        className={`px-2 py-1 rounded-lg text-xs transition-all ${category === cat.id ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
                       >
                         {cat.emoji}
                       </button>
@@ -816,13 +846,13 @@ export default function TasksPage() {
             )}
 
             {/* Filter + Sort bar */}
-            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-              <div className="flex gap-1">
+            <div className="flex items-center justify-between gap-2 px-5 py-3 border-b border-gray-200/50 dark:border-white/5 flex-wrap">
+              <div className="flex gap-1.5">
                 {["all", "open", "done"].map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                       filter === f
                         ? "bg-accent/10 text-accent dark:bg-accent/20"
                         : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"
@@ -838,7 +868,7 @@ export default function TasksPage() {
                   <button
                     key={s}
                     onClick={() => setSortBy(s)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       sortBy === s
                         ? "bg-accent/10 text-accent dark:bg-accent/20"
                         : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"
@@ -852,12 +882,12 @@ export default function TasksPage() {
 
             {/* Tag filter chips */}
             {allTags.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap mb-4">
+              <div className="flex items-center gap-1.5 flex-wrap px-5 py-2 border-b border-gray-200/50 dark:border-white/5">
                 <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
                 {filterTag && (
                   <button
                     onClick={() => setFilterTag(null)}
-                    className="badge text-[10px] bg-gray-100 dark:bg-white/10 text-muted-light dark:text-muted-dark flex items-center gap-1"
+                    className="badge text-xs bg-gray-100 dark:bg-white/10 text-muted-light dark:text-muted-dark flex items-center gap-1"
                   >
                     <X className="w-2.5 h-2.5" /> {t("tasks.clearFilter")}
                   </button>
@@ -866,7 +896,7 @@ export default function TasksPage() {
                   <button
                     key={tag}
                     onClick={() => setFilterTag(filterTag === tag ? null : tag)}
-                    className={`badge text-[10px] ${getTagColor(tag)} transition-opacity ${filterTag === tag ? "ring-1 ring-current/40" : "opacity-70 hover:opacity-100"}`}
+                    className={`badge text-xs ${getTagColor(tag)} transition-opacity ${filterTag === tag ? "ring-1 ring-current/40" : "opacity-70 hover:opacity-100"}`}
                   >
                     {tag}
                   </button>
@@ -875,9 +905,9 @@ export default function TasksPage() {
             )}
 
             {/* Task list */}
-            <div className="space-y-1">
+            <div className="divide-y divide-gray-200/50 dark:divide-white/5">
               {sortedTasks.length === 0 && (
-                <div className="text-center py-8 text-muted-light dark:text-muted-dark">
+                <div className="text-center py-12 text-muted-light dark:text-muted-dark">
                   <p className="text-sm">{t("tasks.empty")}</p>
                   <p className="text-xs mt-1">{t("tasks.emptyHint")}</p>
                 </div>

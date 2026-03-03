@@ -87,7 +87,7 @@ function QuickAddTask({ t, onAdd }) {
   );
 }
 
-function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTaskOverdue, onEditTask, onUpdateScheduledTime, isToday, isPastDay }) {
+function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTaskOverdue, onEditTask, onUpdateScheduledTime, onUpdateSubtaskScheduledTime, isToday, isPastDay }) {
   const startH = parseInt(settings.workSchedule.start.split(":")[0], 10);
   const startM = parseInt(settings.workSchedule.start.split(":")[1] || "0", 10);
   const endH = parseInt(settings.workSchedule.end.split(":")[0], 10);
@@ -285,8 +285,40 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTask
     }
   }
 
-  // Sort all entries by start time
+  // --- Sort entries and insert free-time gap entries between occupied ranges ---
+  // Gaps are visual spacers without any label (requirement: show free time, but no "Frei" text).
   entries.sort((a, b) => a.startMin - b.startMin);
+  const finalEntries = [];
+  let cursor = startTotal;
+  for (const entry of entries) {
+    if (entry.startMin > cursor) {
+      const gapDur = entry.startMin - cursor;
+      if (gapDur >= STEP) {
+        finalEntries.push({
+          key: `free-${cursor}`,
+          type: "free",
+          startMin: cursor,
+          durationMin: gapDur,
+          label: "",
+        });
+      }
+    }
+    finalEntries.push(entry);
+    cursor = Math.max(cursor, entry.startMin + entry.durationMin);
+  }
+  // Trailing gap until end of workday
+  if (cursor < endTotal) {
+    const gapDur = endTotal - cursor;
+    if (gapDur >= STEP) {
+      finalEntries.push({
+        key: `free-${cursor}`,
+        type: "free",
+        startMin: cursor,
+        durationMin: gapDur,
+        label: "",
+      });
+    }
+  }
 
   // --- Drag & drop handlers ---
   const handleDragStart = (e, key) => {
@@ -304,20 +336,44 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTask
     e.preventDefault();
     setDragOverKey(null);
     if (!dragKey || dragKey === targetEntry.key) { setDragKey(null); return; }
-    const srcEntry = entries.find((en) => en.key === dragKey);
+    const srcEntry = finalEntries.find((en) => en.key === dragKey);
+    const newTime = fmtTime(targetEntry.startMin);
+
+    // Handle subtask drag — update subtask scheduledTime
+    if (srcEntry?.type === "subtask" && srcEntry.parentTask && srcEntry.subtask) {
+      onUpdateSubtaskScheduledTime(srcEntry.parentTask.id, srcEntry.subtask.id, newTime);
+      setDragKey(null);
+      return;
+    }
+
+    // Handle parent task drag — enforce: cannot move before latest subtask
+    if (srcEntry?.type === "task-parent" && srcEntry.task) {
+      const subtaskEntries = finalEntries.filter((en) => en.type === "subtask" && en.parentTask?.id === srcEntry.task.id);
+      if (subtaskEntries.length > 0) {
+        const latestSubEnd = Math.max(...subtaskEntries.map((se) => se.startMin + se.durationMin));
+        if (targetEntry.startMin < latestSubEnd) {
+          // Blocked — cannot place parent before subtasks
+          setDragKey(null);
+          return;
+        }
+      }
+      onUpdateScheduledTime(srcEntry.task.id, newTime);
+      setDragKey(null);
+      return;
+    }
+
     if (srcEntry?.task) {
-      const newTime = fmtTime(targetEntry.startMin);
       onUpdateScheduledTime(srcEntry.task.id, newTime);
     }
     setDragKey(null);
   };
   const handleDragEnd = () => { setDragKey(null); setDragOverKey(null); };
 
-  const isDraggable = (entry) => !isPastDay && (entry.type === "task" || entry.type === "task-parent" || entry.type === "break");
+  const isDraggable = (entry) => !isPastDay && (entry.type === "task" || entry.type === "task-parent" || entry.type === "subtask" || entry.type === "break");
 
   return (
     <div className="space-y-0.5">
-      {entries.map((entry) => {
+      {finalEntries.map((entry) => {
         const isPast = isPastDay || (isToday && entry.startMin + entry.durationMin <= nowTotal);
         const isCurrent = isToday && entry.startMin <= nowTotal && nowTotal < entry.startMin + entry.durationMin;
         const isEditing = editingTaskId === (entry.task?.id || entry.subtask?.id);
@@ -330,6 +386,27 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTask
         const isTask = entry.type === "task" || entry.type === "task-parent";
         const isSubtask = entry.type === "subtask";
         const isParentSummary = entry.type === "task-parent";
+        const isFree = entry.type === "free";
+
+        // Free time gap — just a thin visual spacer with time label, no text
+        if (isFree) {
+          return (
+            <div
+              key={entry.key}
+              onDragOver={(e) => handleDragOver(e, entry.key)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, entry)}
+              style={{ minHeight: `${heightPx}px` }}
+              className={`flex items-start gap-3 transition-all ${dragOver ? "ring-2 ring-accent/40 rounded-lg bg-accent/5" : ""}`}
+            >
+              <span className="w-4 flex-shrink-0" />
+              <span className="w-12 text-[11px] font-mono flex-shrink-0 text-muted-light/40 dark:text-muted-dark/40 pt-1">
+                {fmtTime(entry.startMin)}
+              </span>
+              <div style={{ minHeight: `${Math.max(12, heightPx - 4)}px` }} className="flex-1 border-l border-dashed border-gray-200 dark:border-white/5" />
+            </div>
+          );
+        }
 
         return (
           <div
@@ -341,7 +418,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTask
             onDrop={(e) => handleDrop(e, entry)}
             onDragEnd={handleDragEnd}
             style={{ minHeight: `${heightPx}px` }}
-            className={`flex items-center gap-3 group transition-all ${isPast ? "opacity-40" : ""} ${dragging ? "opacity-50 scale-[0.97]" : ""} ${dragOver ? "ring-2 ring-accent/40 rounded-lg" : ""} ${isSubtask ? "ml-4" : ""}`}
+            className={`flex items-center gap-3 group transition-all ${isPast ? "opacity-40" : ""} ${dragging ? "opacity-50 scale-[0.97]" : ""} ${dragOver ? "ring-2 ring-accent/40 rounded-lg" : ""} ${isSubtask ? "ml-3" : ""}`}
           >
             {/* Drag handle */}
             {isDraggable(entry) && !isPast && (
@@ -416,6 +493,13 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTask
                 }`} />
               )}
             </div>
+
+            {/* Parent task box shown next to subtask entries */}
+            {isSubtask && entry.parentTask && (
+              <div className="w-24 flex-shrink-0 px-2 py-1 rounded border border-dashed border-gray-300 dark:border-white/15 bg-gray-100 dark:bg-white/5 text-[10px] text-muted-light dark:text-muted-dark truncate" title={entry.parentTask.text}>
+                {entry.parentTask.text}
+              </div>
+            )}
 
             {/* Task action buttons */}
             {isTask && entry.task && !isPast && !isEditing && (
@@ -614,6 +698,7 @@ export default function HomePage() {
           isTaskOverdue={isTaskOverdue}
           onEditTask={(id, text) => dispatch({ type: "UPDATE_TASK", payload: { id, text } })}
           onUpdateScheduledTime={(id, time) => dispatch({ type: "UPDATE_TASK", payload: { id, scheduledTime: time } })}
+          onUpdateSubtaskScheduledTime={(taskId, subtaskId, time) => dispatch({ type: "UPDATE_SUBTASK", payload: { taskId, subtaskId, scheduledTime: time } })}
           isToday={isToday}
           isPastDay={isPast}
         />
