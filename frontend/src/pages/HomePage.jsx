@@ -173,12 +173,14 @@ export default function HomePage() {
   const allDayEvents = todayEvents.filter((ev) => ev.allDay);
   const timedEvents = todayEvents.filter((ev) => !ev.allDay);
 
+  const isTaskOverdue = (task) => task.deadline && !task.completed && new Date(task.deadline + "T23:59:59") < new Date();
+
   const pendingTasks = state.tasks.filter((tk) => !tk.completed);
-  const overdueTasks = pendingTasks.filter((tk) => tk.deadline && new Date(tk.deadline + "T23:59:59") < new Date());
+  const overdueTasks = pendingTasks.filter(isTaskOverdue);
   const topTasks = [...pendingTasks]
     .sort((a, b) => {
-      const aOverdue = a.deadline && new Date(a.deadline + "T23:59:59") < new Date() ? 0 : 1;
-      const bOverdue = b.deadline && new Date(b.deadline + "T23:59:59") < new Date() ? 0 : 1;
+      const aOverdue = isTaskOverdue(a) ? 0 : 1;
+      const bOverdue = isTaskOverdue(b) ? 0 : 1;
       if (aOverdue !== bOverdue) return aOverdue - bOverdue;
       const p = { high: 0, medium: 1, low: 2 };
       return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
@@ -252,7 +254,7 @@ export default function HomePage() {
           ) : (
             <div className="space-y-1 mt-3">
               {topTasks.map((task) => {
-                const isOverdue = task.deadline && new Date(task.deadline + "T23:59:59") < new Date();
+                const overdue = isTaskOverdue(task);
                 return (
                   <div key={task.id} className="flex items-center gap-3 py-2 group">
                     <button
@@ -264,8 +266,8 @@ export default function HomePage() {
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                       task.priority === "high" ? "bg-danger" : task.priority === "medium" ? "bg-warn" : "bg-success"
                     }`} />
-                    <span className={`text-sm flex-1 truncate ${isOverdue ? "text-danger font-medium" : ""}`}>{task.text}</span>
-                    {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-danger flex-shrink-0" />}
+                    <span className={`text-sm flex-1 truncate ${overdue ? "text-danger font-medium" : ""}`}>{task.text}</span>
+                    {overdue && <AlertCircle className="w-3.5 h-3.5 text-danger flex-shrink-0" />}
                     <span className="text-[10px] text-muted-light dark:text-muted-dark font-mono">~{task.estimatedMinutes}{t("common.min")}</span>
                   </div>
                 );
