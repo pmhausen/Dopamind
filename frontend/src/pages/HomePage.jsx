@@ -104,21 +104,37 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTask
     setEditingTaskId(null);
   };
 
-  // Build hourly slots
+  // Build hourly slots with proper calendar event blocking
   const slots = [];
   for (let h = startH; h < endH; h++) {
     const timeStr = `${String(h).padStart(2, "0")}:00`;
     const event = events.find((ev) => {
       if (ev.allDay) return false;
-      const evStart = ev.start ? new Date(ev.start) : null;
-      const evEnd = ev.end ? new Date(ev.end) : null;
-      if (!evStart) return false;
-      const evStartH = evStart.getHours();
-      const evEndH = evEnd ? evEnd.getHours() : evStartH + 1;
+      if (!ev.start) return false;
+      // Handle both "HH:MM" time strings and full ISO datetime strings
+      let evStartH, evEndH;
+      if (ev.start.length <= 5) {
+        evStartH = parseInt(ev.start.split(":")[0], 10);
+        evEndH = ev.end ? parseInt(ev.end.split(":")[0], 10) : evStartH + 1;
+      } else {
+        const startDate = new Date(ev.start);
+        const endDate = ev.end ? new Date(ev.end) : null;
+        evStartH = startDate.getHours();
+        evEndH = endDate ? endDate.getHours() : evStartH + 1;
+      }
+      // If end minute > 0, the event still occupies that hour
+      if (ev.end) {
+        const endMin = ev.end.length <= 5
+          ? parseInt(ev.end.split(":")[1] || "0", 10)
+          : new Date(ev.end).getMinutes();
+        if (endMin > 0) evEndH += 1;
+      }
       return h >= evStartH && h < evEndH;
     });
     if (event) {
-      slots.push({ time: timeStr, hour: h, type: "event", label: event.title || event.summary });
+      // Show the event's actual time range in the label
+      const timeRange = event.start && event.end ? `${event.start}–${event.end}` : "";
+      slots.push({ time: timeStr, hour: h, type: "event", label: event.title || event.summary, eventTime: timeRange });
     } else {
       slots.push({ time: timeStr, hour: h, type: "free" });
     }

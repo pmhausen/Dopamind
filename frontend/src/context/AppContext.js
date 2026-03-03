@@ -484,33 +484,43 @@ function reducer(state, action) {
       const monthReset = state.lastMonthReset !== currentMonthKey;
       const yearReset = state.lastYearReset !== currentYearKey;
 
-      // --- Overdue-task XP penalties ---
+      // --- Check if user is currently on an absence (time tracking) ---
+      let absences = [];
+      try {
+        const ttData = JSON.parse(localStorage.getItem("dopamind-timetracking") || "{}");
+        absences = ttData.absences || [];
+      } catch {}
+      const isOnAbsence = absences.some((a) => a.startDate <= today && a.endDate >= today);
+
+      // --- Overdue-task XP penalties (skipped during absence) ---
       const penalizedTaskIds = [...(state.penalizedTaskIds || [])];
       const penaltyRewards = [];
       let totalPenalty = 0;
       let penaltyIdx = 0;
 
-      for (const task of state.tasks) {
-        if (task.completed || !task.deadline) continue;
-        const daysOverdue = getDaysOverdue(task.deadline);
-        if (daysOverdue <= 0) continue;
-        if (penalizedTaskIds.includes(task.id)) continue;
-        const penalty = calcOverduePenaltyXp(daysOverdue);
-        totalPenalty += penalty;
-        penalizedTaskIds.push(task.id);
-        penaltyRewards.push({
-          id: Date.now() + penaltyIdx * 1000,
-          type: "overdue-penalty",
-          messageKey: "rewards.overduePenalty",
-          xp: penalty,
-          daysOverdue,
-          timestamp: Date.now(),
-        });
-        penaltyIdx++;
+      if (!isOnAbsence) {
+        for (const task of state.tasks) {
+          if (task.completed || !task.deadline) continue;
+          const daysOverdue = getDaysOverdue(task.deadline);
+          if (daysOverdue <= 0) continue;
+          if (penalizedTaskIds.includes(task.id)) continue;
+          const penalty = calcOverduePenaltyXp(daysOverdue);
+          totalPenalty += penalty;
+          penalizedTaskIds.push(task.id);
+          penaltyRewards.push({
+            id: Date.now() + penaltyIdx * 1000,
+            type: "overdue-penalty",
+            messageKey: "rewards.overduePenalty",
+            xp: penalty,
+            daysOverdue,
+            timestamp: Date.now(),
+          });
+          penaltyIdx++;
+        }
       }
 
-      // --- Inactivity XP penalty (streak broken, not first-ever use) ---
-      if (!streakContinues && state.lastActiveDate !== null) {
+      // --- Inactivity XP penalty (streak broken, not first-ever use, skipped during absence) ---
+      if (!isOnAbsence && !streakContinues && state.lastActiveDate !== null) {
         const inactivityDays = state.lastActiveDate
           ? Math.max(1, Math.floor((new Date(today) - new Date(state.lastActiveDate)) / 86400000) - 1)
           : 0;

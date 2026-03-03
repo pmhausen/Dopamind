@@ -363,5 +363,13 @@
     "deleted": "gelöscht",
     "noAuditLogs": "Keine Einträge.",
     "system": "System"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "empty": "Keine Benachrichtigungen – alles im Griff!",
+    "overdueSince": "Überfällig seit {days} Tag(en)",
+    "dueToday": "Fällig heute",
+    "dueTomorrow": "Fällig morgen",
+    "viewAll": "Alle Aufgaben anzeigen →"
   }
 }

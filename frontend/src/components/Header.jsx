@@ -6,6 +6,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { Sun, Moon, Globe, Settings, Trophy, LogOut, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import XpBar from "./XpBar";
+import NotificationBell from "./NotificationBell";
 
 export default function Header() {
   const { dark, toggle } = useTheme();
@@ -44,6 +45,7 @@ export default function Header() {
           >
             <Settings className="w-4 h-4" />
           </Link>
+          <NotificationBell />
           <button
             onClick={() => {
               const idx = availableLanguages.indexOf(lang);

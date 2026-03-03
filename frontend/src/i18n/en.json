@@ -363,5 +363,13 @@
     "deleted": "deleted",
     "noAuditLogs": "No entries.",
     "system": "System"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications – all good!",
+    "overdueSince": "Overdue by {days} day(s)",
+    "dueToday": "Due today",
+    "dueTomorrow": "Due tomorrow",
+    "viewAll": "View all tasks →"
   }
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useCalendar } from "../context/CalendarContext";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Pencil } from "lucide-react";
 
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
@@ -14,8 +14,9 @@ function getFirstDayOfMonth(year, month) {
 
 export default function CalendarPage() {
   const { t } = useI18n();
-  const { state, dispatch, addEvent, deleteEvent, getEventsForDate } = useCalendar();
+  const { state, dispatch, addEvent, updateEvent, deleteEvent, getEventsForDate } = useCalendar();
   const [showForm, setShowForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const [formData, setFormData] = useState({ title: "", description: "", date: "", start: "09:00", end: "10:00", allDay: false });
 
   // Parse date parts directly to avoid UTC/local timezone drift
@@ -54,17 +55,43 @@ export default function CalendarPage() {
   const handleAddEvent = (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
-    addEvent({
-      id: Date.now().toString(36),
-      title: formData.title,
-      description: formData.description,
-      date: formData.date || state.selectedDate,
-      start: formData.allDay ? null : formData.start,
-      end: formData.allDay ? null : formData.end,
-      allDay: formData.allDay,
-    });
+    if (editingEvent) {
+      updateEvent({
+        ...editingEvent,
+        title: formData.title,
+        description: formData.description,
+        date: formData.date || state.selectedDate,
+        start: formData.allDay ? null : formData.start,
+        end: formData.allDay ? null : formData.end,
+        allDay: formData.allDay,
+      });
+      setEditingEvent(null);
+    } else {
+      addEvent({
+        id: Date.now().toString(36),
+        title: formData.title,
+        description: formData.description,
+        date: formData.date || state.selectedDate,
+        start: formData.allDay ? null : formData.start,
+        end: formData.allDay ? null : formData.end,
+        allDay: formData.allDay,
+      });
+    }
     setFormData({ title: "", description: "", date: "", start: "09:00", end: "10:00", allDay: false });
     setShowForm(false);
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setFormData({
+      title: event.title || "",
+      description: event.description || "",
+      date: event.date || state.selectedDate,
+      start: event.start || "09:00",
+      end: event.end || "10:00",
+      allDay: event.allDay || false,
+    });
+    setShowForm(true);
   };
 
   return (
@@ -150,7 +177,8 @@ export default function CalendarPage() {
             </h3>
             <button
               onClick={() => {
-                setFormData((f) => ({ ...f, date: state.selectedDate }));
+                setEditingEvent(null);
+                setFormData({ title: "", description: "", date: state.selectedDate, start: "09:00", end: "10:00", allDay: false });
                 setShowForm(true);
               }}
               className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 text-accent"
@@ -180,6 +208,12 @@ export default function CalendarPage() {
                     )}
                   </div>
                   <button
+                    onClick={() => handleEditEvent(event)}
+                    className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg flex items-center justify-center text-accent/50 hover:text-accent transition-all"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     onClick={() => deleteEvent(event.id)}
                     className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg flex items-center justify-center text-accent/50 hover:text-danger transition-all"
                   >
@@ -205,6 +239,12 @@ export default function CalendarPage() {
                       <p className="text-xs text-muted-light dark:text-muted-dark mt-1 truncate">{event.description}</p>
                     )}
                   </div>
+                  <button
+                    onClick={() => handleEditEvent(event)}
+                    className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg flex items-center justify-center text-muted-light hover:text-accent transition-all"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                   <button
                     onClick={() => deleteEvent(event.id)}
                     className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg flex items-center justify-center text-muted-light hover:text-danger transition-all"
@@ -261,7 +301,7 @@ export default function CalendarPage() {
               )}
               <div className="flex gap-2">
                 <button type="submit" className="btn-primary text-sm flex-1">{t("calendar.save")}</button>
-                <button type="button" onClick={() => setShowForm(false)} className="btn-ghost text-sm">
+                <button type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }} className="btn-ghost text-sm">
                   {t("calendar.cancel")}
                 </button>
               </div>

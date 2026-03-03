@@ -1,146 +1,227 @@
-# Dopamind – ADHD Planning Support WebTool
+# Dopamind
 
-Dopamind ist ein intelligentes Planungs-Tool, das speziell für die Bedürfnisse von Menschen mit ADHS entwickelt wurde. Es minimiert den "Decision Paralysis"-Effekt, indem es Aufgaben priorisiert, Zeitbedarfe prognostiziert und durch ein Rewards-System Dopamin-Kicks für erledigte Aufgaben liefert.
+**ADHD-friendly planning & productivity tool with gamification.**
+
+Dopamind helps people with ADHD overcome decision paralysis by prioritizing tasks, suggesting time-blocked schedules, and rewarding progress through a gamification system.
 
 ---
 
-## Key Features
+## Features
 
-### Smart IMAP Inbox
-- **IMAP-Proxy:** Mails verbleiben auf dem Server – kein lokales Speichern.
-- **Antworten, Archivieren, Löschen, Taggen** direkt aus der Mailübersicht.
-- **Schlüsseltag-Filter:** Optional nur Mails mit einem definierbaren IMAP-Keyword anzeigen. So können Mails auch aus anderen Clients für Dopamind markiert werden.
-- **Ordner-Navigation:** Inbox, Gesendet, Entwürfe, Papierkorb, Archiv.
-- **SMTP-Versand:** Mails direkt aus Dopamind versenden und beantworten.
+### 🏠 Home Dashboard
+- **Calendar-synced day planning** — tasks are automatically scheduled into free time slots based on work hours and calendar events, so suggestions never conflict with appointments.
+- **Quick stats** — completed tasks, open tasks, focus minutes at a glance.
+- **Quick-add** — create tasks directly from the dashboard.
+- **Clock in/out** — time tracking widget for fast access.
+- **🔔 Notification bell** — persistent indicator for overdue and time-critical tasks.
 
-### Kalender (CalDAV)
-- **CalDAV-Integration:** Sync mit Nextcloud, iCloud, Google Calendar u.a.
-- **Monatsansicht** mit Tagesdetail-Panel.
-- **Event-CRUD:** Termine erstellen, bearbeiten, löschen.
-- **Fallback:** Lokale Speicherung wenn kein CalDAV konfiguriert ist.
+### ✅ Task Management
+- Priorities (High / Medium / Low) with color coding.
+- Deadlines, subtasks, tags, and estimated time per task.
+- Filter (All / Open / Done) and sort (Priority / Deadline / Created).
+- Tasks created from emails retain their mail reference.
 
-### Aufgabenverwaltung
-- **Prioritäten:** Hoch / Mittel / Niedrig mit farblicher Kennzeichnung.
-- **Filter:** Alle, Offen, Erledigt.
-- **Schnellanlage** direkt vom Home-Dashboard.
-- **Geschätzte Bearbeitungszeit** pro Aufgabe.
+### 📅 Calendar (CalDAV)
+- CalDAV integration (Nextcloud, iCloud, Google Calendar, etc.).
+- Month view with day detail panel.
+- **Full event CRUD** — create, edit, and delete events.
+- Fallback to local storage when no CalDAV server is configured.
 
-### Home-Dashboard
-- **Tagesübersicht:** Heutige Aufgaben und Termine auf einen Blick.
-- **Quick Stats:** Erledigte Aufgaben, offene Aufgaben, Fokusminuten, Arbeitszeit.
-- **Schnellanlage:** Neue Aufgaben direkt vom Dashboard anlegen.
-- **Tagesplanungsvorschlag:** Automatische Verteilung von Aufgaben in freie Zeitfenster basierend auf Arbeitszeiten und Terminen.
-- **Ein-/Ausstempeln:** Arbeitszeiterfassung direkt vom Dashboard.
-- **Fokus-Timer:** Pomodoro-artiger Timer mit XP-Belohnung.
+### 📧 Smart IMAP Inbox
+- IMAP proxy — mails remain on the server, no local storage.
+- Reply, archive, delete, tag directly from the UI.
+- Key-tag filter — optionally show only mails tagged with a specific IMAP keyword.
+- Folder navigation (Inbox, Sent, Drafts, Trash, Archive).
+- SMTP send — compose and reply directly from Dopamind.
 
-### Zeiterfassung (Stempeluhr 2.0)
-- **Ein-/Ausstempeln** mit Echtzeit-Anzeige der laufenden Sitzung.
-- **Pausen-Management:** Pausen starten und beenden.
-- **Abwesenheiten:** Urlaub, Krank, Kindkrank, Freizeitausgleich.
-- **Wochenübersicht:** Soll/Ist-Vergleich mit Saldo-Berechnung.
-- **Zeitprotokoll:** Alle Einträge mit Löschmöglichkeit.
+### ⏱️ Time Tracking
+- Clock in/out with real-time session display.
+- Break management (start/end breaks).
+- **Absences** (Vacation, Sick, Child Sick, Compensatory Time) — **overdue task penalties are automatically suspended during recorded absences**.
+- Weekly overview with target/actual comparison and balance calculation.
 
-### Gamification & Rewards
-- **XP-System:** Erfahrungspunkte für erledigte Aufgaben und Fokus-Blöcke.
-- **Level-System:** Aufstieg durch gesammelte XP.
-- **Achievements:** Hat-Trick (3 Aufgaben), Fokus-Streak, Level-Up.
-- **Sound-Effekte:** Optional aktivierbar.
+### 🎮 Gamification & Rewards
+- **XP system** — earn experience for completed tasks and focus blocks.
+- **Level system** with 10 titled ranks (Newcomer → Legendary Focus).
+- **25+ Achievements** in three tiers (Small / Medium / Large).
+- **Streak tracking** with multiplier bonuses.
+- **Penalty protection** — no XP loss for overdue tasks during registered absences.
+- Optional sound effects.
 
-### Mehrsprachigkeit (i18n)
-- **Deutsch** und **Englisch** vollständig unterstützt.
-- Sprachauswahl in den Einstellungen.
+### 🌍 Internationalization
+- German and English fully supported.
+- Language toggle in the header.
 
-### Einstellungen
-- **Allgemein:** Sprache, Theme (Hell/Dunkel).
-- **Gamification:** XP-System und Sound-Effekte ein/aus.
-- **Arbeitszeiten:** Start, Ende, Pausendauer, Arbeitstage.
-- **Mail-Filter:** Schlüsseltag aktivieren/deaktivieren mit konfigurierbarem Tag-Namen.
-- **IMAP:** Server, Port, TLS, Zugangsdaten.
-- **SMTP:** Server, Port, Zugangsdaten.
-- **CalDAV:** URL, Zugangsdaten.
-
-### Design & Accessibility
-- **Responsive WebApp:** Desktop-Sidebar + Mobile-Bottom-Navigation.
-- **Dark/Light Mode:** Sanfte Kontraste, Glassmorphism-Design.
-- **Minimalistic UI:** Fokus auf das Wesentliche.
+### ⚙️ Settings
+- General: Language, Theme (Light / Dark).
+- Work Schedule: Start, End, Break duration, Work days.
+- Mail: IMAP/SMTP configuration, key-tag filter.
+- Calendar: CalDAV URL, credentials, calendar discovery.
+- Gamification: XP system and sound effects toggle.
+- Feature toggles: Enable/disable Mail, Calendar, Time Tracking, Gamification.
+- Account: Profile editing, password change, account deletion.
 
 ---
 
 ## Tech Stack
 
-| Schicht    | Technologie                                 |
+| Layer      | Technology                                  |
 |------------|---------------------------------------------|
 | Frontend   | React 18, React Router v6, Tailwind CSS 3   |
 | Icons      | lucide-react                                |
 | State      | Context API + useReducer                    |
-| Backend    | Express.js (IMAP/SMTP/CalDAV Proxy)        |
-| IMAP       | ImapFlow                                    |
-| SMTP       | Nodemailer                                  |
+| Backend    | Express.js (Node.js)                        |
+| Database   | PostgreSQL 16                               |
+| Auth       | JWT + bcrypt                                |
+| Mail       | ImapFlow + Nodemailer                       |
 | CalDAV     | Raw HTTP (PROPFIND, REPORT, PUT, DELETE)    |
 | Deploy     | Docker Compose + Nginx                      |
 
-## Architektur
+## Architecture
 
 ```
-┌─────────────────────────────────────┐
-│  Browser (React SPA)                │
-│  ├── Contexts (App, Settings, ...)  │
-│  ├── Services (API Layer)           │
-│  └── Pages (Home, Tasks, ...)       │
-└──────────┬──────────────────────────┘
-           │ /api/*
-┌──────────▼──────────────────────────┐
-│  Express Backend (Port 4000)        │
-│  ├── /api/mail   → IMAP/SMTP       │
-│  ├── /api/calendar → CalDAV/Local   │
-│  └── /api/health                    │
-└──────────┬──────────────────────────┘
-           │
-┌──────────▼──────────────────────────┐
-│  IMAP / SMTP / CalDAV Server        │
-└─────────────────────────────────────┘
+┌────────────────────────────────────────┐
+│  Browser (React SPA)                   │
+│  ├── Contexts (App, Settings, ...)     │
+│  ├── Services (API Layer)              │
+│  └── Pages (Home, Tasks, Calendar ...) │
+└───────────┬────────────────────────────┘
+            │ /api/*
+┌───────────▼────────────────────────────┐
+│  Express Backend (Port 4000)           │
+│  ├── /api/auth     → JWT Auth          │
+│  ├── /api/user-data → Settings/State   │
+│  ├── /api/mail     → IMAP/SMTP Proxy  │
+│  ├── /api/calendar → CalDAV/Local      │
+│  └── /api/admin    → User Management  │
+└───────────┬────────────────────────────┘
+            │
+┌───────────▼────────────────────────────┐
+│  PostgreSQL 16 (User data, Auth)       │
+│  IMAP / SMTP / CalDAV Server(s)       │
+└────────────────────────────────────────┘
 ```
 
-## Schnellstart
+---
+
+## Quick Start
+
+### With Docker (recommended)
 
 ```bash
-# Klonen
 git clone https://github.com/Elmontag/Dopamind.git
 cd Dopamind
 
-# Mit Docker starten
+# Start all services
 docker-compose up --build
 
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:4000
-# Nginx:    http://localhost:80
+# Frontend:  http://localhost:3000
+# Backend:   http://localhost:4000
+# Nginx:     http://localhost (port 80)
 ```
 
-### Ohne Docker
+### Without Docker
 
 ```bash
-# Backend
-cd backend && npm install && node server.js
+# 1. Start PostgreSQL and create the database
+#    (adjust credentials as needed)
+createdb dopamind
 
-# Frontend (neues Terminal)
-cd frontend && npm install && npm start
+# 2. Backend
+cd backend
+npm install
+DATABASE_URL="postgresql://user:pass@localhost:5432/dopamind" \
+JWT_SECRET="your-secret-key" \
+node server.js
+
+# 3. Frontend (new terminal)
+cd frontend
+npm install
+npm start
 ```
 
-## Konfiguration
+---
 
-Alle Einstellungen werden über die Web-Oberfläche unter `/settings` vorgenommen und im Browser-LocalStorage gespeichert:
+## Production Deployment
 
-1. **IMAP/SMTP** konfigurieren für Mailzugriff
-2. **CalDAV** konfigurieren für Kalendersync
-3. **Arbeitszeiten** einstellen für Tagesplanung
-4. Optional: **Schlüsseltag** aktivieren für Mail-Filterung
+### Environment Variables
+
+Create a `.env` file in the project root (used by `docker-compose`):
+
+```env
+# PostgreSQL
+POSTGRES_USER=dopamind
+POSTGRES_PASSWORD=<strong-password>
+POSTGRES_DB=dopamind
+
+# Backend
+DATABASE_URL=postgresql://dopamind:<strong-password>@postgres:5432/dopamind
+JWT_SECRET=<random-secret-min-32-chars>
+JWT_EXPIRES_IN=24h
+ENCRYPTION_KEY=<random-secret-for-credential-encryption>
+CORS_ORIGIN=https://your-domain.com
+ADMIN_EMAIL=admin@your-domain.com
+ADMIN_PASSWORD=<initial-admin-password>
+
+# Frontend
+REACT_APP_API_URL=https://your-domain.com/api
+```
+
+### Security Checklist
+
+- [ ] Set a strong `JWT_SECRET` (at least 32 random characters).
+- [ ] Set a strong `ENCRYPTION_KEY` for encrypting stored mail/CalDAV credentials.
+- [ ] Change default PostgreSQL credentials.
+- [ ] Set `ADMIN_PASSWORD` on first start, then change it in the UI.
+- [ ] Configure `CORS_ORIGIN` to your actual domain (no wildcards).
+- [ ] Use HTTPS with a valid certificate (configure in Nginx).
+- [ ] Run `docker-compose up -d` for background mode.
+- [ ] Set up PostgreSQL backups (e.g. `pg_dump` cron job).
+
+### Nginx (Production)
+
+Update `nginx/default.conf` for your domain and add SSL:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    ssl_certificate     /etc/ssl/certs/your-cert.pem;
+    ssl_certificate_key /etc/ssl/private/your-key.pem;
+
+    location / {
+        proxy_pass http://frontend:3000;
+    }
+
+    location /api/ {
+        proxy_pass http://backend:4000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+---
+
+## Configuration
+
+All user-facing settings are configured via the web UI under **Settings** (`/settings`):
+
+1. **IMAP/SMTP** — configure for mail access.
+2. **CalDAV** — configure for calendar sync (supports auto-discovery).
+3. **Work Schedule** — set start/end times, break duration, work days.
+4. **Feature Toggles** — enable/disable Mail, Calendar, Time Tracking, Gamification.
+5. Optional: **Key Tag** — filter mails by a specific IMAP keyword.
 
 ---
 
 ## Contributing
 
-Wir freuen uns über Feedback von der Neurodiversitäts-Community! Eröffne gerne ein Issue oder erstelle einen Pull-Request.
+We welcome feedback from the neurodiversity community! Feel free to open an issue or create a pull request.
 
 ---
+
+## License
 
 *Made with care for the ADHD Community.*
