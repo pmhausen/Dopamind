@@ -307,7 +307,9 @@
     "timeWarningsModerate2": "Moderate Warnung 2 (min)",
     "timeWarningsCritical1": "Kritische Warnung 1 (min)",
     "timeWarningsCritical2": "Kritische Warnung 2 (min)",
-    "timeWarningsDesc": "Warnungen wenn die verbleibende freie Zeit knapp wird."
+    "timeWarningsDesc": "Warnungen wenn die verbleibende freie Zeit knapp wird.",
+    "timelineGridInterval": "Tagesplanungs-Raster",
+    "timelineGridIntervalDesc": "Zeitraster für die Tagesplanung (15, 30 oder 60 Minuten)."
   },
   "home": {
     "greeting": "Ein Schritt nach dem anderen.",
@@ -329,7 +331,12 @@
     "dragHint": "Verschieben per Drag & Drop",
     "timeWarningModerate": "Noch ~{min}min verfügbar",
     "timeWarningCritical": "⚠ Nur ~{min}min übrig!",
-    "nowMarker": "Jetzt"
+    "nowMarker": "Jetzt",
+    "rescheduleNextDay": "→ Morgen",
+    "gridInterval": "Raster",
+    "grid15": "15min",
+    "grid30": "30min",
+    "grid60": "60min"
   },
   "rewards": {
     "levelUp": "Level {level} erreicht – {title}!",

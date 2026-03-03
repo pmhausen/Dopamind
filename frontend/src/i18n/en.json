@@ -35,7 +35,12 @@
     "dragHint": "Drag & drop to reorder",
     "timeWarningModerate": "Approx. ~{min}min remaining",
     "timeWarningCritical": "⚠ Only ~{min}min left!",
-    "nowMarker": "Now"
+    "nowMarker": "Now",
+    "rescheduleNextDay": "→ Tomorrow",
+    "gridInterval": "Grid",
+    "grid15": "15min",
+    "grid30": "30min",
+    "grid60": "60min"
   },
   "tasks": {
     "title": "Tasks",
@@ -329,7 +334,9 @@
     "timeWarningsModerate2": "Moderate warning 2 (min)",
     "timeWarningsCritical1": "Critical warning 1 (min)",
     "timeWarningsCritical2": "Critical warning 2 (min)",
-    "timeWarningsDesc": "Warnings when remaining free time becomes tight."
+    "timeWarningsDesc": "Warnings when remaining free time becomes tight.",
+    "timelineGridInterval": "Day plan grid interval",
+    "timelineGridIntervalDesc": "Time grid interval for the day plan view (15, 30, or 60 minutes)."
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",

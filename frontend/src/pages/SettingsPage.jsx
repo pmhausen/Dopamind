@@ -510,6 +510,24 @@ export default function SettingsPage() {
                 </Field>
               </div>
             </Section>
+            <Section title={t("settings.timelineGridInterval")}>
+              <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.timelineGridIntervalDesc")}</p>
+              <div className="flex gap-2">
+                {[15, 30, 60].map((iv) => (
+                  <button
+                    key={iv}
+                    onClick={() => updateSettings("timeline", { gridInterval: iv })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      (settings.timeline?.gridInterval || 30) === iv
+                        ? "bg-accent text-white"
+                        : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {iv} min
+                  </button>
+                ))}
+              </div>
+            </Section>
             </>
           )}
 

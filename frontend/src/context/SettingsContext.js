@@ -30,6 +30,9 @@ const defaultSettings = {
     criticalThreshold1: 15,
     criticalThreshold2: 0,
   },
+  timeline: {
+    gridInterval: 30, // 15 | 30 | 60
+  },
 };
 
 function deepMerge(target, source) {
