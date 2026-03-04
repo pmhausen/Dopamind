@@ -483,9 +483,14 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <span className="flex-1 truncate">
-                  {entry.label}
-                  {(isTask || isSubtask) && entry.durationMin > 0 && <span className="ml-1.5 text-[10px] font-mono text-muted-light dark:text-muted-dark">– {fmtTime(entry.startMin + entry.durationMin)} ({entry.durationMin}{t("common.min")})</span>}
+                <span className="flex-1 min-w-0 flex flex-col">
+                  <span className="truncate">
+                    {entry.label}
+                    {(isTask || isSubtask) && entry.durationMin > 0 && <span className="ml-1.5 text-[10px] font-mono text-muted-light dark:text-muted-dark">– {fmtTime(entry.startMin + entry.durationMin)} ({entry.durationMin}{t("common.min")})</span>}
+                  </span>
+                  {isSubtask && entry.parentTask && (
+                    <span className="text-[10px] text-muted-light dark:text-muted-dark truncate">↑ {entry.parentTask.text}</span>
+                  )}
                 </span>
               )}
 
@@ -538,6 +543,13 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                     title={entry.subtask.completed ? t("tasks.reopen") : t("tasks.complete")}>
                     <CheckCircle className={`w-3 h-3 ${entry.subtask.completed ? "text-success" : "text-accent"}`} />
                   </button>
+                  {onStartTask && countdownStartEnabled && !entry.subtask.completed && (
+                    <button onClick={() => onStartTask(entry.subtask)}
+                      className="w-5 h-5 rounded bg-accent/10 flex-shrink-0 hover:bg-accent hover:text-white transition-colors flex items-center justify-center text-accent text-[10px]"
+                      title={t("tasks.start")} aria-label={t("tasks.start")}>
+                      ▶
+                    </button>
+                  )}
                   <button onClick={() => { setEditingTaskId(entry.subtask.id); setEditingSubtaskParent(entry.parentTask.id); setEditText(entry.subtask.text); }}
                     className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                     title={t("common.edit")}>
@@ -759,22 +771,20 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
-                  <span className="flex-1 truncate mt-0.5">
-                    {entry.label}
-                    {isParentSummary && entry.subtaskCount > 0 && <span className="ml-1 text-[10px] font-mono opacity-50">({entry.subtaskCount} ↑)</span>}
+                  <span className="flex-1 min-w-0 flex flex-col mt-0.5">
+                    <span className="truncate">
+                      {entry.label}
+                      {isParentSummary && entry.subtaskCount > 0 && <span className="ml-1 text-[10px] font-mono opacity-50">({entry.subtaskCount} ↑)</span>}
+                    </span>
+                    {isSubtask && entry.parentTask && (
+                      <span className="text-[9px] text-muted-light dark:text-muted-dark truncate">↑ {entry.parentTask.text}</span>
+                    )}
                   </span>
                 )}
 
                 {/* Priority dot */}
                 {(isTask || isSubtask) && entry.priority && !isEditing && (
                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1 ${entry.priority === "high" ? "bg-danger" : entry.priority === "medium" ? "bg-warn" : "bg-success"}`} />
-                )}
-
-                {/* Subtask parent badge */}
-                {isSubtask && entry.parentTask && (
-                  <span className="hidden sm:inline text-[9px] text-muted-light dark:text-muted-dark truncate max-w-[80px] mt-0.5" title={entry.parentTask.text}>
-                    ← {entry.parentTask.text}
-                  </span>
                 )}
 
                 {/* Reschedule to next day button */}
@@ -851,6 +861,13 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                       title={entry.subtask.completed ? t("tasks.reopen") : t("tasks.complete")}>
                       <CheckCircle className={`w-3 h-3 ${entry.subtask.completed ? "text-success" : "text-accent"}`} />
                     </button>
+                    {onStartTask && countdownStartEnabled && !entry.subtask.completed && (
+                      <button onClick={() => onStartTask(entry.subtask)}
+                        className="w-5 h-5 rounded bg-accent/10 flex-shrink-0 hover:bg-accent hover:text-white transition-colors flex items-center justify-center text-accent text-[10px]"
+                        title={t("tasks.start")} aria-label={t("tasks.start")}>
+                        ▶
+                      </button>
+                    )}
                     <button onClick={() => { setEditingTaskId(entry.subtask.id); setEditingSubtaskParent(entry.parentTask.id); setEditText(entry.subtask.text); }}
                       className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                       title={t("common.edit")} aria-label={t("common.edit")}>

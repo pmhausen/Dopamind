@@ -49,13 +49,14 @@ function isTaskOverdue(task) {
   return !!(task.deadline && !task.completed && new Date(task.deadline + "T23:59:59") < new Date());
 }
 
-function SubtaskItem({ subtask, taskId, t }) {
+function SubtaskItem({ subtask, taskId, t, countdownStartEnabled }) {
   const { dispatch } = useApp();
   const [editingMin, setEditingMin] = useState(false);
   const [minVal, setMinVal] = useState(subtask.estimatedMinutes || 0);
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [schedTime, setSchedTime] = useState(subtask.scheduledTime || "");
   const [schedDate, setSchedDate] = useState(subtask.scheduledDate || "");
+  const [showCountdown, setShowCountdown] = useState(false);
   const saveMinutes = () => {
     dispatch({ type: "UPDATE_SUBTASK", payload: { taskId, subtaskId: subtask.id, estimatedMinutes: minVal } });
     setEditingMin(false);
@@ -73,6 +74,15 @@ function SubtaskItem({ subtask, taskId, t }) {
         >
           {subtask.completed ? <CheckSquare className="w-4 h-4 text-success" /> : <Square className="w-4 h-4" />}
         </button>
+        {!subtask.completed && countdownStartEnabled && (
+          <button
+            onClick={() => setShowCountdown(true)}
+            className="w-4 h-4 flex-shrink-0 rounded text-muted-light dark:text-muted-dark hover:text-accent hover:bg-accent/10 transition-all flex items-center justify-center text-[10px]"
+            title={t("tasks.startNow")}
+          >
+            ▶
+          </button>
+        )}
         <span className={`text-xs flex-1 ${subtask.completed ? "line-through text-muted-light dark:text-muted-dark" : ""}`}>
           {subtask.text}
         </span>
@@ -146,6 +156,12 @@ function SubtaskItem({ subtask, taskId, t }) {
             <X className="w-3 h-3" />
           </button>
         </div>
+      )}
+      {showCountdown && (
+        <CountdownStart
+          estimatedMinutes={subtask.estimatedMinutes || 25}
+          onClose={() => setShowCountdown(false)}
+        />
       )}
     </div>
   );
@@ -473,7 +489,7 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
             </Link>
           )}
           {subtasks.map((s) => (
-            <SubtaskItem key={s.id} subtask={s} taskId={task.id} t={t} />
+            <SubtaskItem key={s.id} subtask={s} taskId={task.id} t={t} countdownStartEnabled={countdownStartEnabled} />
           ))}
           {!task.completed && (
             <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pl-8 mt-1">
