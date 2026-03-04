@@ -20,6 +20,19 @@
     "test": "react-scripts test"
   },
   "proxy": "http://localhost:4000",
+  "overrides": {
+    "@babel/plugin-proposal-private-methods": "npm:@babel/plugin-transform-private-methods@^7.25.9",
+    "@babel/plugin-proposal-class-properties": "npm:@babel/plugin-transform-class-properties@^7.25.9",
+    "@babel/plugin-proposal-optional-chaining": "npm:@babel/plugin-transform-optional-chaining@^7.25.9",
+    "@babel/plugin-proposal-numeric-separator": "npm:@babel/plugin-transform-numeric-separator@^7.25.9",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "npm:@babel/plugin-transform-nullish-coalescing-operator@^7.25.9",
+    "@babel/plugin-proposal-private-property-in-object": "npm:@babel/plugin-transform-private-property-in-object@^7.25.9",
+    "@svgr/webpack": "^8.1.0",
+    "cssnano": "^6.1.0",
+    "workbox-webpack-plugin": "^7.4.0",
+    "@rollup/plugin-replace": "^6.0.0",
+    "magic-string": "^0.30.0"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
