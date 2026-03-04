@@ -1,6 +1,8 @@
 const express = require("express");
+const bcrypt = require("bcryptjs");
+const { v4: uuidv4 } = require("uuid");
 const { body, validationResult } = require("express-validator");
-const { getPool, addAuditLog } = require("../db/database");
+const { getPool, addAuditLog, getAppSetting, setAppSetting } = require("../db/database");
 const { authenticate, requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
@@ -62,6 +64,63 @@ router.get("/users", async (req, res) => {
   }
 });
 
+// POST /api/admin/users — create a new user
+router.post(
+  "/users",
+  [
+    body("email").isEmail().normalizeEmail().withMessage("Valid email required"),
+    body("name").trim().isLength({ min: 1, max: 100 }).withMessage("Name required (max 100 characters)"),
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Z]/).withMessage("Password must contain an uppercase letter")
+      .matches(/[a-z]/).withMessage("Password must contain a lowercase letter")
+      .matches(/\d/).withMessage("Password must contain a number"),
+    body("role").optional().isIn(["user", "admin"]).withMessage("Role must be user or admin"),
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const pool = getPool();
+      const { email, name, password, role } = req.body;
+      const userRole = role || "user";
+
+      const { rows: existing } = await pool.query(
+        "SELECT id FROM users WHERE LOWER(email) = LOWER($1)",
+        [email]
+      );
+      if (existing.length > 0) {
+        return res.status(409).json({ error: "Email already registered" });
+      }
+
+      const hash = await bcrypt.hash(password, 12);
+      const id = uuidv4();
+
+      await pool.query(
+        `INSERT INTO users (id, email, name, password_hash, role, email_verified, active)
+         VALUES ($1, $2, $3, $4, $5, TRUE, TRUE)`,
+        [id, email, name, hash, userRole]
+      );
+
+      await addAuditLog(req.user.id, "admin_create_user", `Created user ${email} (${userRole})`, req.ip);
+
+      res.status(201).json({
+        id,
+        email,
+        name,
+        role: userRole,
+        emailVerified: true,
+        active: true,
+        createdAt: new Date().toISOString(),
+        lastLogin: null,
+      });
+    } catch (err) {
+      console.error("Create user error:", err);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  }
+);
+
 // GET /api/admin/users/:id
 router.get("/users/:id", async (req, res) => {
   try {
@@ -98,12 +157,13 @@ router.put(
     body("role").optional().isIn(["user", "admin"]).withMessage("Role must be user or admin"),
     body("active").optional().isBoolean().withMessage("Active must be boolean"),
     body("name").optional().trim().isLength({ min: 1, max: 100 }).withMessage("Name must be 1-100 characters"),
+    body("email").optional().isEmail().normalizeEmail().withMessage("Valid email required"),
   ],
   validate,
   async (req, res) => {
     try {
       const pool = getPool();
-      const { role, active, name } = req.body;
+      const { role, active, name, email } = req.body;
       const targetId = req.params.id;
 
       const { rows: targetRows } = await pool.query(
@@ -133,12 +193,24 @@ router.put(
         }
       }
 
+      // Check email uniqueness if changing email
+      if (email !== undefined && email.toLowerCase() !== target.email.toLowerCase()) {
+        const { rows: existing } = await pool.query(
+          "SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2",
+          [email, targetId]
+        );
+        if (existing.length > 0) {
+          return res.status(409).json({ error: "Email already registered" });
+        }
+      }
+
       const updates = [];
       const values = [];
       let paramIdx = 1;
       if (role !== undefined) { updates.push(`role = $${paramIdx++}`); values.push(role); }
       if (active !== undefined) { updates.push(`active = $${paramIdx++}`); values.push(active); }
       if (name !== undefined) { updates.push(`name = $${paramIdx++}`); values.push(name); }
+      if (email !== undefined) { updates.push(`email = $${paramIdx++}`); values.push(email); }
 
       if (updates.length > 0) {
         updates.push("updated_at = NOW()");
@@ -237,5 +309,36 @@ router.get("/audit-log", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch audit log" });
   }
 });
+
+// GET /api/admin/settings
+router.get("/settings", async (_req, res) => {
+  try {
+    const registrationEnabled = await getAppSetting("registration_enabled", "true");
+    res.json({ registrationEnabled: registrationEnabled === "true" });
+  } catch (err) {
+    console.error("Get settings error:", err);
+    res.status(500).json({ error: "Failed to get settings" });
+  }
+});
+
+// PUT /api/admin/settings
+router.put(
+  "/settings",
+  [
+    body("registrationEnabled").isBoolean().withMessage("registrationEnabled must be boolean"),
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { registrationEnabled } = req.body;
+      await setAppSetting("registration_enabled", String(registrationEnabled));
+      await addAuditLog(req.user.id, "admin_update_settings", `Registration ${registrationEnabled ? "enabled" : "disabled"}`, req.ip);
+      res.json({ registrationEnabled });
+    } catch (err) {
+      console.error("Update settings error:", err);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  }
+);
 
 module.exports = router;

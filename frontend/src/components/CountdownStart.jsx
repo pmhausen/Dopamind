@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
+import { useFocusTimer } from "../context/FocusTimerContext";
 
-export default function CountdownStart({ estimatedMinutes = 25, onClose }) {
+export default function CountdownStart({ taskId, taskText, estimatedMinutes = 25, onClose }) {
   const [count, setCount] = useState(5);
   const [started, setStarted] = useState(false);
-  const { dispatch } = useApp();
+  const { dispatch: appDispatch } = useApp();
+  const { dispatch: timerDispatch } = useFocusTimer();
   const { t } = useI18n();
   const intervalRef = useRef(null);
 
@@ -15,7 +17,8 @@ export default function CountdownStart({ estimatedMinutes = 25, onClose }) {
         if (c <= 1) {
           clearInterval(intervalRef.current);
           setStarted(true);
-          dispatch({ type: "START_FOCUS", payload: { minutes: estimatedMinutes } });
+          appDispatch({ type: "START_FOCUS", payload: { minutes: estimatedMinutes } });
+          timerDispatch({ type: "START_TASK_TIMER", payload: { id: taskId, text: taskText } });
           setTimeout(onClose, 500);
           return 0;
         }
@@ -23,7 +26,7 @@ export default function CountdownStart({ estimatedMinutes = 25, onClose }) {
       });
     }, 1000);
     return () => clearInterval(intervalRef.current);
-  }, [dispatch, estimatedMinutes, onClose]);
+  }, [appDispatch, timerDispatch, taskId, taskText, estimatedMinutes, onClose]);
 
   const radius = 40;
   const circ = 2 * Math.PI * radius;

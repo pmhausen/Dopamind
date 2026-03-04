@@ -159,6 +159,8 @@ function SubtaskItem({ subtask, taskId, t, countdownStartEnabled }) {
       )}
       {showCountdown && (
         <CountdownStart
+          taskId={subtask.id}
+          taskText={subtask.text}
           estimatedMinutes={subtask.estimatedMinutes || 25}
           onClose={() => setShowCountdown(false)}
         />
@@ -507,6 +509,8 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
       )}
       {showCountdown && (
         <CountdownStart
+          taskId={task.id}
+          taskText={task.text}
           estimatedMinutes={task.estimatedMinutes || 25}
           onClose={() => setShowCountdown(false)}
         />

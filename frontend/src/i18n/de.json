@@ -608,14 +608,30 @@
     "registered": "Registriert",
     "lastLogin": "Letzter Login",
     "disabled": "Deaktiviert",
+    "active": "Aktiv",
+    "activeStatus": "Status",
     "makeAdmin": "Zum Admin machen",
     "removeAdmin": "Admin-Rechte entfernen",
     "activate": "Aktivieren",
     "deactivate": "Deaktivieren",
-    "confirmDelete": "Benutzer wirklich löschen?",
+    "confirmDelete": "Benutzer löschen",
+    "deleteWarning": "Möchtest du diesen Benutzer wirklich unwiderruflich löschen?",
     "deleted": "gelöscht",
     "noAuditLogs": "Keine Einträge.",
-    "system": "System"
+    "noUsers": "Keine Benutzer gefunden.",
+    "system": "System",
+    "createUser": "Benutzer anlegen",
+    "editUser": "Benutzer bearbeiten",
+    "role": "Rolle",
+    "roleUser": "Benutzer",
+    "roleAdmin": "Administrator",
+    "status": "Status",
+    "actions": "Aktionen",
+    "you": "Du",
+    "settings": "Einstellungen",
+    "registrationEnabled": "Registrierung erlauben",
+    "registrationEnabledDesc": "Wenn deaktiviert, können sich neue Benutzer nicht selbst registrieren. Nur Administratoren können dann Benutzer anlegen.",
+    "registrationDisabled": "Registrierung ist deaktiviert"
   },
   "notifications": {
     "title": "Benachrichtigungen",
@@ -629,5 +645,20 @@
   "countdown": {
     "title": "Mach dich bereit...",
     "go": "LOS!"
+  },
+  "setup": {
+    "subtitle": "Ersteinrichtung",
+    "welcome": "Willkommen bei Dopamind!",
+    "welcomeText": "Bevor du loslegen kannst, richte bitte dein Administrator-Konto ein. Dieses Konto hat volle Kontrolle über die Anwendung und kann weitere Benutzer verwalten.",
+    "adminAccount": "Administrator-Konto",
+    "adminHint": "Erstelle das Admin-Konto für die Verwaltung von Dopamind.",
+    "confirm": "Zusammenfassung",
+    "confirmText": "Bitte überprüfe deine Angaben. Nach Abschluss des Setups wird der Setup-Assistent dauerhaft deaktiviert.",
+    "role": "Rolle",
+    "administrator": "Administrator",
+    "oneTimeWarning": "⚠ Der Setup-Assistent kann nur einmal ausgeführt werden. Nach Abschluss ist er nicht mehr verfügbar.",
+    "back": "Zurück",
+    "next": "Weiter",
+    "finish": "Setup abschließen"
   }
 }

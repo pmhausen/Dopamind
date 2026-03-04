@@ -1,5 +1,4 @@
 const { Pool } = require("pg");
-const crypto = require("crypto");
 
 const DATABASE_URL =
   process.env.DATABASE_URL ||
@@ -64,6 +63,20 @@ async function initSchema() {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Seed default: registration enabled
+    await client.query(`
+      INSERT INTO app_settings (key, value) VALUES ('registration_enabled', 'true')
+      ON CONFLICT (key) DO NOTHING;
+    `);
+
     // Create case-insensitive index for email lookups
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER(email));
@@ -73,34 +86,8 @@ async function initSchema() {
   }
 }
 
-async function ensureAdminExists() {
-  const { rows } = await pool.query(
-    "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
-  );
-  if (rows.length === 0) {
-    const bcrypt = require("bcryptjs");
-    const { v4: uuidv4 } = require("uuid");
-    const defaultEmail = process.env.ADMIN_EMAIL || "admin@dopamind.local";
-    const defaultPassword =
-      process.env.ADMIN_PASSWORD || crypto.randomBytes(16).toString("hex");
-    const hash = bcrypt.hashSync(defaultPassword, 12);
-    await pool.query(
-      `INSERT INTO users (id, email, name, password_hash, role, email_verified, active)
-       VALUES ($1, $2, $3, $4, 'admin', TRUE, TRUE)`,
-      [uuidv4(), defaultEmail, "Admin", hash]
-    );
-    if (!process.env.ADMIN_PASSWORD) {
-      console.log(`\n=== Default admin created ===`);
-      console.log(`Email:    ${defaultEmail}`);
-      console.log(`Password: ${defaultPassword}`);
-      console.log(`Change this password immediately!\n`);
-    }
-  }
-}
-
 async function initDb() {
   await initSchema();
-  await ensureAdminExists();
 }
 
 async function addAuditLog(userId, action, detail, ip) {
@@ -110,4 +97,20 @@ async function addAuditLog(userId, action, detail, ip) {
   );
 }
 
-module.exports = { getPool, initDb, addAuditLog };
+async function getAppSetting(key, defaultValue = null) {
+  const { rows } = await pool.query(
+    "SELECT value FROM app_settings WHERE key = $1",
+    [key]
+  );
+  return rows.length > 0 ? rows[0].value : defaultValue;
+}
+
+async function setAppSetting(key, value) {
+  await pool.query(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
+    [key, value]
+  );
+}
+
+module.exports = { getPool, initDb, addAuditLog, getAppSetting, setAppSetting };

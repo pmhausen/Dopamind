@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const { body, validationResult } = require("express-validator");
-const { getPool, addAuditLog } = require("../db/database");
+const { getPool, addAuditLog, getAppSetting } = require("../db/database");
 const { signToken, authenticate } = require("../middleware/auth");
 
 const router = express.Router();
@@ -34,6 +34,12 @@ router.post(
   validate,
   async (req, res) => {
     try {
+      // Check if registration is enabled
+      const regEnabled = await getAppSetting("registration_enabled", "true");
+      if (regEnabled !== "true") {
+        return res.status(403).json({ error: "Registration is disabled" });
+      }
+
       const pool = getPool();
       const { email, name, password } = req.body;
 

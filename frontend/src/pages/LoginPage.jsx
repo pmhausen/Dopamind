@@ -5,7 +5,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, registrationEnabled } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
 
@@ -97,12 +97,14 @@ export default function LoginPage() {
             {loading ? t("common.loading") : t("auth.login")}
           </button>
 
-          <p className="text-center text-sm text-muted-light dark:text-muted-dark">
-            {t("auth.noAccount")}{" "}
-            <Link to="/register" className="text-accent hover:underline font-medium">
-              {t("auth.register")}
-            </Link>
-          </p>
+          {registrationEnabled && (
+            <p className="text-center text-sm text-muted-light dark:text-muted-dark">
+              {t("auth.noAccount")}{" "}
+              <Link to="/register" className="text-accent hover:underline font-medium">
+                {t("auth.register")}
+              </Link>
+            </p>
+          )}
         </form>
       </div>
     </div>

@@ -608,14 +608,30 @@
     "registered": "Registered",
     "lastLogin": "Last login",
     "disabled": "Disabled",
+    "active": "Active",
+    "activeStatus": "Status",
     "makeAdmin": "Make admin",
     "removeAdmin": "Remove admin",
     "activate": "Activate",
     "deactivate": "Deactivate",
-    "confirmDelete": "Really delete user?",
+    "confirmDelete": "Delete user",
+    "deleteWarning": "Are you sure you want to permanently delete this user?",
     "deleted": "deleted",
     "noAuditLogs": "No entries.",
-    "system": "System"
+    "noUsers": "No users found.",
+    "system": "System",
+    "createUser": "Create user",
+    "editUser": "Edit user",
+    "role": "Role",
+    "roleUser": "User",
+    "roleAdmin": "Administrator",
+    "status": "Status",
+    "actions": "Actions",
+    "you": "You",
+    "settings": "Settings",
+    "registrationEnabled": "Allow registration",
+    "registrationEnabledDesc": "When disabled, new users cannot register themselves. Only administrators can create users.",
+    "registrationDisabled": "Registration is disabled"
   },
   "notifications": {
     "title": "Notifications",
@@ -629,5 +645,20 @@
   "countdown": {
     "title": "Get ready...",
     "go": "GO!"
+  },
+  "setup": {
+    "subtitle": "Initial Setup",
+    "welcome": "Welcome to Dopamind!",
+    "welcomeText": "Before you get started, please set up your administrator account. This account will have full control over the application and can manage other users.",
+    "adminAccount": "Administrator Account",
+    "adminHint": "Create the admin account for managing Dopamind.",
+    "confirm": "Summary",
+    "confirmText": "Please review your details. After completing the setup, the setup wizard will be permanently disabled.",
+    "role": "Role",
+    "administrator": "Administrator",
+    "oneTimeWarning": "⚠ The setup wizard can only be run once. It will not be available after completion.",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Complete Setup"
   }
 }

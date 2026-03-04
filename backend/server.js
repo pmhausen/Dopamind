@@ -6,6 +6,7 @@ const { initDb } = require("./db/database");
 const { authenticate } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
+const setupRoutes = require("./routes/setup");
 const mailRoutes = require("./routes/mail");
 const calendarRoutes = require("./routes/calendar");
 const userDataRoutes = require("./routes/userData");
@@ -50,10 +51,12 @@ const generalLimiter = rateLimit({
 
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
+app.use("/api/setup/complete", authLimiter);
 app.use("/api/", generalLimiter);
 
 // Public routes
 app.use("/api/auth", authRoutes);
+app.use("/api/setup", setupRoutes);
 
 // Protected routes
 app.use("/api/admin", adminRoutes);

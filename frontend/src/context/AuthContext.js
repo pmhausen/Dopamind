@@ -16,6 +16,8 @@ export function AuthProvider({ children }) {
     }
   });
   const [loading, setLoading] = useState(true);
+  const [setupNeeded, setSetupNeeded] = useState(null); // null = unknown, true/false = resolved
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const didVerify = useRef(false);
 
   const API_BASE = process.env.REACT_APP_API_URL || "/api";
@@ -37,29 +39,41 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  // Verify token on mount
+  // Check setup status and verify token on mount
   useEffect(() => {
     if (didVerify.current) return;
     didVerify.current = true;
 
+    const checkSetup = fetch(`${API_BASE}/setup/status`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSetupNeeded(data.needsSetup === true);
+        setRegistrationEnabled(data.registrationEnabled !== false);
+      })
+      .catch(() => {
+        setSetupNeeded(false);
+      });
+
     const savedToken = localStorage.getItem(TOKEN_KEY);
     if (!savedToken) {
-      setLoading(false);
+      checkSetup.finally(() => setLoading(false));
       return;
     }
-    fetch(`${API_BASE}/auth/me`, {
-      headers: { Authorization: `Bearer ${savedToken}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Invalid token");
-        return res.json();
+    Promise.all([
+      checkSetup,
+      fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${savedToken}` },
       })
-      .then((data) => {
-        setUser(data);
-        localStorage.setItem(USER_KEY, JSON.stringify(data));
-      })
-      .catch(() => clearAuth())
-      .finally(() => setLoading(false));
+        .then((res) => {
+          if (!res.ok) throw new Error("Invalid token");
+          return res.json();
+        })
+        .then((data) => {
+          setUser(data);
+          localStorage.setItem(USER_KEY, JSON.stringify(data));
+        })
+        .catch(() => clearAuth()),
+    ]).finally(() => setLoading(false));
   }, [API_BASE, clearAuth]);
 
   const login = useCallback(
@@ -86,6 +100,22 @@ export function AuthProvider({ children }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed");
+      saveAuth(data.token, data.user);
+      return data;
+    },
+    [API_BASE, saveAuth]
+  );
+
+  const completeSetup = useCallback(
+    async (email, name, password) => {
+      const res = await fetch(`${API_BASE}/setup/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Setup failed");
+      setSetupNeeded(false);
       saveAuth(data.token, data.user);
       return data;
     },
@@ -154,7 +184,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, deleteAccount, changePassword, updateProfile, isAdmin }}
+      value={{ user, token, loading, setupNeeded, registrationEnabled, login, register, completeSetup, logout, deleteAccount, changePassword, updateProfile, isAdmin }}
     >
       {children}
     </AuthContext.Provider>

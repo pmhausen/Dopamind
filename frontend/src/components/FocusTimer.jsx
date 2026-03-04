@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { useSettings } from "../context/SettingsContext";
+import { useFocusTimer } from "../context/FocusTimerContext";
 
 const PRESETS = [15, 25, 45];
 
@@ -29,17 +30,12 @@ const PAUSE_ACTIVITIES = [
 ];
 
 export default function FocusTimer() {
-  const { dispatch } = useApp();
+  const { dispatch: appDispatch } = useApp();
   const { t } = useI18n();
   const { settings } = useSettings();
-  const [duration, setDuration] = useState(25);
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
-  const [running, setRunning] = useState(false);
-  const [completed, setCompleted] = useState(false);
-  const [flowDetected, setFlowDetected] = useState(false);
-  const [pauseSuggestion, setPauseSuggestion] = useState(null);
-  const intervalRef = useRef(null);
-  const startedAtRef = useRef(null);
+  const { state: timerState, dispatch } = useFocusTimer();
+
+  const { duration, secondsLeft, running, completed, flowDetected, pauseSuggestion } = timerState;
 
   const flowShieldEnabled = settings.gamification?.flowShieldEnabled !== false;
   const pauseSuggestionsEnabled = settings.gamification?.pauseSuggestionsEnabled !== false;
@@ -50,24 +46,17 @@ export default function FocusTimer() {
   const displaySec = secondsLeft % 60;
 
   const handleComplete = useCallback(() => {
-    setRunning(false);
-    setCompleted(true);
-    clearInterval(intervalRef.current);
-    dispatch({ type: "ADD_FOCUS_MINUTES", payload: duration, flow: flowDetected && flowShieldEnabled });
-    if (pauseSuggestionsEnabled) {
-      const idx = Math.floor(Math.random() * PAUSE_ACTIVITIES.length);
-      setPauseSuggestion(PAUSE_ACTIVITIES[idx]);
-    }
-    setFlowDetected(false);
-  }, [dispatch, duration, flowDetected, pauseSuggestionsEnabled]);
+    const suggestion = pauseSuggestionsEnabled
+      ? PAUSE_ACTIVITIES[Math.floor(Math.random() * PAUSE_ACTIVITIES.length)]
+      : null;
+    dispatch({ type: "COMPLETE", payload: { pauseSuggestion: suggestion } });
+    appDispatch({ type: "ADD_FOCUS_MINUTES", payload: duration, flow: flowDetected && flowShieldEnabled });
+    dispatch({ type: "SET_FLOW", payload: false });
+  }, [appDispatch, dispatch, duration, flowDetected, pauseSuggestionsEnabled, flowShieldEnabled]);
 
+  // Detect timer completion
   useEffect(() => {
-    if (running && secondsLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft((s) => (s <= 1 ? 0 : s - 1));
-      }, 1000);
-      return () => clearInterval(intervalRef.current);
-    } else if (running && secondsLeft === 0) {
+    if (running && secondsLeft === 0) {
       handleComplete();
     }
   }, [running, secondsLeft, handleComplete]);
@@ -77,45 +66,32 @@ export default function FocusTimer() {
     if (!running || !flowShieldEnabled) return;
     const elapsed = totalSeconds - secondsLeft;
     if (elapsed >= 45 * 60 && !flowDetected) {
-      setFlowDetected(true);
-      dispatch({ type: "SET_FLOW_MODE", payload: true });
+      dispatch({ type: "SET_FLOW", payload: true });
+      appDispatch({ type: "SET_FLOW_MODE", payload: true });
     }
-  }, [running, secondsLeft, totalSeconds, flowDetected, flowShieldEnabled, dispatch]);
+  }, [running, secondsLeft, totalSeconds, flowDetected, flowShieldEnabled, appDispatch, dispatch]);
 
   const handleStart = () => {
     if (completed) {
-      setCompleted(false);
-      setPauseSuggestion(null);
-      setSecondsLeft(duration * 60);
+      dispatch({ type: "RESET" });
     }
-    startedAtRef.current = Date.now();
-    setFlowDetected(false);
-    setRunning(true);
+    dispatch({ type: "SET_FLOW", payload: false });
+    dispatch({ type: "START" });
   };
 
   const handlePause = () => {
-    setRunning(false);
-    clearInterval(intervalRef.current);
-    dispatch({ type: "SET_FLOW_MODE", payload: false });
+    dispatch({ type: "PAUSE" });
+    appDispatch({ type: "SET_FLOW_MODE", payload: false });
   };
 
   const handleReset = () => {
-    setRunning(false);
-    setCompleted(false);
-    setPauseSuggestion(null);
-    setFlowDetected(false);
-    clearInterval(intervalRef.current);
-    setSecondsLeft(duration * 60);
-    dispatch({ type: "SET_FLOW_MODE", payload: false });
+    dispatch({ type: "RESET" });
+    appDispatch({ type: "SET_FLOW_MODE", payload: false });
   };
 
   const handlePreset = (mins) => {
     if (running) return;
-    setDuration(mins);
-    setSecondsLeft(mins * 60);
-    setCompleted(false);
-    setPauseSuggestion(null);
-    setFlowDetected(false);
+    dispatch({ type: "SET_DURATION", payload: mins });
   };
 
   const radius = 58;
@@ -212,4 +188,3 @@ export default function FocusTimer() {
     </div>
   );
 }
-

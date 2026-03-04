@@ -60,19 +60,20 @@ export default function Header() {
             <Settings className="w-4 h-4" />
           </Link>
           <NotificationBell />
-          {features.gamificationEnabled !== false && state.energyLevel && (
+          {features.gamificationEnabled !== false && settings.gamification?.energyCheckinEnabled !== false && (
             <div className="relative" ref={energyRef}>
               <button
                 onClick={() => setShowEnergyPicker((v) => !v)}
                 className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
                   state.energyLevel === "high" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50" :
                   state.energyLevel === "low" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50" :
-                  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                  state.energyLevel ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50" :
+                  "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/15"
                 }`}
                 title={t("home.energyEdit")}
               >
-                {state.energyLevel === "high" ? "🚀" : state.energyLevel === "low" ? "🔋" : "⚡"}
-                <span>{t(`home.energyActive.${state.energyLevel}`)}</span>
+                {state.energyLevel === "high" ? "🚀" : state.energyLevel === "low" ? "🔋" : state.energyLevel ? "⚡" : "⚡"}
+                <span>{state.energyLevel ? t(`home.energyActive.${state.energyLevel}`) : t("home.energyCheckin")}</span>
               </button>
               {showEnergyPicker && (
                 <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-lg p-2 flex flex-col gap-1 min-w-[140px]">
