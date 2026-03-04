@@ -141,7 +141,8 @@
       "sick": "Krank",
       "vacation": "Urlaub",
       "childSick": "Kindkrank"
-    }
+    },
+    "eventLocation": "Ort"
   },
   "mail": {
     "title": "Posteingang",
@@ -181,7 +182,12 @@
       "drafts": "Entwürfe",
       "trash": "Papierkorb",
       "archive": "Archiv"
-    }
+    },
+    "selectAll": "Alle auswählen",
+    "selected": "{n} ausgewählt",
+    "clearSelection": "Auswahl aufheben",
+    "toSingleTask": "Als eine Aufgabe",
+    "toMultipleTasks": "Je eine Aufgabe"
   },
   "zeitmanagement": {
     "title": "Zeitmanagement",

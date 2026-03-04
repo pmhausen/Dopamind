@@ -116,6 +116,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingSubtaskParent, setEditingSubtaskParent] = useState(null);
   const [editText, setEditText] = useState("");
+  const [editingTimeKey, setEditingTimeKey] = useState(null); // key of entry whose time is being edited
   const [dragKey, setDragKey] = useState(null);
   const [dragOverSlot, setDragOverSlot] = useState(null);
   const [dragTimeMin, setDragTimeMin] = useState(null); // minute-precise drag target time
@@ -384,23 +385,39 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                 ${entry.pushedDown ? "!border-orange-300 dark:!border-orange-600/30 !bg-orange-50 dark:!bg-orange-900/10" : ""}
               `}
             >
-              {/* Editable time field for list mode — spacious layout */}
+              {/* Editable time field for list mode — click to edit */}
               {(isTask || isSubtask) && !isEditing ? (
-                <input
-                  type="time"
-                  value={fmtTime(entry.startMin)}
-                  onChange={(e) => {
-                    if (!e.target.value) return;
-                    if (isSubtask && entry.parentTask && entry.subtask) {
-                      onUpdateSubtaskScheduledTime(entry.parentTask.id, entry.subtask.id, e.target.value);
-                    } else if (entry.task) {
-                      onUpdateScheduledTime(entry.task.id, e.target.value);
-                    }
-                  }}
-                  className="w-20 text-sm font-mono bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/30 flex-shrink-0 transition-all"
-                />
+                editingTimeKey === entry.key ? (
+                  <input
+                    type="time"
+                    autoFocus
+                    defaultValue={fmtTime(entry.startMin)}
+                    onBlur={(e) => {
+                      setEditingTimeKey(null);
+                      if (!e.target.value) return;
+                      if (isSubtask && entry.parentTask && entry.subtask) {
+                        onUpdateSubtaskScheduledTime(entry.parentTask.id, entry.subtask.id, e.target.value);
+                      } else if (entry.task) {
+                        onUpdateScheduledTime(entry.task.id, e.target.value);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.target.blur();
+                      if (e.key === "Escape") { e.target.value = fmtTime(entry.startMin); setEditingTimeKey(null); }
+                    }}
+                    className="w-[5.5rem] text-sm font-mono bg-white dark:bg-white/10 border border-accent/40 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-accent/30 flex-shrink-0 transition-all"
+                  />
+                ) : (
+                  <button
+                    onClick={() => setEditingTimeKey(entry.key)}
+                    className="w-[5.5rem] text-sm font-mono bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-center flex-shrink-0 hover:border-accent/40 hover:bg-accent/5 transition-all cursor-pointer"
+                    title={t("common.edit")}
+                  >
+                    {fmtTime(entry.startMin)}
+                  </button>
+                )
               ) : (
-                <span className="w-20 text-sm font-mono text-muted-light dark:text-muted-dark text-center flex-shrink-0">{fmtTime(entry.startMin)}</span>
+                <span className="w-[5.5rem] text-sm font-mono text-muted-light dark:text-muted-dark text-center flex-shrink-0 py-1.5">{fmtTime(entry.startMin)}</span>
               )}
 
               {/* Icon */}

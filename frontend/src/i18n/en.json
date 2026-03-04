@@ -172,7 +172,8 @@
       "sick": "Sick",
       "vacation": "Vacation",
       "childSick": "Child Sick"
-    }
+    },
+    "eventLocation": "Location"
   },
   "mail": {
     "title": "Inbox",
@@ -212,7 +213,12 @@
       "drafts": "Drafts",
       "trash": "Trash",
       "archive": "Archive"
-    }
+    },
+    "selectAll": "Select all",
+    "selected": "{n} selected",
+    "clearSelection": "Clear selection",
+    "toSingleTask": "Single task",
+    "toMultipleTasks": "Multiple tasks"
   },
   "zeitmanagement": {
     "title": "Time Management",
