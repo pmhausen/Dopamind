@@ -5,8 +5,303 @@ import { apiFetch } from "../services/api";
 import {
   Users, Search, Shield, ShieldOff, UserX, CheckCircle2,
   XCircle, ChevronLeft, ChevronRight, ScrollText,
+  UserPlus, Pencil, X, Eye, EyeOff, AlertCircle,
 } from "lucide-react";
 
+/* ------------------------------------------------------------------ */
+/*  Modal wrapper                                                     */
+/* ------------------------------------------------------------------ */
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg glass-card p-6 space-y-4 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Password checks (reused from RegisterPage)                        */
+/* ------------------------------------------------------------------ */
+function PasswordChecks({ password, t }) {
+  const checks = [
+    { label: t("auth.pwMin8"), ok: password.length >= 8 },
+    { label: t("auth.pwUpper"), ok: /[A-Z]/.test(password) },
+    { label: t("auth.pwLower"), ok: /[a-z]/.test(password) },
+    { label: t("auth.pwNumber"), ok: /\d/.test(password) },
+  ];
+  return (
+    <ul className="mt-1 space-y-0.5">
+      {checks.map((c, i) => (
+        <li key={i} className={`flex items-center gap-1.5 text-xs ${c.ok ? "text-green-600 dark:text-green-400" : "text-muted-light dark:text-muted-dark"}`}>
+          <CheckCircle2 size={12} className={c.ok ? "opacity-100" : "opacity-30"} /> {c.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function passwordValid(pw) {
+  return pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /\d/.test(pw);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Create User Dialog                                                */
+/* ------------------------------------------------------------------ */
+function CreateUserDialog({ open, onClose, onCreated, t }) {
+  const [form, setForm] = useState({ email: "", name: "", password: "", confirmPassword: "", role: "user" });
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const pwMatch = form.password === form.confirmPassword && form.confirmPassword.length > 0;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!passwordValid(form.password)) { setError(t("auth.pwRequirements")); return; }
+    if (!pwMatch) { setError(t("auth.pwMismatch")); return; }
+    setLoading(true);
+    try {
+      await apiFetch("/admin/users", {
+        method: "POST",
+        body: JSON.stringify({ email: form.email, name: form.name, password: form.password, role: form.role }),
+      });
+      setForm({ email: "", name: "", password: "", confirmPassword: "", role: "user" });
+      onCreated();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={t("admin.createUser")}>
+      {error && (
+        <div className="flex items-center gap-2 text-danger text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-xl">
+          <AlertCircle size={16} className="flex-shrink-0" /> {error}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("auth.name")}</label>
+          <input type="text" required value={form.name} onChange={update("name")} autoComplete="name"
+            className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm"
+            placeholder={t("auth.namePlaceholder")} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("auth.email")}</label>
+          <input type="email" required value={form.email} onChange={update("email")} autoComplete="email"
+            className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm"
+            placeholder={t("auth.emailPlaceholder")} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("admin.role")}</label>
+          <select value={form.role} onChange={update("role")}
+            className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm">
+            <option value="user">{t("admin.roleUser")}</option>
+            <option value="admin">{t("admin.roleAdmin")}</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("auth.password")}</label>
+          <div className="relative">
+            <input type={showPw ? "text" : "password"} required value={form.password} onChange={update("password")} autoComplete="new-password"
+              className="w-full px-3 py-2 pr-10 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm" />
+            <button type="button" onClick={() => setShowPw(!showPw)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-light dark:text-muted-dark hover:text-accent transition-colors">
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          {form.password.length > 0 && <PasswordChecks password={form.password} t={t} />}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("auth.confirmPassword")}</label>
+          <input type="password" required value={form.confirmPassword} onChange={update("confirmPassword")} autoComplete="new-password"
+            className={`w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm ${
+              form.confirmPassword.length > 0 ? (pwMatch ? "border-green-400 dark:border-green-600" : "border-red-400 dark:border-red-600") : "border-gray-200 dark:border-white/10"
+            }`} />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+            {t("common.cancel")}
+          </button>
+          <button type="submit" disabled={loading || !passwordValid(form.password) || !pwMatch}
+            className="px-5 py-2 rounded-xl bg-accent text-white font-medium text-sm hover:bg-accent/90 transition-all disabled:opacity-50">
+            {loading ? t("common.loading") : t("admin.createUser")}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Edit User Dialog                                                  */
+/* ------------------------------------------------------------------ */
+function EditUserDialog({ open, onClose, user, onSaved, currentUserId, t }) {
+  const [form, setForm] = useState({ name: "", email: "", role: "user", active: true });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setForm({ name: user.name, email: user.email, role: user.role, active: user.active });
+      setError("");
+    }
+  }, [user]);
+
+  const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const isSelf = user?.id === currentUserId;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const body = { name: form.name, email: form.email };
+      if (!isSelf) {
+        body.role = form.role;
+        body.active = form.active;
+      }
+      await apiFetch(`/admin/users/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <Modal open={open} onClose={onClose} title={t("admin.editUser")}>
+      {error && (
+        <div className="flex items-center gap-2 text-danger text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-xl">
+          <AlertCircle size={16} className="flex-shrink-0" /> {error}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("auth.name")}</label>
+          <input type="text" required value={form.name} onChange={update("name")}
+            className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t("auth.email")}</label>
+          <input type="email" required value={form.email} onChange={update("email")}
+            className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm" />
+        </div>
+        {!isSelf && (
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("admin.role")}</label>
+              <select value={form.role} onChange={update("role")}
+                className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all text-sm">
+                <option value="user">{t("admin.roleUser")}</option>
+                <option value="admin">{t("admin.roleAdmin")}</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium">{t("admin.activeStatus")}</label>
+              <button type="button" onClick={() => setForm((prev) => ({ ...prev, active: !prev.active }))}
+                className={`relative w-10 h-6 rounded-full transition-colors ${form.active ? "bg-accent" : "bg-gray-300 dark:bg-white/20"}`}>
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${form.active ? "left-5" : "left-1"}`} />
+              </button>
+              <span className={`text-xs ${form.active ? "text-green-600 dark:text-green-400" : "text-danger"}`}>
+                {form.active ? t("admin.active") : t("admin.disabled")}
+              </span>
+            </div>
+          </>
+        )}
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+            {t("common.cancel")}
+          </button>
+          <button type="submit" disabled={loading}
+            className="px-5 py-2 rounded-xl bg-accent text-white font-medium text-sm hover:bg-accent/90 transition-all disabled:opacity-50">
+            {loading ? t("common.loading") : t("common.save")}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Delete Confirmation Dialog                                        */
+/* ------------------------------------------------------------------ */
+function DeleteUserDialog({ open, onClose, user, onDeleted, t }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleDelete = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await apiFetch(`/admin/users/${user.id}`, { method: "DELETE" });
+      onDeleted();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <Modal open={open} onClose={onClose} title={t("admin.confirmDelete")}>
+      {error && (
+        <div className="flex items-center gap-2 text-danger text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-xl">
+          <AlertCircle size={16} className="flex-shrink-0" /> {error}
+        </div>
+      )}
+      <p className="text-sm text-muted-light dark:text-muted-dark">
+        {t("admin.deleteWarning", { name: user.name, email: user.email })}
+      </p>
+      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 text-sm">
+        <span className="font-medium">{user.name}</span>
+        <span className="text-muted-light dark:text-muted-dark ml-2">{user.email}</span>
+      </div>
+      <div className="flex justify-end gap-2 pt-2">
+        <button onClick={onClose}
+          className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+          {t("common.cancel")}
+        </button>
+        <button onClick={handleDelete} disabled={loading}
+          className="px-5 py-2 rounded-xl bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-all disabled:opacity-50">
+          {loading ? t("common.loading") : t("common.delete")}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main Admin Page                                                   */
+/* ------------------------------------------------------------------ */
 export default function AdminPage() {
   const { t } = useI18n();
   const { user: currentUser } = useAuth();
@@ -19,6 +314,11 @@ export default function AdminPage() {
   const [actionMsg, setActionMsg] = useState("");
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditPage, setAuditPage] = useState({ page: 1, pages: 1 });
+
+  // Dialog state
+  const [showCreate, setShowCreate] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const loadUsers = useCallback(
     async (page = 1) => {
@@ -58,42 +358,9 @@ export default function AdminPage() {
     setTimeout(() => setActionMsg(""), 3000);
   };
 
-  const toggleRole = async (u) => {
-    const newRole = u.role === "admin" ? "user" : "admin";
-    try {
-      await apiFetch(`/admin/users/${u.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ role: newRole }),
-      });
-      flash(`${u.email} → ${newRole}`);
-      loadUsers(pagination.page);
-    } catch (err) {
-      flash(err.message);
-    }
-  };
-
-  const toggleActive = async (u) => {
-    try {
-      await apiFetch(`/admin/users/${u.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ active: !u.active }),
-      });
-      flash(`${u.email} ${!u.active ? t("admin.activate") : t("admin.deactivate")}`);
-      loadUsers(pagination.page);
-    } catch (err) {
-      flash(err.message);
-    }
-  };
-
-  const deleteUser = async (u) => {
-    if (!window.confirm(`${t("admin.confirmDelete")} ${u.email}?`)) return;
-    try {
-      await apiFetch(`/admin/users/${u.id}`, { method: "DELETE" });
-      flash(`${u.email} ${t("admin.deleted")}`);
-      loadUsers(pagination.page);
-    } catch (err) {
-      flash(err.message);
-    }
+  const handleUserChanged = () => {
+    flash(t("common.success"));
+    loadUsers(pagination.page);
   };
 
   const tabs = [
@@ -103,12 +370,20 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Shield size={24} /> {t("admin.title")}
-      </h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Shield size={24} /> {t("admin.title")}
+        </h1>
+        {tab === "users" && (
+          <button onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-all">
+            <UserPlus size={16} /> {t("admin.createUser")}
+          </button>
+        )}
+      </div>
 
       {actionMsg && (
-        <div className="text-sm text-accent bg-accent/10 p-3 rounded-xl">{actionMsg}</div>
+        <div className="text-sm text-accent bg-accent/10 p-3 rounded-xl animate-fade-in">{actionMsg}</div>
       )}
 
       {/* Tabs */}
@@ -155,63 +430,76 @@ export default function AdminPage() {
             {t("admin.totalUsers")}: {pagination.total}
           </div>
 
-          <div className="space-y-2">
-            {loading ? (
-              <p className="text-center py-8 text-muted-light dark:text-muted-dark">{t("common.loading")}</p>
-            ) : (
-              users.map((u) => (
-                <div
-                  key={u.id}
-                  className="glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-3"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">{u.name}</span>
-                      {u.role === "admin" && (
-                        <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium">
-                          Admin
+          {/* User table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-light dark:text-muted-dark border-b border-gray-200 dark:border-white/10">
+                  <th className="pb-2 font-medium">{t("auth.name")}</th>
+                  <th className="pb-2 font-medium">{t("auth.email")}</th>
+                  <th className="pb-2 font-medium">{t("admin.role")}</th>
+                  <th className="pb-2 font-medium">{t("admin.status")}</th>
+                  <th className="pb-2 font-medium">{t("admin.registered")}</th>
+                  <th className="pb-2 font-medium text-right">{t("admin.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={6} className="text-center py-8 text-muted-light dark:text-muted-dark">{t("common.loading")}</td></tr>
+                ) : users.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-8 text-muted-light dark:text-muted-dark">{t("admin.noUsers")}</td></tr>
+                ) : (
+                  users.map((u) => (
+                    <tr key={u.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3 pr-4">
+                        <span className="font-medium">{u.name}</span>
+                        {u.id === currentUser.id && (
+                          <span className="ml-1.5 text-[10px] text-muted-light dark:text-muted-dark">({t("admin.you")})</span>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4 text-muted-light dark:text-muted-dark">{u.email}</td>
+                      <td className="py-3 pr-4">
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                          u.role === "admin"
+                            ? "bg-accent/10 text-accent"
+                            : "bg-gray-100 dark:bg-white/10 text-muted-light dark:text-muted-dark"
+                        }`}>
+                          {u.role === "admin" && <Shield size={10} />}
+                          {u.role === "admin" ? t("admin.roleAdmin") : t("admin.roleUser")}
                         </span>
-                      )}
-                      {!u.active && (
-                        <span className="text-xs bg-red-100 dark:bg-red-900/30 text-danger px-2 py-0.5 rounded-full">
-                          {t("admin.disabled")}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                          u.active
+                            ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                            : "bg-red-100 dark:bg-red-900/20 text-danger"
+                        }`}>
+                          {u.active ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                          {u.active ? t("admin.active") : t("admin.disabled")}
                         </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-light dark:text-muted-dark truncate">{u.email}</p>
-                    <p className="text-xs text-muted-light dark:text-muted-dark mt-0.5">
-                      {t("admin.registered")}: {new Date(u.createdAt).toLocaleDateString()}
-                      {u.lastLogin && ` · ${t("admin.lastLogin")}: ${new Date(u.lastLogin).toLocaleDateString()}`}
-                    </p>
-                  </div>
-                  {u.id !== currentUser.id && (
-                    <div className="flex gap-1.5 shrink-0">
-                      <button
-                        onClick={() => toggleRole(u)}
-                        title={u.role === "admin" ? t("admin.removeAdmin") : t("admin.makeAdmin")}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                      >
-                        {u.role === "admin" ? <ShieldOff size={16} /> : <Shield size={16} />}
-                      </button>
-                      <button
-                        onClick={() => toggleActive(u)}
-                        title={u.active ? t("admin.deactivate") : t("admin.activate")}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                      >
-                        {u.active ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
-                      </button>
-                      <button
-                        onClick={() => deleteUser(u)}
-                        title={t("common.delete")}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-danger transition-colors"
-                      >
-                        <UserX size={16} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+                      </td>
+                      <td className="py-3 pr-4 text-muted-light dark:text-muted-dark text-xs">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 text-right">
+                        <div className="flex gap-1 justify-end">
+                          <button onClick={() => setEditUser(u)} title={t("common.edit")}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                            <Pencil size={14} />
+                          </button>
+                          {u.id !== currentUser.id && (
+                            <button onClick={() => setDeleteTarget(u)} title={t("common.delete")}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-danger transition-colors">
+                              <UserX size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
           {pagination.pages > 1 && (
@@ -282,6 +570,11 @@ export default function AdminPage() {
           )}
         </div>
       )}
+
+      {/* Dialogs */}
+      <CreateUserDialog open={showCreate} onClose={() => setShowCreate(false)} onCreated={handleUserChanged} t={t} />
+      <EditUserDialog open={!!editUser} onClose={() => setEditUser(null)} user={editUser} onSaved={handleUserChanged} currentUserId={currentUser.id} t={t} />
+      <DeleteUserDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} user={deleteTarget} onDeleted={handleUserChanged} t={t} />
     </div>
   );
 }
