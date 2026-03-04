@@ -51,7 +51,7 @@ function AdminRoute({ children }) {
 }
 
 function AuthRoute({ children }) {
-  const { user, loading, setupNeeded, registrationEnabled } = useAuth();
+  const { user, loading, setupNeeded } = useAuth();
   if (loading) return null;
   if (setupNeeded) return <Navigate to="/setup" replace />;
   if (user) return <Navigate to="/" replace />;
