@@ -1037,6 +1037,7 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
         items.push({ type: "task", id: task.id, parentId: null, text: task.text, estimatedMinutes: task.estimatedMinutes || 30, scheduledTime: task.scheduledTime, priority: task.priority });
         for (const sub of incompleteSubs) {
           // Show subtask if it belongs to this day (no explicit scheduledDate or scheduled for this date)
+          // Inherit parent's scheduledTime as fallback (consistent with hideParentWithSubtasks=true branch)
           if (!sub.scheduledDate || sub.scheduledDate === date) {
             items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || 30, scheduledTime: sub.scheduledTime || task.scheduledTime, priority: task.priority });
           }
@@ -1141,13 +1142,15 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
           const isDragTarget = dragOver === date;
           // Place unscheduled items starting at workStart (consistent with day view)
           let unscheduledNextMin = workStart;
-          // Account for scheduled items that might overlap with workStart area
+          // Push unscheduled cursor past any scheduled items that overlap workStart
           items.forEach((item) => {
             if (!item.scheduledTime) return;
             const [sh, sm] = item.scheduledTime.split(":").map(Number);
-            const itemEnd = sh * 60 + sm + (item.estimatedMinutes || 30);
-            if (sh * 60 + sm <= unscheduledNextMin && itemEnd > unscheduledNextMin) {
-              unscheduledNextMin = itemEnd;
+            const itemStart = sh * 60 + sm;
+            const itemEnd = itemStart + (item.estimatedMinutes || 30);
+            // If a scheduled item occupies the slot where unscheduled would go, push past it
+            if (itemStart < unscheduledNextMin + 5 && itemEnd > unscheduledNextMin) {
+              unscheduledNextMin = Math.max(unscheduledNextMin, itemEnd);
             }
           });
 
