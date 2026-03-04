@@ -5,7 +5,7 @@ import { apiFetch } from "../services/api";
 import {
   Users, Search, Shield, ShieldOff, UserX, CheckCircle2,
   XCircle, ChevronLeft, ChevronRight, ScrollText,
-  UserPlus, Pencil, X, Eye, EyeOff, AlertCircle,
+  UserPlus, Pencil, X, Eye, EyeOff, AlertCircle, Settings,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -315,6 +315,10 @@ export default function AdminPage() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditPage, setAuditPage] = useState({ page: 1, pages: 1 });
 
+  // Settings state
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+
   // Dialog state
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState(null);
@@ -348,14 +352,40 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadSettings = useCallback(async () => {
+    setSettingsLoading(true);
+    try {
+      const data = await apiFetch("/admin/settings");
+      setRegistrationEnabled(data.registrationEnabled);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (tab === "users") loadUsers(1);
     if (tab === "audit") loadAuditLog(1);
-  }, [tab, loadUsers, loadAuditLog]);
+    if (tab === "settings") loadSettings();
+  }, [tab, loadUsers, loadAuditLog, loadSettings]);
 
   const flash = (msg) => {
     setActionMsg(msg);
     setTimeout(() => setActionMsg(""), 3000);
+  };
+
+  const toggleRegistration = async () => {
+    try {
+      const data = await apiFetch("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify({ registrationEnabled: !registrationEnabled }),
+      });
+      setRegistrationEnabled(data.registrationEnabled);
+      flash(t("common.success"));
+    } catch (err) {
+      flash(err.message);
+    }
   };
 
   const handleUserChanged = () => {
@@ -365,6 +395,7 @@ export default function AdminPage() {
 
   const tabs = [
     { id: "users", label: t("admin.users"), icon: Users },
+    { id: "settings", label: t("admin.settings"), icon: Settings },
     { id: "audit", label: t("admin.auditLog"), icon: ScrollText },
   ];
 
@@ -566,6 +597,30 @@ export default function AdminPage() {
               >
                 <ChevronRight size={16} />
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {tab === "settings" && (
+        <div className="space-y-4">
+          {settingsLoading ? (
+            <p className="text-center py-8 text-muted-light dark:text-muted-dark">{t("common.loading")}</p>
+          ) : (
+            <div className="glass-card p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium">{t("admin.registrationEnabled")}</h3>
+                  <p className="text-xs text-muted-light dark:text-muted-dark mt-0.5">
+                    {t("admin.registrationEnabledDesc")}
+                  </p>
+                </div>
+                <button onClick={toggleRegistration}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${registrationEnabled ? "bg-accent" : "bg-gray-300 dark:bg-white/20"}`}>
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${registrationEnabled ? "left-6" : "left-1"}`} />
+                </button>
+              </div>
             </div>
           )}
         </div>

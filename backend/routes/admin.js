@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const { body, validationResult } = require("express-validator");
-const { getPool, addAuditLog } = require("../db/database");
+const { getPool, addAuditLog, getAppSetting, setAppSetting } = require("../db/database");
 const { authenticate, requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
@@ -309,5 +309,36 @@ router.get("/audit-log", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch audit log" });
   }
 });
+
+// GET /api/admin/settings
+router.get("/settings", async (_req, res) => {
+  try {
+    const registrationEnabled = await getAppSetting("registration_enabled", "true");
+    res.json({ registrationEnabled: registrationEnabled === "true" });
+  } catch (err) {
+    console.error("Get settings error:", err);
+    res.status(500).json({ error: "Failed to get settings" });
+  }
+});
+
+// PUT /api/admin/settings
+router.put(
+  "/settings",
+  [
+    body("registrationEnabled").isBoolean().withMessage("registrationEnabled must be boolean"),
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { registrationEnabled } = req.body;
+      await setAppSetting("registration_enabled", String(registrationEnabled));
+      await addAuditLog(req.user.id, "admin_update_settings", `Registration ${registrationEnabled ? "enabled" : "disabled"}`, req.ip);
+      res.json({ registrationEnabled });
+    } catch (err) {
+      console.error("Update settings error:", err);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  }
+);
 
 module.exports = router;

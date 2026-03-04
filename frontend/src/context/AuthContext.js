@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(true);
   const [setupNeeded, setSetupNeeded] = useState(null); // null = unknown, true/false = resolved
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const didVerify = useRef(false);
 
   const API_BASE = process.env.REACT_APP_API_URL || "/api";
@@ -47,6 +48,7 @@ export function AuthProvider({ children }) {
       .then((res) => res.json())
       .then((data) => {
         setSetupNeeded(data.needsSetup === true);
+        setRegistrationEnabled(data.registrationEnabled !== false);
       })
       .catch(() => {
         setSetupNeeded(false);
@@ -182,7 +184,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, setupNeeded, login, register, completeSetup, logout, deleteAccount, changePassword, updateProfile, isAdmin }}
+      value={{ user, token, loading, setupNeeded, registrationEnabled, login, register, completeSetup, logout, deleteAccount, changePassword, updateProfile, isAdmin }}
     >
       {children}
     </AuthContext.Provider>

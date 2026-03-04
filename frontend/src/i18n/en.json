@@ -627,7 +627,11 @@
     "roleAdmin": "Administrator",
     "status": "Status",
     "actions": "Actions",
-    "you": "You"
+    "you": "You",
+    "settings": "Settings",
+    "registrationEnabled": "Allow registration",
+    "registrationEnabledDesc": "When disabled, new users cannot register themselves. Only administrators can create users.",
+    "registrationDisabled": "Registration is disabled"
   },
   "notifications": {
     "title": "Notifications",

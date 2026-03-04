@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const { body, validationResult } = require("express-validator");
-const { getPool, addAuditLog } = require("../db/database");
+const { getPool, addAuditLog, getAppSetting } = require("../db/database");
 const { signToken } = require("../middleware/auth");
 
 const router = express.Router();
@@ -34,14 +34,16 @@ async function requireSetupNeeded(req, res, next) {
   }
 }
 
-// GET /api/setup/status — public, returns whether setup is needed
+// GET /api/setup/status — public, returns whether setup is needed + registration status
 router.get("/status", async (_req, res) => {
   try {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
     );
-    res.json({ needsSetup: rows.length === 0 });
+    const needsSetup = rows.length === 0;
+    const registrationEnabled = (await getAppSetting("registration_enabled", "true")) === "true";
+    res.json({ needsSetup, registrationEnabled });
   } catch (err) {
     console.error("Setup status error:", err);
     res.status(500).json({ error: "Internal server error" });

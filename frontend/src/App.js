@@ -51,10 +51,19 @@ function AdminRoute({ children }) {
 }
 
 function AuthRoute({ children }) {
-  const { user, loading, setupNeeded } = useAuth();
+  const { user, loading, setupNeeded, registrationEnabled } = useAuth();
   if (loading) return null;
   if (setupNeeded) return <Navigate to="/setup" replace />;
   if (user) return <Navigate to="/" replace />;
+  return children;
+}
+
+function RegisterRoute({ children }) {
+  const { user, loading, setupNeeded, registrationEnabled } = useAuth();
+  if (loading) return null;
+  if (setupNeeded) return <Navigate to="/setup" replace />;
+  if (user) return <Navigate to="/" replace />;
+  if (!registrationEnabled) return <Navigate to="/login" replace />;
   return children;
 }
 
@@ -123,7 +132,7 @@ export default function App() {
             <Routes>
               <Route path="/setup" element={<SetupRoute><SetupPage /></SetupRoute>} />
               <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
-              <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
+              <Route path="/register" element={<RegisterRoute><RegisterPage /></RegisterRoute>} />
               <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
             </Routes>
           </AuthProvider>

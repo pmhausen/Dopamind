@@ -627,7 +627,11 @@
     "roleAdmin": "Administrator",
     "status": "Status",
     "actions": "Aktionen",
-    "you": "Du"
+    "you": "Du",
+    "settings": "Einstellungen",
+    "registrationEnabled": "Registrierung erlauben",
+    "registrationEnabledDesc": "Wenn deaktiviert, können sich neue Benutzer nicht selbst registrieren. Nur Administratoren können dann Benutzer anlegen.",
+    "registrationDisabled": "Registrierung ist deaktiviert"
   },
   "notifications": {
     "title": "Benachrichtigungen",
