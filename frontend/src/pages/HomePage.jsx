@@ -920,62 +920,247 @@ function shiftDateBy(dateStr, delta) {
   return new Date(Date.UTC(y, m - 1, dd + delta)).toISOString().slice(0, 10);
 }
 
-function WeekPlanView({ t, tasks, getEventsForDate, weekStart, onSelectDay, todayStr }) {
+function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, todayStr, settings, onMoveTask }) {
+  const HOUR_HEIGHT = 44; // px per hour
+  const PX_PER_MIN = HOUR_HEIGHT / 60;
+
+  const workStartH = parseInt(settings.workSchedule.start.split(":")[0], 10);
+  const workStartM = parseInt(settings.workSchedule.start.split(":")[1] || "0", 10);
+  const workEndH = parseInt(settings.workSchedule.end.split(":")[0], 10);
+  const workEndM = parseInt(settings.workSchedule.end.split(":")[1] || "0", 10);
+  const visStart = workStartH * 60 + workStartM;
+  const visEnd = workEndH * 60 + workEndM;
+  const totalHeight = (visEnd - visStart) * PX_PER_MIN;
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [dragTaskId, setDragTaskId] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const days = Array.from({ length: 7 }, (_, i) => shiftDateBy(weekStart, i));
   const dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
-  return (
-    <div className="grid grid-cols-7 gap-1">
-      {days.map((date, idx) => {
-        const isToday = date === todayStr;
-        const isPast = date < todayStr;
-        const dayTasks = tasks.filter((tk) => {
-          if (tk.completed) {
-            if (!tk.completedAt) return false;
-            const d = new Date(tk.completedAt);
-            const cd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-            return cd === date;
-          }
-          if (date > todayStr) return tk.scheduledDate === date;
-          if (date === todayStr) return !tk.scheduledDate || tk.scheduledDate <= todayStr;
-          return false;
-        });
-        const events = getEventsForDate(date).filter((ev) => !ev.allDay);
-        const completedCount = dayTasks.filter((t) => t.completed).length;
-        const pendingCount = dayTasks.filter((t) => !t.completed).length;
+  const fmtTime = (totalMin) => {
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
 
-        return (
-          <button
-            key={date}
-            onClick={() => onSelectDay(date)}
-            className={`flex flex-col items-center p-1.5 rounded-xl border transition-all text-left min-h-[80px] ${
-              isToday
-                ? "border-accent/50 bg-accent/5"
-                : isPast
-                ? "border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/2"
-                : "border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5"
-            }`}
+  const nowTotal = currentTime.getHours() * 60 + currentTime.getMinutes();
+  const isCurrentWeek = days.includes(todayStr);
+  const nowInRange = isCurrentWeek && nowTotal >= visStart && nowTotal < visEnd;
+  const nowTop = (nowTotal - visStart) * PX_PER_MIN;
+
+  // Hourly grid slots
+  const gridSlots = [];
+  for (let min = visStart; min <= visEnd; min += 60) {
+    gridSlots.push(min);
+  }
+
+  const getTasksForDay = (date) => {
+    return tasks.filter((tk) => {
+      if (tk.completed) return false;
+      if (date > todayStr) return tk.scheduledDate === date;
+      if (date === todayStr) return !tk.scheduledDate || tk.scheduledDate <= todayStr;
+      return false;
+    });
+  };
+
+  const HEADER_H = 28;
+
+  return (
+    <div className="flex overflow-x-auto select-none">
+      {/* Time axis */}
+      <div className="flex-shrink-0 w-10 relative" style={{ paddingTop: `${HEADER_H}px` }}>
+        <div style={{ height: `${totalHeight}px`, position: "relative" }}>
+          {gridSlots.map((min) => (
+            <span
+              key={min}
+              className="absolute right-1 text-[9px] font-mono text-gray-400 dark:text-gray-500 leading-none"
+              style={{ top: `${(min - visStart) * PX_PER_MIN - 4}px` }}
+            >
+              {fmtTime(min)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Day columns */}
+      <div className="flex flex-1 min-w-0 relative gap-px">
+        {/* "Now" indicator — spans all columns */}
+        {nowInRange && (
+          <div
+            className="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
+            style={{ top: `${nowTop + HEADER_H}px` }}
           >
-            <span className={`text-[9px] font-medium uppercase ${isToday ? "text-accent" : "text-muted-light dark:text-muted-dark"}`}>
-              {dayNames[idx]}
+            <div className="flex-1 h-[1.5px] bg-gradient-to-r from-accent/70 to-accent/10" />
+            <span className="text-[8px] font-bold font-mono text-accent bg-accent/10 rounded-full px-1 py-px flex-shrink-0 border border-accent/20 mr-px">
+              {fmtTime(nowTotal)}
             </span>
-            <span className={`text-base font-bold mt-0.5 ${isToday ? "text-accent" : isPast ? "text-gray-400 dark:text-gray-600" : ""}`}>
-              {date.slice(8)}
-            </span>
-            <div className="mt-1 w-full space-y-0.5">
-              {events.slice(0, 2).map((ev) => (
-                <div key={ev.id} className="w-full h-1 rounded-full bg-accent/40" title={ev.title || ev.summary} />
-              ))}
-              {pendingCount > 0 && (
-                <div className="text-[9px] text-muted-light dark:text-muted-dark text-center">{pendingCount} {t("stats.open")}</div>
-              )}
-              {completedCount > 0 && (
-                <div className="text-[9px] text-success text-center">✓{completedCount}</div>
-              )}
+          </div>
+        )}
+
+        {days.map((date, idx) => {
+          const isToday = date === todayStr;
+          const isPast = date < todayStr;
+          const dayTasks = getTasksForDay(date);
+          const events = getEventsForDate(date).filter((ev) => !ev.allDay && ev.start);
+          const isDragTarget = dragOver === date;
+          // Compute safe starting position for unscheduled tasks to avoid overlap with tasks at work start
+          let unscheduledOffsetPx = 0;
+          dayTasks.forEach((tk) => {
+            if (!tk.scheduledTime) return;
+            const [sh, sm] = tk.scheduledTime.split(":").map(Number);
+            const taskTopPx = (sh * 60 + sm - visStart) * PX_PER_MIN;
+            if (taskTopPx <= 0) {
+              const dur = tk.estimatedMinutes || 30;
+              unscheduledOffsetPx = Math.max(unscheduledOffsetPx, Math.max(14, dur * PX_PER_MIN) + 1);
+            }
+          });
+
+          return (
+            <div key={date} className="flex-1 flex flex-col min-w-0" style={{ minWidth: "36px" }}>
+              {/* Day header */}
+              <button
+                onClick={() => onSelectDay(date)}
+                className={`flex flex-col items-center justify-center text-center transition-all rounded-t ${
+                  isToday
+                    ? "bg-accent/10 text-accent"
+                    : isPast
+                    ? "text-gray-400 dark:text-gray-600"
+                    : "hover:bg-gray-50 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400"
+                }`}
+                style={{ height: `${HEADER_H}px` }}
+              >
+                <span className="text-[8px] font-medium uppercase leading-none">{dayNames[idx]}</span>
+                <span className={`text-[11px] font-bold leading-tight ${isToday ? "text-accent" : ""}`}>
+                  {date.slice(8)}
+                </span>
+              </button>
+
+              {/* Timeline column */}
+              <div
+                className={`relative overflow-hidden border-l border-gray-100 dark:border-white/[0.06] transition-colors ${
+                  isToday ? "bg-accent/[0.02]" : ""
+                } ${isDragTarget ? "bg-accent/5 !border-l-accent/40" : ""}`}
+                style={{ height: `${totalHeight}px` }}
+                onDragOver={(e) => { e.preventDefault(); if (!isPast && dragOver !== date) setDragOver(date); }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(null);
+                  if (dragTaskId && !isPast) {
+                    onMoveTask(dragTaskId, date);
+                    setDragTaskId(null);
+                  }
+                }}
+              >
+                {/* Hourly grid lines */}
+                {gridSlots.map((min) => (
+                  <div
+                    key={min}
+                    className="absolute left-0 right-0 border-t border-gray-100 dark:border-white/[0.05]"
+                    style={{ top: `${(min - visStart) * PX_PER_MIN}px` }}
+                  />
+                ))}
+
+                {/* Half-hour grid lines */}
+                {gridSlots.slice(0, -1).map((min) => (
+                  <div
+                    key={`h-${min}`}
+                    className="absolute left-0 right-0 border-t border-gray-50 dark:border-white/[0.02]"
+                    style={{ top: `${(min + 30 - visStart) * PX_PER_MIN}px` }}
+                  />
+                ))}
+
+                {/* Calendar events */}
+                {events.map((ev) => {
+                  let evMin;
+                  if (/^\d{1,2}:\d{2}$/.test(ev.start)) {
+                    const [eh, em] = ev.start.split(":").map(Number);
+                    evMin = eh * 60 + em;
+                  } else {
+                    const sd = new Date(ev.start);
+                    if (isNaN(sd)) return null;
+                    evMin = sd.getHours() * 60 + sd.getMinutes();
+                  }
+                  const topPx = (evMin - visStart) * PX_PER_MIN;
+                  if (topPx < 0 || topPx >= totalHeight) return null;
+                  let dur = 60;
+                  if (ev.end) {
+                    let endMin;
+                    if (/^\d{1,2}:\d{2}$/.test(ev.end)) {
+                      const [eh, em] = ev.end.split(":").map(Number);
+                      endMin = eh * 60 + em;
+                    } else {
+                      const ed = new Date(ev.end);
+                      endMin = isNaN(ed) ? evMin + 60 : ed.getHours() * 60 + ed.getMinutes();
+                    }
+                    dur = Math.max(15, endMin - evMin);
+                  }
+                  const heightPx = Math.max(12, dur * PX_PER_MIN);
+                  return (
+                    <div
+                      key={ev.id || `${ev.title || "ev"}-${evMin}`}
+                      className="absolute left-0 right-0 mx-0.5 rounded bg-accent/15 border-l-2 border-accent text-[8px] px-0.5 overflow-hidden"
+                      style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+                      title={ev.title || ev.summary}
+                    >
+                      <span className="truncate block leading-tight text-accent">{ev.title || ev.summary}</span>
+                    </div>
+                  );
+                })}
+
+                {/* Tasks */}
+                {dayTasks.map((task) => {
+                  const dur = task.estimatedMinutes || 30;
+                  const heightPx = Math.max(14, dur * PX_PER_MIN);
+                  let topPx;
+                  if (task.scheduledTime) {
+                    const [h, m] = task.scheduledTime.split(":").map(Number);
+                    topPx = (h * 60 + m - visStart) * PX_PER_MIN;
+                  } else {
+                    topPx = unscheduledOffsetPx;
+                    unscheduledOffsetPx += heightPx + 1;
+                  }
+                  if (topPx >= totalHeight) return null;
+                  topPx = Math.max(0, topPx);
+                  const isDragging = dragTaskId === task.id;
+                  const priorityClass =
+                    task.priority === "high"
+                      ? "bg-danger/20 border-l-[3px] border-danger"
+                      : task.priority === "medium"
+                      ? "bg-warn/15 border-l-[3px] border-warn"
+                      : "bg-gray-100 dark:bg-white/[0.08] border-l-[3px] border-gray-300 dark:border-white/20";
+                  return (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragTaskId(task.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", task.id);
+                      }}
+                      onDragEnd={() => { setDragTaskId(null); setDragOver(null); }}
+                      className={`absolute left-0 right-0 mx-0.5 rounded text-[8px] px-1 overflow-hidden cursor-grab active:cursor-grabbing z-10 transition-opacity ${priorityClass} ${isDragging ? "opacity-40" : "opacity-100"}`}
+                      style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+                      title={`${task.text} — ${t("home.dragHint")}`}
+                    >
+                      <span className="truncate block leading-tight font-medium">{task.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </button>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1451,13 +1636,15 @@ export default function HomePage() {
         </div>
 
         {planView === "week" && (
-          <WeekPlanView
+          <WeekTimelineView
             t={t}
             tasks={state.tasks}
             getEventsForDate={getEventsForDate}
             weekStart={weekStart}
             onSelectDay={(date) => { setViewDate(date); setPlanView("day"); }}
             todayStr={todayStr}
+            settings={settings}
+            onMoveTask={(taskId, date) => dispatch({ type: "UPDATE_TASK", payload: { id: taskId, scheduledDate: date } })}
           />
         )}
 
