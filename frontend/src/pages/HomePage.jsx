@@ -89,7 +89,27 @@ function QuickAddTask({ t, onAdd }) {
   );
 }
 
-function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onToggleSubtask, isTaskOverdue, onEditTask, onEditSubtask, onUpdateScheduledTime, onUpdateSubtaskScheduledTime, onRescheduleNextDay, isToday, isPastDay, gridInterval, viewDate, removedBreaks, onToggleBreakRemoved, breakTimeOverrides, onUpdateBreakTime, timeTrackingBreaks, onStartTask, countdownStartEnabled, showFullDay, hideParentWithSubtasks, onPushDownTask, energyLevel }) {
+const DEFAULT_CUSTOM_TIME_START = "06:00";
+const DEFAULT_CUSTOM_TIME_END = "22:00";
+
+function parseTimeToMin(timeStr) {
+  if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) return 0;
+  const [h, m] = timeStr.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+function getTimeRangeBounds(settings, workStart, workEnd) {
+  const mode = settings.timeline?.timeRangeMode || "workHours";
+  const customStart = parseTimeToMin(settings.timeline?.customTimeStart || DEFAULT_CUSTOM_TIME_START);
+  const customEnd = parseTimeToMin(settings.timeline?.customTimeEnd || DEFAULT_CUSTOM_TIME_END);
+  return {
+    rangeStart: mode === "fullDay" ? 0 : mode === "custom" ? customStart : workStart,
+    rangeEnd: mode === "fullDay" ? 24 * 60 : mode === "custom" ? customEnd : workEnd,
+    mode,
+  };
+}
+
+function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onToggleSubtask, isTaskOverdue, onEditTask, onEditSubtask, onUpdateScheduledTime, onUpdateSubtaskScheduledTime, onRescheduleNextDay, isToday, isPastDay, gridInterval, viewDate, removedBreaks, onToggleBreakRemoved, breakTimeOverrides, onUpdateBreakTime, timeTrackingBreaks, onStartTask, countdownStartEnabled, hideParentWithSubtasks, onPushDownTask, energyLevel }) {
   const workStartH = parseInt(settings.workSchedule.start.split(":")[0], 10);
   const workStartM = parseInt(settings.workSchedule.start.split(":")[1] || "0", 10);
   const workEndH = parseInt(settings.workSchedule.end.split(":")[0], 10);
@@ -141,8 +161,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   const workStart = toMin(workStartH, workStartM);
   const workEnd = toMin(workEndH, workEndM);
 
-  const DAY_START = showFullDay ? 0 : workStart;
-  const DAY_END = showFullDay ? 24 * 60 : workEnd;
+  const { rangeStart: DAY_START, rangeEnd: DAY_END } = getTimeRangeBounds(settings, workStart, workEnd);
   const isNonWorkTime = (minFromMidnight) => timeTrackingEnabled && (minFromMidnight < workStart || minFromMidnight >= workEnd);
 
   const taskSchedulingRound = settings.timeline?.taskSchedulingRound || "halfHour";
@@ -342,8 +361,8 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   }
 
   // Compute visible range: always extend to cover all entries and now-line
-  let visStart = showFullDay ? 0 : workStart;
-  let visEnd = showFullDay ? 24 * 60 : workEnd;
+  let visStart = DAY_START;
+  let visEnd = DAY_END;
   if (entries.length > 0) {
     const earliest = Math.min(...entries.map((e) => e.startMin));
     const latest = Math.max(...entries.map((e) => e.startMin + e.durationMin));
@@ -1056,35 +1075,39 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
   };
 
   // Compute effective canvas time range (canvas auto-scaling — Req 2)
-  let effectiveStart = workStart;
-  let effectiveEnd = workEnd;
-  for (const date of days) {
-    for (const item of getItemsForDay(date)) {
-      if (item.scheduledTime) {
-        const [h, m] = item.scheduledTime.split(":").map(Number);
-        const s = h * 60 + m;
-        effectiveStart = Math.min(effectiveStart, s);
-        effectiveEnd = Math.max(effectiveEnd, s + (item.estimatedMinutes || 30));
+  const { rangeStart: baseStart, rangeEnd: baseEnd, mode: timeRangeMode } = getTimeRangeBounds(settings, workStart, workEnd);
+
+  let effectiveStart = baseStart;
+  let effectiveEnd = baseEnd;
+  if (timeRangeMode !== "fullDay") {
+    for (const date of days) {
+      for (const item of getItemsForDay(date)) {
+        if (item.scheduledTime) {
+          const [h, m] = item.scheduledTime.split(":").map(Number);
+          const s = h * 60 + m;
+          effectiveStart = Math.min(effectiveStart, s);
+          effectiveEnd = Math.max(effectiveEnd, s + (item.estimatedMinutes || 30));
+        }
+      }
+      for (const ev of getEventsForDate(date).filter((ev) => !ev.allDay && ev.start)) {
+        let evMin;
+        if (/^\d{1,2}:\d{2}$/.test(ev.start)) {
+          const [eh, em] = ev.start.split(":").map(Number);
+          evMin = eh * 60 + em;
+        } else {
+          const sd = new Date(ev.start);
+          if (!isNaN(sd)) evMin = sd.getHours() * 60 + sd.getMinutes();
+        }
+        if (evMin !== undefined) {
+          effectiveStart = Math.min(effectiveStart, evMin);
+          effectiveEnd = Math.max(effectiveEnd, evMin + 60);
+        }
       }
     }
-    for (const ev of getEventsForDate(date).filter((ev) => !ev.allDay && ev.start)) {
-      let evMin;
-      if (/^\d{1,2}:\d{2}$/.test(ev.start)) {
-        const [eh, em] = ev.start.split(":").map(Number);
-        evMin = eh * 60 + em;
-      } else {
-        const sd = new Date(ev.start);
-        if (!isNaN(sd)) evMin = sd.getHours() * 60 + sd.getMinutes();
-      }
-      if (evMin !== undefined) {
-        effectiveStart = Math.min(effectiveStart, evMin);
-        effectiveEnd = Math.max(effectiveEnd, evMin + 60);
-      }
+    if (isCurrentWeek) {
+      effectiveStart = Math.min(effectiveStart, nowTotal);
+      effectiveEnd = Math.max(effectiveEnd, nowTotal + 60);
     }
-  }
-  if (isCurrentWeek) {
-    effectiveStart = Math.min(effectiveStart, nowTotal);
-    effectiveEnd = Math.max(effectiveEnd, nowTotal + 60);
   }
   // Snap to hour boundaries, clamp to 0–24h
   effectiveStart = Math.max(0, Math.floor(effectiveStart / 60) * 60);
@@ -1431,7 +1454,6 @@ export default function HomePage() {
   // New gamification state
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [countdownTask, setCountdownTask] = useState(null);
-  const [timelineShowFullDay, setTimelineShowFullDay] = useState(() => settings.features?.timeTrackingEnabled === false);
   const [planView, setPlanView] = useState("day"); // "day" | "week" | "month"
 
   // Weekly report: show on Monday if not yet dismissed this week
@@ -1791,17 +1813,6 @@ export default function HomePage() {
                 >
                   <List className="w-3 h-3" />
                 </button>
-                <button
-                  onClick={() => setTimelineShowFullDay(v => !v)}
-                  className={`px-2 py-0.5 rounded text-[10px] transition-all flex items-center gap-0.5 ${
-                    timelineShowFullDay
-                      ? "bg-white dark:bg-white/15 text-accent font-bold shadow-sm"
-                      : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                  }`}
-                  title={timelineShowFullDay ? t("home.workHoursOnly") : t("home.toggleFullDay")}
-                >
-                  {timelineShowFullDay ? "24h" : t("home.workHoursOnly")}
-                </button>
               </div>
             )}
           </div>
@@ -1876,7 +1887,6 @@ export default function HomePage() {
               }}
               onStartTask={(task) => setCountdownTask(task)}
               countdownStartEnabled={settings.gamification?.countdownStartEnabled !== false}
-              showFullDay={timelineShowFullDay}
               hideParentWithSubtasks={settings.timeline?.hideParentWithSubtasks === true}
               energyLevel={state.energyLevel}
             />

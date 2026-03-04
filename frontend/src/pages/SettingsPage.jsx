@@ -565,6 +565,42 @@ export default function SettingsPage() {
                 </Field>
               )}
             </Section>
+            <Section title={t("settings.timeRangeMode")}>
+              <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.timeRangeModeDesc")}</p>
+              <div className="flex gap-2 flex-wrap">
+                {["workHours", "fullDay", "custom"].map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => updateSettings("timeline", { timeRangeMode: mode })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      (settings.timeline?.timeRangeMode || "workHours") === mode
+                        ? "bg-accent text-white"
+                        : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {t(`settings.timeRangeMode_${mode}`)}
+                  </button>
+                ))}
+              </div>
+              {(settings.timeline?.timeRangeMode || "workHours") === "custom" && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <Field label={t("settings.customTimeStart")}>
+                    <Input
+                      type="time"
+                      value={settings.timeline?.customTimeStart || "06:00"}
+                      onChange={(v) => updateSettings("timeline", { customTimeStart: v })}
+                    />
+                  </Field>
+                  <Field label={t("settings.customTimeEnd")}>
+                    <Input
+                      type="time"
+                      value={settings.timeline?.customTimeEnd || "22:00"}
+                      onChange={(v) => updateSettings("timeline", { customTimeEnd: v })}
+                    />
+                  </Field>
+                </div>
+              )}
+            </Section>
             <Section title={t("settings.timeline")}>
               <Toggle
                 checked={settings.timeline?.hideParentWithSubtasks === true}
