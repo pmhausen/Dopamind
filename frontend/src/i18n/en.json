@@ -27,7 +27,7 @@
     "noTasks": "No open tasks.",
     "moreTasksHidden": "more tasks not shown (open Task view to see all)",
     "quickAdd": "Quick add...",
-    "dayPlan": "Day Plan",
+    "dayPlan": "Task Planning",
     "dayPlanHint": "Suggested time blocks based on events and tasks.",
     "freeSlot": "Free",
     "taskSlot": "Task",
@@ -433,7 +433,14 @@
     "taskSchedulingRound_fullHour": "Full hour (xx:00)",
     "taskSchedulingRound_custom": "Minutes after creation",
     "taskSchedulingCustomMinutes": "Minutes after creation",
-    "timeline": "Day Planning"
+    "timeline": "Task Planning",
+    "timeRangeMode": "Time Range Display",
+    "timeRangeModeDesc": "Determines the visible time range in day planning, week view, and all list functions.",
+    "timeRangeMode_workHours": "Work Hours",
+    "timeRangeMode_fullDay": "24 Hours",
+    "timeRangeMode_custom": "Custom",
+    "customTimeStart": "Time Window Start",
+    "customTimeEnd": "Time Window End"
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",

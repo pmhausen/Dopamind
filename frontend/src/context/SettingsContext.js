@@ -47,6 +47,9 @@ const defaultSettings = {
     hideParentWithSubtasks: false,
     taskSchedulingRound: "halfHour", // "halfHour" | "fullHour" | "custom"
     taskSchedulingCustomMinutes: 30,
+    timeRangeMode: "workHours", // "workHours" | "fullDay" | "custom"
+    customTimeStart: "06:00",
+    customTimeEnd: "22:00",
   },
 };
 

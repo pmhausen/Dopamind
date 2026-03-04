@@ -368,7 +368,14 @@
     "taskSchedulingRound_fullHour": "Volle Stunde (xx:00)",
     "taskSchedulingRound_custom": "Minuten nach Erstellung",
     "taskSchedulingCustomMinutes": "Minuten nach Erstellung",
-    "timeline": "Tagesplanung"
+    "timeline": "Aufgabenplanung",
+    "timeRangeMode": "Zeitfenster-Anzeige",
+    "timeRangeModeDesc": "Bestimmt den sichtbaren Zeitbereich in der Tagesplanung, Wochenansicht und allen Listenfunktionen.",
+    "timeRangeMode_workHours": "Arbeitszeit",
+    "timeRangeMode_fullDay": "24 Stunden",
+    "timeRangeMode_custom": "Benutzerdefiniert",
+    "customTimeStart": "Zeitfenster Start",
+    "customTimeEnd": "Zeitfenster Ende"
   },
   "home": {
     "greeting": "Ein Schritt nach dem anderen.",
@@ -382,7 +389,7 @@
     "noTasks": "Keine offenen Aufgaben.",
     "moreTasksHidden": "weitere Aufgaben ausgeblendet (Aufgabenansicht öffnen, um alle zu sehen)",
     "quickAdd": "Schnell hinzufügen...",
-    "dayPlan": "Tagesplanung",
+    "dayPlan": "Aufgabenplanung",
     "dayPlanHint": "Vorgeschlagene Zeitblöcke basierend auf Terminen und Aufgaben.",
     "freeSlot": "Frei",
     "taskSlot": "Aufgabe",
