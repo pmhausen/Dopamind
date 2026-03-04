@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
 import { useMail } from "../context/MailContext";
+import { useSettings } from "../context/SettingsContext";
+import CountdownStart from "../components/CountdownStart";
 import { Mail, Calendar, Plus, ChevronDown, ChevronRight, CheckSquare, Square, Trash2, AlertCircle, Pencil, RotateCcw, Check, X, Tag, Clock, Folder, CalendarDays, Settings2, GripVertical, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 const PRIORITY_CONFIG = {
@@ -149,7 +151,7 @@ function SubtaskItem({ subtask, taskId, t }) {
   );
 }
 
-function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
+function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownStartEnabled }) {
   const { dispatch } = useApp();
   const { untagMail } = useMail();
   const priority = PRIORITY_CONFIG[task.priority];
@@ -165,6 +167,7 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
   const [editCategory, setEditCategory] = useState(task.category || "");
   const [editTags, setEditTags] = useState(task.tags || []);
   const [editTagInput, setEditTagInput] = useState("");
+  const [showCountdown, setShowCountdown] = useState(false);
 
   const catObj = categories.find((c) => c.id === task.category);
 
@@ -422,6 +425,15 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+          {!task.completed && countdownStartEnabled && (
+            <button
+              onClick={() => setShowCountdown(true)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
+              title={t("tasks.startNow")}
+            >
+              <span className="text-xs font-bold">▶</span>
+            </button>
+          )}
           <button
             onClick={() => { setEditText(task.text); setEditPriority(task.priority); setEditMinutes(task.estimatedMinutes); setEditDeadline(task.deadline || ""); setEditScheduledTime(task.scheduledTime || ""); setEditScheduledDate(task.scheduledDate || ""); setEditCategory(task.category || ""); setEditTags(task.tags || []); setEditing(true); }}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
@@ -477,6 +489,12 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
           )}
         </div>
       )}
+      {showCountdown && (
+        <CountdownStart
+          estimatedMinutes={task.estimatedMinutes || 25}
+          onClose={() => setShowCountdown(false)}
+        />
+      )}
     </div>
   );
 }
@@ -484,6 +502,8 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
 export default function TasksPage() {
   const { t } = useI18n();
   const { state, dispatch } = useApp();
+  const { settings } = useSettings();
+  const countdownStartEnabled = settings.gamification?.countdownStartEnabled !== false;
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("medium");
   const [minutes, setMinutes] = useState(25);
@@ -971,6 +991,7 @@ export default function TasksPage() {
                   categories={categories}
                   onTagClick={(tag) => setFilterTag((prev) => (prev === tag ? null : tag))}
                   onCategoryClick={(cat) => setFilterCategory((prev) => (prev === cat ? null : cat))}
+                  countdownStartEnabled={countdownStartEnabled}
                 />
               ))}
             </div>

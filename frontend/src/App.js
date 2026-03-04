@@ -11,6 +11,7 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
 import RewardToast from "./components/RewardToast";
+import MicroConfettiManager from "./components/MicroConfettiManager";
 import HomePage from "./pages/HomePage";
 import TasksPage from "./pages/TasksPage";
 import CalendarPage from "./pages/CalendarPage";
@@ -81,6 +82,7 @@ function AppLayout() {
                 </div>
                 <MobileNav />
                 <RewardToast />
+                <MicroConfettiManager />
               </div>
             </CalendarProvider>
           </MailProvider>

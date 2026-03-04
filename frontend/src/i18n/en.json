@@ -44,7 +44,29 @@
     "listMode": "List view",
     "removeBreak": "Remove break for today",
     "restoreBreak": "Restore break",
-    "breakMatched": "Matched with time tracking"
+    "breakMatched": "Matched with time tracking",
+    "energyCheckin": "How is your energy today?",
+    "energy": {
+      "low": "🔋 Low",
+      "normal": "🌀 Normal",
+      "high": "⚡ High"
+    },
+    "energyActive": {
+      "low": "Low energy mode – easier tasks first",
+      "normal": "Normal energy",
+      "high": "High energy – tackle the hard tasks!"
+    },
+    "dailyChallenge": "Daily Challenge",
+    "challenge": {
+      "complete_tasks": "Complete {target} tasks today",
+      "focus_minutes": "Focus for {target} minutes today"
+    },
+    "weeklyReport": "Weekly Report",
+    "weeklyTopDay": "Best day",
+    "compassionMode": "Not my best day",
+    "notMyDay": "Not my day",
+    "compassionActive": "Compassion on",
+    "weeklyReportDismiss": "Let's go this week!"
   },
   "tasks": {
     "title": "Tasks",
@@ -109,7 +131,8 @@
     "addTaskCollapse": "▾ Collapse",
     "dropToAssign": "Drop task here",
     "subtaskScheduledTime": "Time",
-    "subtaskScheduledDate": "Date"
+    "subtaskScheduledDate": "Date",
+    "startNow": "Start now ▶"
   },
   "focus": {
     "title": "Focus Block",
@@ -119,7 +142,9 @@
     "resume": "Resume",
     "again": "Again",
     "done": "Done!",
-    "xpHint": "+{xp} XP on completion"
+    "xpHint": "+{xp} XP on completion",
+    "flowDetected": "You are in the Flow! �� Double XP on completion.",
+    "pauseSuggestion": "Break suggestion:"
   },
   "stats": {
     "today": "Today",
@@ -346,7 +371,16 @@
     "timeWarningsCritical2": "Critical warning 2 (min)",
     "timeWarningsDesc": "Warnings when remaining free time becomes tight.",
     "timelineGridInterval": "Day plan grid interval",
-    "timelineGridIntervalDesc": "Time grid interval for the day plan view (15, 30, 60 minutes or list mode)."
+    "timelineGridIntervalDesc": "Time grid interval for the day plan view (15, 30, 60 minutes or list mode).",
+    "compassionModeEnabled": "Compassion Mode",
+    "microConfettiEnabled": "Micro Confetti",
+    "variableRewardsEnabled": "Variable Rewards",
+    "flowShieldEnabled": "Flow Shield",
+    "countdownStartEnabled": "Countdown Start",
+    "energyCheckinEnabled": "Energy Check-in",
+    "dailyChallengeEnabled": "Daily Challenge",
+    "pauseSuggestionsEnabled": "Pause Suggestions",
+    "weeklyReportEnabled": "Weekly Report"
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",
@@ -361,7 +395,10 @@
     "dailyBonus": "Daily Bonus! +{xp} XP",
     "deadlineBonus": "On time! +15 XP Bonus",
     "overduePenalty": "⚠ Overdue task: -{xp} XP ({daysOverdue} days late)",
-    "inactivityPenalty": "😴 Inactivity: -{xp} XP ({days} days inactive)"
+    "inactivityPenalty": "😴 Inactivity: -{xp} XP ({days} days inactive)",
+    "jackpot": "🎰 Jackpot! +{xp} XP bonus!",
+    "variableMedium": "🎁 Bonus! +{xp} XP",
+    "variableSmall": "✨ +{xp} XP bonus"
   },
   "achievements": {
     "title": "Achievements",
@@ -534,5 +571,9 @@
     "dueTomorrow": "Due tomorrow",
     "viewAll": "View all tasks →",
     "scheduledConflict": "⚠ \"{task}\" conflicts with event at {time}"
+  },
+  "countdown": {
+    "title": "Get ready...",
+    "go": "GO!"
   }
 }

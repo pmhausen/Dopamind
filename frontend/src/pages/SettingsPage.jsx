@@ -658,6 +658,51 @@ export default function SettingsPage() {
                 onChange={(v) => updateSettings("gamification", { soundEnabled: v })}
                 label={t("settings.soundEnabled")}
               />
+              <Toggle
+                checked={settings.gamification.compassionModeEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { compassionModeEnabled: v })}
+                label={t("settings.compassionModeEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.microConfettiEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { microConfettiEnabled: v })}
+                label={t("settings.microConfettiEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.variableRewardsEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { variableRewardsEnabled: v })}
+                label={t("settings.variableRewardsEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.flowShieldEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { flowShieldEnabled: v })}
+                label={t("settings.flowShieldEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.countdownStartEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { countdownStartEnabled: v })}
+                label={t("settings.countdownStartEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.energyCheckinEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { energyCheckinEnabled: v })}
+                label={t("settings.energyCheckinEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.dailyChallengeEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { dailyChallengeEnabled: v })}
+                label={t("settings.dailyChallengeEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.pauseSuggestionsEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { pauseSuggestionsEnabled: v })}
+                label={t("settings.pauseSuggestionsEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.weeklyReportEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { weeklyReportEnabled: v })}
+                label={t("settings.weeklyReportEnabled")}
+              />
             </Section>
           )}
 

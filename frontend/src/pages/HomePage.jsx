@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
+import { DAILY_CHALLENGES } from "../context/AppContext";
 import { useCalendar } from "../context/CalendarContext";
 import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
@@ -834,6 +835,21 @@ export default function HomePage() {
   const isToday = viewDate === todayStr;
   const isPast = viewDate < todayStr;
 
+  // New gamification state
+  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+
+  // Weekly report: show on Monday if not yet dismissed this week
+  useEffect(() => {
+    if (!settings.gamification?.weeklyReportEnabled) return;
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon
+    if (dayOfWeek !== 1) return;
+    const weekStart = todayStr;
+    if (state.lastWeeklyReport !== weekStart && state.previousWeekStats) {
+      setShowWeeklyReport(true);
+    }
+  }, [settings.gamification?.weeklyReportEnabled, state.lastWeeklyReport, state.previousWeekStats, todayStr]);
+
   const viewEvents = getEventsForDate(viewDate);
   const allDayEvents = viewEvents.filter((ev) => ev.allDay);
 
@@ -880,6 +896,10 @@ export default function HomePage() {
           const bOverdue = isTaskOverdue(b) ? 0 : 1;
           if (aOverdue !== bOverdue) return aOverdue - bOverdue;
           const p = { high: 0, medium: 1, low: 2 };
+          // Energy-level sort: low energy → prefer low priority tasks first
+          if (state.energyLevel === "low") {
+            return (p[b.priority] ?? 1) - (p[a.priority] ?? 1);
+          }
           return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
         })
         .slice(0, MAX_TIMELINE_TASKS);
@@ -943,6 +963,107 @@ export default function HomePage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      {/* Weekly Report Modal (Feature 9) */}
+      {showWeeklyReport && state.previousWeekStats && settings.gamification?.weeklyReportEnabled && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="glass-card p-6 max-w-sm w-full mx-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold">📊 {t("home.weeklyReport")}</h3>
+              <button
+                onClick={() => { setShowWeeklyReport(false); dispatch({ type: "DISMISS_WEEKLY_REPORT" }); }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-danger hover:bg-danger/10 transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-3 rounded-xl bg-accent/5">
+                <p className="text-xl font-bold text-accent">{state.previousWeekStats.tasks}</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase">{t("stats.completed")}</p>
+              </div>
+              <div className="text-center p-3 rounded-xl bg-green-50 dark:bg-green-900/10">
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">{state.previousWeekStats.focusMinutes}</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase">{t("stats.focusMin")}</p>
+              </div>
+              <div className="text-center p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10">
+                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{state.previousWeekStats.xp}</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase">XP</p>
+              </div>
+            </div>
+            {state.previousWeekStats.topDay && (
+              <p className="text-xs text-center text-muted-light dark:text-muted-dark">
+                🏆 {t("home.weeklyTopDay")}: {new Date(state.previousWeekStats.topDay + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" })}
+              </p>
+            )}
+            <button
+              onClick={() => { setShowWeeklyReport(false); dispatch({ type: "DISMISS_WEEKLY_REPORT" }); }}
+              className="btn-primary w-full text-sm"
+            >
+              {t("home.weeklyReportDismiss")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Energy Check-in (Feature 6) */}
+      {isToday && settings.gamification?.energyCheckinEnabled && state.energyCheckDate !== todayStr && (
+        <div className="glass-card p-4">
+          <p className="text-sm font-medium mb-3">⚡ {t("home.energyCheckin")}</p>
+          <div className="flex gap-2">
+            {["low", "normal", "high"].map((level) => (
+              <button
+                key={level}
+                onClick={() => dispatch({ type: "SET_ENERGY_LEVEL", payload: level })}
+                className="flex-1 py-2 rounded-xl text-sm font-medium transition-all bg-gray-50 dark:bg-white/5 hover:bg-accent/10 hover:text-accent border border-gray-200 dark:border-white/10"
+              >
+                {t(`home.energy.${level}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Active energy indicator */}
+      {isToday && state.energyLevel && (
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${
+          state.energyLevel === "high" ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300" :
+          state.energyLevel === "low" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300" :
+          "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+        }`}>
+          <span>{state.energyLevel === "high" ? "⚡" : state.energyLevel === "low" ? "🔋" : "🌀"}</span>
+          <span>{t(`home.energyActive.${state.energyLevel}`)}</span>
+        </div>
+      )}
+
+      {/* Daily Challenge (Feature 7) */}
+      {isToday && settings.gamification?.dailyChallengeEnabled && state.dailyChallenge && (() => {
+        const def = DAILY_CHALLENGES.find((d) => d.id === state.dailyChallenge.challengeId);
+        if (!def) return null;
+        const progress = def.type === "complete_tasks" ? state.completedToday : state.focusMinutesToday;
+        const pct = Math.min(100, Math.round((progress / def.target) * 100));
+        return (
+          <div className={`glass-card p-4 border ${state.dailyChallenge.completed ? "border-green-300 dark:border-green-700" : "border-accent/20"}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold flex items-center gap-1.5">
+                🎯 {t("home.dailyChallenge")}
+                {state.dailyChallenge.completed && <span className="text-success">✓</span>}
+              </p>
+              <span className="text-xs text-muted-light dark:text-muted-dark">{pct}%</span>
+            </div>
+            <p className="text-xs text-muted-light dark:text-muted-dark mb-2">
+              {t(`home.challenge.${def.type}`, { target: def.target })}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-white/10">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-light dark:text-muted-dark mt-1">{progress}/{def.target}</p>
+          </div>
+        );
+      })()}
+
       {/* Greeting + Quick Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -962,6 +1083,23 @@ export default function HomePage() {
             <p className="text-lg font-bold font-mono text-accent">{state.focusMinutesToday}<span className="text-xs ml-0.5">{t("stats.min")}</span></p>
             <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.focusMin")}</p>
           </div>
+          {/* Compassion Mode button (Feature 1) */}
+          {isToday && settings.gamification?.compassionModeEnabled && !state.compassionModeDate && (
+            <button
+              onClick={() => dispatch({ type: "SET_COMPASSION_MODE" })}
+              className="glass-card px-3 py-2 text-center hover:bg-pink-50 dark:hover:bg-pink-900/20 transition-colors"
+              title={t("home.compassionMode")}
+            >
+              <p className="text-lg">💙</p>
+              <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider whitespace-nowrap">{t("home.notMyDay")}</p>
+            </button>
+          )}
+          {isToday && state.compassionModeDate === todayStr && (
+            <div className="glass-card px-3 py-2 text-center bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800/30">
+              <p className="text-lg">💙</p>
+              <p className="text-[10px] text-pink-600 dark:text-pink-400 uppercase tracking-wider whitespace-nowrap">{t("home.compassionActive")}</p>
+            </div>
+          )}
         </div>
       </div>
 

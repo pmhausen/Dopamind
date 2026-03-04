@@ -78,7 +78,8 @@
     "addTaskCollapse": "▾ Einklappen",
     "dropToAssign": "Aufgabe hierher ziehen",
     "subtaskScheduledTime": "Uhrzeit",
-    "subtaskScheduledDate": "Datum"
+    "subtaskScheduledDate": "Datum",
+    "startNow": "Jetzt starten ▶"
   },
   "focus": {
     "title": "Fokus-Block",
@@ -88,7 +89,9 @@
     "resume": "Weiter",
     "again": "Nochmal",
     "done": "Geschafft!",
-    "xpHint": "+{xp} XP nach Abschluss"
+    "xpHint": "+{xp} XP nach Abschluss",
+    "flowDetected": "Du bist im Flow! 🌊 Doppelte XP nach Abschluss.",
+    "pauseSuggestion": "Pausenvorschlag:"
   },
   "stats": {
     "today": "Heute",
@@ -315,7 +318,16 @@
     "timeWarningsCritical2": "Kritische Warnung 2 (min)",
     "timeWarningsDesc": "Warnungen wenn die verbleibende freie Zeit knapp wird.",
     "timelineGridInterval": "Tagesplanungs-Raster",
-    "timelineGridIntervalDesc": "Zeitraster für die Tagesplanung (15, 30, 60 Minuten oder Listenansicht)."
+    "timelineGridIntervalDesc": "Zeitraster für die Tagesplanung (15, 30, 60 Minuten oder Listenansicht).",
+    "compassionModeEnabled": "Kompassions-Modus",
+    "microConfettiEnabled": "Mikro-Konfetti",
+    "variableRewardsEnabled": "Variable Belohnungen",
+    "flowShieldEnabled": "Flow-Schutz",
+    "countdownStartEnabled": "Countdown-Start",
+    "energyCheckinEnabled": "Energie-Check-in",
+    "dailyChallengeEnabled": "Tägliche Herausforderung",
+    "pauseSuggestionsEnabled": "Pausenvorschläge",
+    "weeklyReportEnabled": "Wochenbericht"
   },
   "home": {
     "greeting": "Ein Schritt nach dem anderen.",
@@ -346,7 +358,29 @@
     "listMode": "Listenansicht",
     "removeBreak": "Pause für heute entfernen",
     "restoreBreak": "Pause wiederherstellen",
-    "breakMatched": "Abgeglichen mit Zeiterfassung"
+    "breakMatched": "Abgeglichen mit Zeiterfassung",
+    "energyCheckin": "Wie ist deine Energie heute?",
+    "energy": {
+      "low": "🔋 Niedrig",
+      "normal": "🌀 Normal",
+      "high": "⚡ Hoch"
+    },
+    "energyActive": {
+      "low": "Niedriger Energie-Modus – leichtere Aufgaben zuerst",
+      "normal": "Normale Energie",
+      "high": "Hohe Energie – die schwierigen Aufgaben angehen!"
+    },
+    "dailyChallenge": "Tägliche Herausforderung",
+    "challenge": {
+      "complete_tasks": "{target} Aufgaben heute erledigen",
+      "focus_minutes": "{target} Minuten Fokus heute"
+    },
+    "weeklyReport": "Wochenbericht",
+    "weeklyTopDay": "Bester Tag",
+    "weeklyReportDismiss": "Diese Woche rocken!",
+    "compassionMode": "Kein guter Tag",
+    "notMyDay": "Nicht mein Tag",
+    "compassionActive": "Kompassion aktiv"
   },
   "rewards": {
     "levelUp": "Level {level} erreicht – {title}!",
@@ -361,7 +395,10 @@
     "dailyBonus": "Tages-Bonus! +{xp} XP",
     "deadlineBonus": "Pünktlich! +15 XP Bonus",
     "overduePenalty": "⚠ Überfällige Aufgabe: -{xp} XP ({daysOverdue} Tage zu spät)",
-    "inactivityPenalty": "😴 Inaktivität: -{xp} XP ({days} Tage inaktiv)"
+    "inactivityPenalty": "😴 Inaktivität: -{xp} XP ({days} Tage inaktiv)",
+    "jackpot": "🎰 Jackpot! +{xp} XP Bonus!",
+    "variableMedium": "�� Bonus! +{xp} XP",
+    "variableSmall": "✨ +{xp} XP Bonus"
   },
   "achievements": {
     "title": "Erfolge",
@@ -534,5 +571,9 @@
     "dueTomorrow": "Fällig morgen",
     "viewAll": "Alle Aufgaben anzeigen →",
     "scheduledConflict": "⚠ \"{task}\" kollidiert mit Termin um {time}"
+  },
+  "countdown": {
+    "title": "Mach dich bereit...",
+    "go": "LOS!"
   }
 }
