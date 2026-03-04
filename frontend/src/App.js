@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AppProvider } from "./context/AppContext";
 import { I18nProvider } from "./i18n/I18nContext";
@@ -18,45 +19,89 @@ import TimeTrackingPage from "./pages/TimeTrackingPage";
 import TimeManagementPage from "./pages/TimeManagementPage";
 import SettingsPage from "./pages/SettingsPage";
 import AchievementsPage from "./pages/AchievementsPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import AdminPage from "./pages/AdminPage";
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-accent text-lg font-semibold">Dopamind</div>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { user, isAdmin, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return children;
+}
+
+function AuthRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/" replace />;
+  return children;
+}
+
+function AppLayout() {
+  return (
+    <SettingsProvider>
+      <AppProvider>
+        <TimeTrackingProvider>
+          <MailProvider>
+            <CalendarProvider>
+              <div className="min-h-screen flex">
+                <Sidebar />
+                <div className="flex-1 flex flex-col min-w-0">
+                  <Header />
+                  <main className="flex-1 px-4 py-6 pb-24 md:pb-6 max-w-5xl w-full mx-auto">
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/tasks" element={<TasksPage />} />
+                      <Route path="/calendar" element={<CalendarPage />} />
+                      <Route path="/mail" element={<MailPage />} />
+                      <Route path="/time" element={<TimeTrackingPage />} />
+                      <Route path="/zeitmanagement" element={<Navigate to="/time?tab=focus" replace />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/achievements" element={<AchievementsPage />} />
+                      <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+                    </Routes>
+                  </main>
+                  <footer className="hidden md:block text-center py-4 text-[10px] text-muted-light dark:text-muted-dark">
+                    Dopamind &middot; For the ADHD Community
+                  </footer>
+                </div>
+                <MobileNav />
+                <RewardToast />
+              </div>
+            </CalendarProvider>
+          </MailProvider>
+        </TimeTrackingProvider>
+      </AppProvider>
+    </SettingsProvider>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
       <I18nProvider>
         <ThemeProvider>
-          <SettingsProvider>
-            <AppProvider>
-              <TimeTrackingProvider>
-                <MailProvider>
-                  <CalendarProvider>
-                    <div className="min-h-screen flex">
-                      <Sidebar />
-                      <div className="flex-1 flex flex-col min-w-0">
-                        <Header />
-                        <main className="flex-1 px-4 py-6 pb-24 md:pb-6 max-w-5xl w-full mx-auto">
-                          <Routes>
-                            <Route path="/" element={<HomePage />} />
-                            <Route path="/tasks" element={<TasksPage />} />
-                            <Route path="/calendar" element={<CalendarPage />} />
-                            <Route path="/mail" element={<MailPage />} />
-                            <Route path="/time" element={<TimeTrackingPage />} />
-                            <Route path="/zeitmanagement" element={<Navigate to="/time?tab=focus" replace />} />
-                            <Route path="/settings" element={<SettingsPage />} />
-                            <Route path="/achievements" element={<AchievementsPage />} />
-                          </Routes>
-                        </main>
-                        <footer className="hidden md:block text-center py-4 text-[10px] text-muted-light dark:text-muted-dark">
-                          Dopamind &middot; For the ADHD Community
-                        </footer>
-                      </div>
-                      <MobileNav />
-                      <RewardToast />
-                    </div>
-                  </CalendarProvider>
-                </MailProvider>
-              </TimeTrackingProvider>
-            </AppProvider>
-          </SettingsProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+              <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
+              <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+            </Routes>
+          </AuthProvider>
         </ThemeProvider>
       </I18nProvider>
     </BrowserRouter>

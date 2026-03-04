@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from "react";
+import { apiFetch } from "../services/api";
 
 const TimeTrackingContext = createContext();
 const STORAGE_KEY = "dopamind-timetracking";
@@ -110,6 +111,8 @@ function reducer(state, action) {
         ),
       };
     }
+    case "LOAD_STATE":
+      return { ...initialState, ...action.payload };
     default:
       return state;
   }
@@ -123,9 +126,36 @@ export function TimeTrackingProvider({ children }) {
     } catch {}
     return init;
   });
+  const saveTimer = useRef(null);
+  const didLoad = useRef(false);
 
+  // Load from backend on mount
+  useEffect(() => {
+    if (didLoad.current) return;
+    didLoad.current = true;
+    const token = localStorage.getItem("dopamind-token");
+    if (!token) return;
+    apiFetch("/user-data/time_tracking")
+      .then((res) => {
+        if (res.data && Object.keys(res.data).length > 0) {
+          dispatch({ type: "LOAD_STATE", payload: res.data });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Persist to localStorage + debounced backend sync
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const token = localStorage.getItem("dopamind-token");
+      if (!token) return;
+      apiFetch("/user-data/time_tracking", {
+        method: "PUT",
+        body: JSON.stringify({ data: state }),
+      }).catch(() => {});
+    }, 1000);
   }, [state]);
 
   const getSessionMinutes = useCallback(() => {

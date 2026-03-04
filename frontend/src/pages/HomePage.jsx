@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
 import { useCalendar } from "../context/CalendarContext";
@@ -6,7 +6,7 @@ import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
 import {
   CheckCircle, Calendar, Plus,
-  LogIn, LogOut, Coffee, AlertCircle, Clock, ChevronLeft, ChevronRight, Pencil, X,
+  LogIn, LogOut, Coffee, AlertCircle, Clock, ChevronLeft, ChevronRight, Pencil, X, GripVertical, CalendarPlus, List, Trash2,
 } from "lucide-react";
 
 
@@ -87,182 +87,739 @@ function QuickAddTask({ t, onAdd }) {
   );
 }
 
-function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, isTaskOverdue, onEditTask, isToday, isPastDay }) {
-  const startH = parseInt(settings.workSchedule.start.split(":")[0], 10);
-  const endH = parseInt(settings.workSchedule.end.split(":")[0], 10);
+function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onToggleSubtask, isTaskOverdue, onEditTask, onEditSubtask, onUpdateScheduledTime, onUpdateSubtaskScheduledTime, onRescheduleNextDay, isToday, isPastDay, gridInterval, viewDate, removedBreaks, onToggleBreakRemoved, breakTimeOverrides, onUpdateBreakTime, timeTrackingBreaks }) {
+  const workStartH = parseInt(settings.workSchedule.start.split(":")[0], 10);
+  const workStartM = parseInt(settings.workSchedule.start.split(":")[1] || "0", 10);
+  const workEndH = parseInt(settings.workSchedule.end.split(":")[0], 10);
+  const workEndM = parseInt(settings.workSchedule.end.split(":")[1] || "0", 10);
   const breakMin = settings.workSchedule.breakMinutes;
-  const now = new Date();
+  const timeTrackingEnabled = settings.features?.timeTrackingEnabled !== false;
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    if (!isToday) return;
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, [isToday]);
+  const now = isToday ? currentTime : new Date();
   const nowH = now.getHours();
+  const nowM = now.getMinutes();
+  const isListMode = gridInterval === "list";
+  const STEP = isListMode ? 30 : (gridInterval || 30);
+  const ROW_HEIGHT = STEP === 15 ? 32 : STEP === 30 ? 40 : 52;
+  // Pixels per minute for minute-precise rendering in grid mode
+  const PX_PER_MIN = ROW_HEIGHT / STEP;
+  const MIN_ENTRY_HEIGHT_PX = 20;
+
+  const DAY_START = timeTrackingEnabled ? 0 : 6 * 60;
+  const DAY_END = timeTrackingEnabled ? 24 * 60 : 22 * 60;
 
   const [editingTaskId, setEditingTaskId] = useState(null);
+  const [editingSubtaskParent, setEditingSubtaskParent] = useState(null);
   const [editText, setEditText] = useState("");
+  const [editingTimeKey, setEditingTimeKey] = useState(null); // key of entry whose time is being edited
+  const [dragKey, setDragKey] = useState(null);
+  const [dragOverSlot, setDragOverSlot] = useState(null);
+  const [dragTimeMin, setDragTimeMin] = useState(null); // minute-precise drag target time
+  const todayDate = new Date().toISOString().slice(0, 10);
 
-  const handleEditSave = (taskId) => {
+  const handleEditSave = (id) => {
     if (editText.trim()) {
-      onEditTask(taskId, editText.trim());
-    }
-    setEditingTaskId(null);
-  };
-
-  // Build hourly slots
-  const slots = [];
-  for (let h = startH; h < endH; h++) {
-    const timeStr = `${String(h).padStart(2, "0")}:00`;
-    const event = events.find((ev) => {
-      if (ev.allDay) return false;
-      const evStart = ev.start ? new Date(ev.start) : null;
-      const evEnd = ev.end ? new Date(ev.end) : null;
-      if (!evStart) return false;
-      const evStartH = evStart.getHours();
-      const evEndH = evEnd ? evEnd.getHours() : evStartH + 1;
-      return h >= evStartH && h < evEndH;
-    });
-    if (event) {
-      slots.push({ time: timeStr, hour: h, type: "event", label: event.title || event.summary });
-    } else {
-      slots.push({ time: timeStr, hour: h, type: "free" });
-    }
-  }
-
-  // Fill free slots with pending tasks, respecting creation time for today
-  const pendingTasks = [...tasks];
-  for (const slot of slots) {
-    if (slot.type === "free" && pendingTasks.length > 0) {
-      if (isToday) {
-        // Only schedule a task in a slot at or after the task's creation hour
-        const idx = pendingTasks.findIndex((task) => {
-          if (!task.createdAt) return true;
-          const createdHour = new Date(task.createdAt).getHours();
-          return createdHour <= slot.hour;
-        });
-        if (idx >= 0) {
-          const [task] = pendingTasks.splice(idx, 1);
-          slot.type = "task";
-          slot.task = task;
-          slot.label = task.text;
-          slot.priority = task.priority;
-          slot.overdue = isTaskOverdue(task);
-        }
+      if (editingSubtaskParent) {
+        onEditSubtask(editingSubtaskParent, id, editText.trim());
       } else {
-        const task = pendingTasks.shift();
-        slot.type = "task";
-        slot.task = task;
-        slot.label = task.text;
-        slot.priority = task.priority;
-        slot.overdue = isTaskOverdue(task);
+        onEditTask(id, editText.trim());
       }
     }
+    setEditingTaskId(null);
+    setEditingSubtaskParent(null);
+  };
+
+  const toMin = (h, m) => h * 60 + m;
+  const workStart = toMin(workStartH, workStartM);
+  const workEnd = toMin(workEndH, workEndM);
+  const isNonWorkTime = (minFromMidnight) => timeTrackingEnabled && (minFromMidnight < workStart || minFromMidnight >= workEnd);
+  const fmtTime = (totalMin) => {
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+  const isTimeOnly = (s) => /^\d{1,2}:\d{2}$/.test(s);
+  const nowTotal = toMin(nowH, nowM);
+
+  // --- Build all entries (events, break, tasks, subtasks) ---
+  const entries = [];
+  let usedRanges = [];
+  const isRangeFree = (from, to) => !usedRanges.some((r) => from < r.to && to > r.from);
+  const claimRange = (from, to) => usedRanges.push({ from, to });
+
+  // 1. Calendar events
+  for (const ev of events) {
+    if (ev.allDay || !ev.start) continue;
+    let evStartMin, evEndMin;
+    if (isTimeOnly(ev.start)) {
+      const [eh, em] = ev.start.split(":").map(Number);
+      evStartMin = toMin(eh, em);
+      if (ev.end && isTimeOnly(ev.end)) {
+        const [eeh, eem] = ev.end.split(":").map(Number);
+        evEndMin = toMin(eeh, eem);
+      } else { evEndMin = evStartMin + 60; }
+    } else {
+      const sd = new Date(ev.start);
+      if (isNaN(sd)) continue;
+      evStartMin = toMin(sd.getHours(), sd.getMinutes());
+      const ed = ev.end ? new Date(ev.end) : null;
+      evEndMin = ed && !isNaN(ed) ? toMin(ed.getHours(), ed.getMinutes()) : evStartMin + 60;
+    }
+    const dur = Math.max(STEP, evEndMin - evStartMin);
+    entries.push({ key: `ev-${ev.id || ev.title}-${evStartMin}`, type: "event", startMin: evStartMin, durationMin: dur, label: ev.title || ev.summary });
+    claimRange(evStartMin, evStartMin + dur);
   }
 
-  // Insert break in the middle
-  if (breakMin > 0 && slots.length > 2) {
-    const midIdx = Math.floor(slots.length / 2);
-    slots.splice(midIdx, 0, {
-      time: slots[midIdx]?.time,
-      hour: slots[midIdx]?.hour,
-      type: "break",
-      label: `${breakMin}${t("common.min")} ${t("timeTracking.break")}`,
-    });
+  // 2. Break (Requirement 6: respect removed breaks and custom break times)
+  const breakRemoved = (removedBreaks || []).includes(viewDate);
+  if (breakMin > 0 && !breakRemoved) {
+    let breakStart;
+    const customBreakTime = breakTimeOverrides?.[viewDate];
+    if (customBreakTime) {
+      const [bh, bm] = customBreakTime.split(":").map(Number);
+      breakStart = toMin(bh, bm || 0);
+    } else {
+      const midMin = Math.floor((workStart + workEnd) / 2);
+      breakStart = midMin;
+      for (let offset = 0; offset < (workEnd - workStart) / 2; offset += STEP) {
+        if (isRangeFree(midMin - offset, midMin - offset + breakMin)) { breakStart = midMin - offset; break; }
+        if (isRangeFree(midMin + offset, midMin + offset + breakMin)) { breakStart = midMin + offset; break; }
+      }
+    }
+    // Match with actual time tracking breaks retrospectively (by time proximity)
+    let matchedBreak = null;
+    if (timeTrackingBreaks && timeTrackingBreaks.length > 0) {
+      const breakMid = breakStart + breakMin / 2;
+      matchedBreak = timeTrackingBreaks.reduce((best, b) => {
+        const bStart = new Date(b.start);
+        const bMid = bStart.getHours() * 60 + bStart.getMinutes() + ((b.end ? new Date(b.end) - bStart : 0) / 120000);
+        const dist = Math.abs(bMid - breakMid);
+        if (!best || dist < best.dist) return { ...b, dist };
+        return best;
+      }, null);
+      if (matchedBreak && matchedBreak.dist > 120) matchedBreak = null; // Only match within 2 hours
+    }
+    entries.push({ key: "break", type: "break", startMin: breakStart, durationMin: breakMin, label: `${breakMin}${t("common.min")} ${t("timeTracking.break")}`, matchedBreak });
+    claimRange(breakStart, breakStart + breakMin);
   }
 
-  return (
-    <div className="space-y-1">
-      {slots.map((slot, i) => {
-        const isPast = isPastDay || (isToday && slot.hour !== undefined && slot.hour < nowH);
-        const isCurrent = isToday && slot.hour !== undefined && slot.hour === nowH;
-        const isEditing = editingTaskId === slot.task?.id;
+  // 3. Tasks
+  const scheduledTasks = tasks.filter((tk) => tk.scheduledTime);
+  const unscheduledTasks = tasks.filter((tk) => !tk.scheduledTime);
+  const findFreeStart = (desiredStart, dur) => {
+    let s = Math.max(workStart, desiredStart);
+    while (s + dur <= workEnd) { if (isRangeFree(s, s + dur)) return s; s += STEP; }
+    s = Math.max(DAY_START, desiredStart);
+    while (s + dur <= DAY_END) { if (isRangeFree(s, s + dur)) return s; s += STEP; }
+    return s;
+  };
 
-        return (
-          <div
-            key={i}
-            className={`flex items-center gap-3 group transition-opacity ${isPast ? "opacity-40" : ""}`}
-          >
-            {/* Time column */}
-            <span className={`w-12 text-[11px] font-mono flex-shrink-0 ${isCurrent ? "text-accent font-bold" : "text-muted-light dark:text-muted-dark"}`}>
-              {slot.time}
-              {isCurrent && <span className="ml-0.5 text-accent">◀</span>}
-            </span>
+  const placeTask = (task, desiredStart) => {
+    const subtasks = (task.subtasks || []).filter((s) => !s.completed);
+    if (subtasks.length > 0) {
+      // Requirement 5: Main task is scheduled independently using its OWN estimatedMinutes.
+      // Subtasks are scheduled separately.
+      const parentDur = Math.max(STEP, task.estimatedMinutes || 25);
+      const parentStart = findFreeStart(desiredStart, parentDur);
+      entries.push({ key: `task-${task.id}`, type: "task-parent", startMin: parentStart, durationMin: parentDur, label: task.text, task, priority: task.priority, overdue: isTaskOverdue(task), scheduled: !!task.scheduledTime, subtaskCount: subtasks.length });
+      claimRange(parentStart, parentStart + parentDur);
+      let cursor = parentStart + parentDur;
+      for (const sub of subtasks) {
+        const subDur = Math.max(STEP, sub.estimatedMinutes ?? STEP);
+        let subStart;
+        if (sub.scheduledTime) {
+          const [sh, sm] = sub.scheduledTime.split(":").map(Number);
+          subStart = findFreeStart(toMin(sh, sm || 0), subDur);
+        } else { subStart = findFreeStart(cursor, subDur); }
+        entries.push({ key: `sub-${task.id}-${sub.id}`, type: "subtask", startMin: subStart, durationMin: subDur, label: sub.text, parentTask: task, subtask: sub, priority: task.priority, overdue: isTaskOverdue(task) });
+        claimRange(subStart, subStart + subDur);
+        cursor = subStart + subDur;
+      }
+    } else {
+      const dur = Math.max(STEP, task.estimatedMinutes || 25);
+      const actualStart = findFreeStart(desiredStart, dur);
+      entries.push({ key: `task-${task.id}`, type: "task", startMin: actualStart, durationMin: dur, label: task.text, task, priority: task.priority, overdue: isTaskOverdue(task), scheduled: !!task.scheduledTime });
+      claimRange(actualStart, actualStart + dur);
+    }
+  };
 
-            {/* Slot content */}
-            <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
-              slot.type === "event"
-                ? "bg-accent/10 text-accent font-medium"
-                : slot.type === "task"
-                ? slot.overdue
-                  ? "bg-danger/10 text-danger"
-                  : "bg-gray-100 dark:bg-white/5"
-                : slot.type === "break"
-                ? "bg-warn/10 text-amber-700 dark:text-warn"
-                : "bg-gray-50 dark:bg-white/[0.02] text-muted-light dark:text-muted-dark"
-            }`}>
-              {slot.type === "event" && <Calendar className="w-3 h-3 flex-shrink-0" />}
-              {slot.type === "task" && slot.overdue && <AlertCircle className="w-3 h-3 flex-shrink-0" />}
-              {slot.type === "break" && <Coffee className="w-3 h-3 flex-shrink-0" />}
-              {slot.type === "free" && <Clock className="w-3 h-3 flex-shrink-0 opacity-30" />}
+  for (const task of scheduledTasks) {
+    const [th, tm] = task.scheduledTime.split(":").map(Number);
+    placeTask(task, toMin(th, tm || 0));
+  }
+  let nextFree = workStart;
+  for (const task of unscheduledTasks) {
+    placeTask(task, nextFree);
+    const justPlaced = entries.filter((e) => e.key === `task-${task.id}` || e.key.startsWith(`sub-${task.id}-`));
+    if (justPlaced.length > 0) nextFree = Math.max(...justPlaced.map((e) => e.startMin + e.durationMin));
+  }
 
+  // --- Requirement 3: push overdue (non-event) entries below the now-line ---
+  // If isToday: tasks/breaks whose scheduled end is in the past get repositioned after nowTotal
+  if (isToday) {
+    const overdueEntries = entries.filter((e) => e.type !== "event" && e.startMin + e.durationMin <= nowTotal);
+    let pushCursor = nowTotal;
+    // Snap to next grid slot after now
+    pushCursor = Math.ceil(pushCursor / STEP) * STEP;
+    for (const oe of overdueEntries) {
+      // Unclaim original range
+      usedRanges = usedRanges.filter((r) => !(r.from === oe.startMin && r.to === oe.startMin + oe.durationMin));
+      // Find new spot after now
+      let s = pushCursor;
+      while (s + oe.durationMin <= DAY_END && !isRangeFree(s, s + oe.durationMin)) s += STEP;
+      oe.startMin = s;
+      oe.pushedDown = true;
+      claimRange(s, s + oe.durationMin);
+      pushCursor = s + oe.durationMin;
+    }
+  }
+
+  // --- Time-pressure warnings ---
+  const tw = settings.timeWarnings || {};
+  const totalTaskMin = entries.filter((e) => e.type === "task" || e.type === "subtask" || e.type === "task-parent").reduce((sum, e) => sum + e.durationMin, 0);
+  const totalFreeMin = (workEnd - workStart) - breakMin - entries.filter((e) => e.type === "event").reduce((sum, e) => sum + e.durationMin, 0) - totalTaskMin;
+  let warningLevel = null;
+  if (tw.enabled !== false && isToday) {
+    const c1 = tw.criticalThreshold1 ?? 15; const c2 = tw.criticalThreshold2 ?? 0;
+    const m1 = tw.moderateThreshold1 ?? 60; const m2 = tw.moderateThreshold2 ?? 30;
+    if (totalFreeMin <= Math.max(c1, c2)) warningLevel = "critical";
+    else if (totalFreeMin <= Math.max(m1, m2)) warningLevel = "moderate";
+  }
+
+  // --- Build grid rows ---
+  const gridSlots = [];
+  for (let min = DAY_START; min < DAY_END; min += STEP) {
+    gridSlots.push(min);
+  }
+
+  // Compute visible range: clip to span from 1 hour before earliest entry to 1 hour after latest entry (or work hours)
+  let visStart = workStart;
+  let visEnd = workEnd;
+  if (entries.length > 0) {
+    const earliest = Math.min(...entries.map((e) => e.startMin));
+    const latest = Math.max(...entries.map((e) => e.startMin + e.durationMin));
+    visStart = Math.min(visStart, earliest);
+    visEnd = Math.max(visEnd, latest);
+  }
+  if (isToday) {
+    visStart = Math.min(visStart, nowTotal);
+    visEnd = Math.max(visEnd, nowTotal + 60);
+  }
+  // Snap to STEP boundaries and add padding
+  visStart = Math.max(DAY_START, Math.floor(visStart / STEP) * STEP - STEP);
+  visEnd = Math.min(DAY_END, Math.ceil(visEnd / STEP) * STEP + STEP);
+  const visGridSlots = gridSlots.filter((s) => s >= visStart && s < visEnd);
+
+  // --- Drag handlers (minute-precise D&D with time indicator) ---
+  const handleDragStart = (e, key) => {
+    setDragKey(key);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", key);
+    const srcEntry = entries.find((en) => en.key === key);
+    if (srcEntry) e.dataTransfer.setData("application/x-offset", String(srcEntry.startMin));
+  };
+  const handleDragEnd = () => { setDragKey(null); setDragOverSlot(null); setDragTimeMin(null); };
+  const isDraggable = (entry) => !isPastDay && (entry.type === "task" || entry.type === "task-parent" || entry.type === "subtask" || entry.type === "break");
+
+  // --- Render ---
+
+  // === LIST MODE (Requirement 3) ===
+  if (isListMode) {
+    const sortedEntries = [...entries].sort((a, b) => a.startMin - b.startMin);
+    return (
+      <div className="relative space-y-1">
+        {/* Warning banners */}
+        {warningLevel === "critical" && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-danger/10 text-danger text-xs font-medium mb-2 animate-pulse">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {t("home.timeWarningCritical").replace("{min}", String(Math.max(0, Math.round(totalFreeMin))))}
+          </div>
+        )}
+        {warningLevel === "moderate" && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warn/10 text-amber-700 dark:text-warn text-xs font-medium mb-2">
+            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+            {t("home.timeWarningModerate").replace("{min}", String(Math.max(0, Math.round(totalFreeMin))))}
+          </div>
+        )}
+
+        {/* Current time indicator for list mode */}
+        {isToday && (
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-accent/5 border border-accent/20 mb-3">
+            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-accent" />
+            </div>
+            <div>
+              <span className="text-lg font-bold font-mono text-accent">{fmtTime(nowTotal)}</span>
+              <span className="text-[10px] text-muted-light dark:text-muted-dark ml-2">{t("home.nowMarker")}</span>
+            </div>
+          </div>
+        )}
+
+        {/* List entries */}
+        {sortedEntries.map((entry) => {
+          const isTask = entry.type === "task" || entry.type === "task-parent";
+          const isSubtask = entry.type === "subtask";
+          const isParentSummary = entry.type === "task-parent";
+          const isPastEntry = isPastDay || (isToday && entry.startMin + entry.durationMin <= nowTotal);
+          const isEditing = editingTaskId === (entry.task?.id || entry.subtask?.id);
+          const canReschedule = entry.pushedDown && (isTask || isSubtask) && entry.task &&
+            (!entry.task.deadline || entry.task.deadline >= todayDate);
+
+          return (
+            <div
+              key={entry.key}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all group
+                ${isPastEntry ? "opacity-50" : ""}
+                ${isSubtask ? "ml-6" : ""}
+                ${entry.type === "event" ? "bg-accent/5 border border-accent/15" : ""}
+                ${isParentSummary ? "bg-gray-50 dark:bg-white/[0.03] border border-dashed border-gray-200 dark:border-white/10 italic" : ""}
+                ${isTask && !isParentSummary ? "bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5" : ""}
+                ${isSubtask ? "bg-gray-50/50 dark:bg-white/[0.02] border border-gray-100/50 dark:border-white/[0.03]" : ""}
+                ${entry.type === "break" ? "bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-500/10" : ""}
+                ${entry.overdue ? "!border-danger/30 !bg-danger/5" : ""}
+                ${entry.pushedDown ? "!border-orange-300 dark:!border-orange-600/30 !bg-orange-50 dark:!bg-orange-900/10" : ""}
+              `}
+            >
+              {/* Editable time field for list mode — click to edit */}
+              {(isTask || isSubtask) && !isEditing ? (
+                editingTimeKey === entry.key ? (
+                  <input
+                    type="time"
+                    autoFocus
+                    defaultValue={fmtTime(entry.startMin)}
+                    onBlur={(e) => {
+                      setEditingTimeKey(null);
+                      if (!e.target.value) return;
+                      if (isSubtask && entry.parentTask && entry.subtask) {
+                        onUpdateSubtaskScheduledTime(entry.parentTask.id, entry.subtask.id, e.target.value);
+                      } else if (entry.task) {
+                        onUpdateScheduledTime(entry.task.id, e.target.value);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.target.blur();
+                      if (e.key === "Escape") { e.target.value = fmtTime(entry.startMin); setEditingTimeKey(null); }
+                    }}
+                    className="w-[5.5rem] text-sm font-mono bg-white dark:bg-white/10 border border-accent/40 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-accent/30 flex-shrink-0 transition-all"
+                  />
+                ) : (
+                  <button
+                    onClick={() => setEditingTimeKey(entry.key)}
+                    className="w-[5.5rem] text-sm font-mono bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-center flex-shrink-0 hover:border-accent/40 hover:bg-accent/5 transition-all cursor-pointer"
+                    title={t("common.edit")}
+                  >
+                    {fmtTime(entry.startMin)}
+                  </button>
+                )
+              ) : (
+                <span className="w-[5.5rem] text-sm font-mono text-muted-light dark:text-muted-dark text-center flex-shrink-0 py-1.5">{fmtTime(entry.startMin)}</span>
+              )}
+
+              {/* Icon */}
+              {entry.type === "event" && <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-accent" />}
+              {isTask && entry.overdue && <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-danger" />}
+              {isTask && !entry.overdue && <span className={`w-2 h-2 rounded-full flex-shrink-0 ${entry.priority === "high" ? "bg-danger" : entry.priority === "medium" ? "bg-warn" : "bg-success"}`} />}
+              {isSubtask && <span className="w-1.5 h-1.5 rounded-full bg-accent/40 flex-shrink-0" />}
+              {entry.type === "break" && <Coffee className="w-3.5 h-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />}
+
+              {/* Label */}
               {isEditing ? (
                 <input
-                  autoFocus
-                  value={editText}
+                  autoFocus value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  onBlur={() => handleEditSave(slot.task.id)}
+                  onBlur={() => handleEditSave(entry.task?.id || entry.subtask?.id)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleEditSave(slot.task.id);
-                    if (e.key === "Escape") setEditingTaskId(null);
+                    if (e.key === "Enter") handleEditSave(entry.task?.id || entry.subtask?.id);
+                    if (e.key === "Escape") { setEditingTaskId(null); setEditingSubtaskParent(null); }
                   }}
-                  className="flex-1 bg-transparent outline-none border-b border-accent min-w-0"
+                  className="flex-1 bg-transparent outline-none border-b border-accent min-w-0 text-sm"
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
                 <span className="flex-1 truncate">
-                  {slot.label || t(`home.${slot.type === "free" ? "freeSlot" : "taskSlot"}`)}
+                  {entry.label}
+                  {(isTask || isSubtask) && entry.durationMin > 0 && <span className="ml-1.5 text-[10px] font-mono text-muted-light dark:text-muted-dark">– {fmtTime(entry.startMin + entry.durationMin)} ({entry.durationMin}{t("common.min")})</span>}
                 </span>
               )}
 
-              {slot.type === "task" && slot.priority && !isEditing && (
-                <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                  slot.priority === "high" ? "bg-danger" : slot.priority === "medium" ? "bg-warn" : "bg-success"
-                }`} />
+              {/* Break remove button */}
+              {entry.type === "break" && !isPastEntry && onToggleBreakRemoved && (
+                <button onClick={() => onToggleBreakRemoved(viewDate)}
+                  className="w-5 h-5 rounded hover:bg-amber-100 dark:hover:bg-amber-900/30 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                  title={t("home.removeBreak")} aria-label={t("home.removeBreak")}>
+                  <Trash2 className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                </button>
+              )}
+
+              {/* Reschedule */}
+              {canReschedule && !isEditing && (
+                <button onClick={() => onRescheduleNextDay(entry.task.id)}
+                  className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-[10px] font-medium hover:bg-orange-200 dark:hover:bg-orange-800/40 transition-colors"
+                  title={t("home.rescheduleNextDay")}>
+                  <CalendarPlus className="w-3 h-3 inline -mt-0.5" /> {t("home.rescheduleNextDay")}
+                </button>
+              )}
+
+              {/* Task actions */}
+              {isTask && entry.task && !isPastEntry && !isEditing && (
+                <>
+                  <button onClick={() => onCompleteTask(entry.task.id)}
+                    className="w-5 h-5 rounded border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 hover:border-accent hover:bg-accent/10 transition-colors flex items-center justify-center"
+                    title={t("tasks.complete")}>
+                    <CheckCircle className="w-3 h-3 text-accent" />
+                  </button>
+                  <button onClick={() => { setEditingTaskId(entry.task.id); setEditText(entry.task.text); }}
+                    className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                    title={t("common.edit")}>
+                    <Pencil className="w-2.5 h-2.5 text-muted-light dark:text-muted-dark" />
+                  </button>
+                </>
+              )}
+              {isSubtask && entry.subtask && entry.parentTask && !isPastEntry && !isEditing && (
+                <>
+                  <button onClick={() => onToggleSubtask(entry.parentTask.id, entry.subtask.id)}
+                    className={`w-5 h-5 rounded border-2 flex-shrink-0 transition-colors flex items-center justify-center ${
+                      entry.subtask.completed ? "border-success bg-success/10" : "border-gray-300 dark:border-gray-600 hover:border-accent hover:bg-accent/10"
+                    }`}
+                    title={entry.subtask.completed ? t("tasks.reopen") : t("tasks.complete")}>
+                    <CheckCircle className={`w-3 h-3 ${entry.subtask.completed ? "text-success" : "text-accent"}`} />
+                  </button>
+                  <button onClick={() => { setEditingTaskId(entry.subtask.id); setEditingSubtaskParent(entry.parentTask.id); setEditText(entry.subtask.text); }}
+                    className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                    title={t("common.edit")}>
+                    <Pencil className="w-2.5 h-2.5 text-muted-light dark:text-muted-dark" />
+                  </button>
+                </>
               )}
             </div>
+          );
+        })}
+        {sortedEntries.length === 0 && (
+          <p className="text-sm text-muted-light dark:text-muted-dark text-center py-6">{t("home.noTasks")}</p>
+        )}
+      </div>
+    );
+  }
 
-            {/* Task action buttons */}
-            {slot.type === "task" && slot.task && !isPast && !isEditing && (
-              <>
-                <button
-                  onClick={() => onCompleteTask(slot.task.id)}
-                  className="w-6 h-6 rounded-md border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 hover:border-accent hover:bg-accent/10 transition-colors flex items-center justify-center"
-                  title={t("tasks.complete")}
-                  aria-label={t("tasks.complete")}
-                >
-                  <CheckCircle className="w-3.5 h-3.5 text-accent" />
-                </button>
-                <button
-                  onClick={() => { setEditingTaskId(slot.task.id); setEditText(slot.task.text); }}
-                  className="w-6 h-6 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                  title={t("common.edit")}
-                  aria-label={t("common.edit")}
-                >
-                  <Pencil className="w-3 h-3 text-muted-light dark:text-muted-dark" />
-                </button>
-              </>
-            )}
-            {slot.type === "task" && slot.task && !isPast && isEditing && (
-              <button
-                onClick={() => setEditingTaskId(null)}
-                className="w-6 h-6 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center transition-all"
-                title={t("common.cancel")}
-                aria-label={t("common.cancel")}
+  // === GRID TIMELINE MODE (15/30/60 min) — minute-precise positioning ===
+  const visTotalMinutes = visEnd - visStart;
+  const totalHeight = visTotalMinutes * PX_PER_MIN;
+
+  return (
+    <div className="relative">
+      {/* Warning banner */}
+      {warningLevel === "critical" && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-danger/10 text-danger text-xs font-medium mb-2 animate-pulse">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {t("home.timeWarningCritical").replace("{min}", String(Math.max(0, Math.round(totalFreeMin))))}
+        </div>
+      )}
+      {warningLevel === "moderate" && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warn/10 text-amber-700 dark:text-warn text-xs font-medium mb-2">
+          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+          {t("home.timeWarningModerate").replace("{min}", String(Math.max(0, Math.round(totalFreeMin))))}
+        </div>
+      )}
+
+      {/* Minute-precise continuous timeline */}
+      <div
+        className="relative flex"
+        data-timeline-grid
+        style={{ height: `${totalHeight}px` }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          const rect = e.currentTarget.getBoundingClientRect();
+          const relY = e.clientY - rect.top;
+          const minuteFromTop = visStart + relY / PX_PER_MIN;
+          const clampedMin = Math.max(DAY_START, Math.min(DAY_END - 1, Math.round(minuteFromTop)));
+          setDragTimeMin(clampedMin);
+          setDragOverSlot(Math.floor(clampedMin / STEP) * STEP);
+        }}
+        onDragLeave={() => { setDragOverSlot(null); setDragTimeMin(null); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOverSlot(null);
+          setDragTimeMin(null);
+          if (!dragKey) { setDragKey(null); return; }
+          const srcEntry = entries.find((en) => en.key === dragKey);
+          if (!srcEntry) { setDragKey(null); return; }
+          const rect = e.currentTarget.getBoundingClientRect();
+          const relY = e.clientY - rect.top;
+          const targetMin = Math.max(DAY_START, Math.min(DAY_END - 1, Math.round(visStart + relY / PX_PER_MIN)));
+          const newTime = fmtTime(targetMin);
+          if (srcEntry.type === "break") {
+            if (onUpdateBreakTime) onUpdateBreakTime(viewDate, newTime);
+          } else if (srcEntry.type === "subtask" && srcEntry.parentTask && srcEntry.subtask) {
+            onUpdateSubtaskScheduledTime(srcEntry.parentTask.id, srcEntry.subtask.id, newTime);
+          } else if (srcEntry.type === "task-parent" && srcEntry.task) {
+            onUpdateScheduledTime(srcEntry.task.id, newTime);
+          } else if (srcEntry?.task) {
+            onUpdateScheduledTime(srcEntry.task.id, newTime);
+          }
+          setDragKey(null);
+        }}
+      >
+        {/* Time labels column */}
+        <div className="w-16 flex-shrink-0 relative select-none">
+          {visGridSlots.map((slotMin) => {
+            const top = (slotMin - visStart) * PX_PER_MIN;
+            const nonWork = isNonWorkTime(slotMin);
+            const isNowSlot = isToday && slotMin <= nowTotal && nowTotal < slotMin + STEP;
+            return (
+              <span
+                key={slotMin}
+                className={`absolute right-1 text-[11px] font-mono leading-none
+                  ${isNowSlot ? "text-accent font-semibold" : nonWork ? "text-gray-300 dark:text-gray-600" : "text-gray-400 dark:text-gray-500"}
+                `}
+                style={{ top: `${top}px` }}
               >
-                <X className="w-3 h-3 text-muted-light dark:text-muted-dark" />
-              </button>
-            )}
-          </div>
-        );
-      })}
+                {fmtTime(slotMin)}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Main timeline area */}
+        <div className="flex-1 relative">
+          {/* Grid lines */}
+          {visGridSlots.map((slotMin) => {
+            const top = (slotMin - visStart) * PX_PER_MIN;
+            const nonWork = isNonWorkTime(slotMin);
+            return (
+              <div
+                key={`line-${slotMin}`}
+                className={`absolute left-0 right-0 border-t ${nonWork ? "border-gray-100 dark:border-white/[0.03]" : "border-gray-200/60 dark:border-white/5"}`}
+                style={{ top: `${top}px` }}
+              />
+            );
+          })}
+
+          {/* Non-work background */}
+          {visGridSlots.filter((s) => isNonWorkTime(s)).map((slotMin) => {
+            const top = (slotMin - visStart) * PX_PER_MIN;
+            return (
+              <div
+                key={`bg-${slotMin}`}
+                className="absolute left-0 right-0 bg-gray-50/50 dark:bg-white/[0.015]"
+                style={{ top: `${top}px`, height: `${STEP * PX_PER_MIN}px` }}
+              />
+            );
+          })}
+
+          {/* "Now" indicator — minute-precise position */}
+          {isToday && nowTotal >= visStart && nowTotal < visEnd && (
+            <div
+              className="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
+              style={{ top: `${(nowTotal - visStart) * PX_PER_MIN}px` }}
+            >
+              <span className="text-[9px] font-bold font-mono text-accent bg-accent/10 rounded-full px-1.5 py-0.5 -ml-0.5 flex-shrink-0 border border-accent/20 shadow-sm">
+                {fmtTime(nowTotal)}
+              </span>
+              <div className="flex-1 h-[1.5px] bg-gradient-to-r from-accent/60 to-accent/10" />
+            </div>
+          )}
+
+          {/* Drag time indicator — shows minute-precise time during drag */}
+          {dragKey && dragTimeMin !== null && dragTimeMin >= visStart && dragTimeMin < visEnd && (
+            <div
+              className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
+              style={{ top: `${(dragTimeMin - visStart) * PX_PER_MIN}px` }}
+            >
+              <span className="text-[10px] font-bold font-mono text-white bg-accent rounded-full px-2 py-0.5 shadow-lg -ml-1 flex-shrink-0">
+                {fmtTime(dragTimeMin)}
+              </span>
+              <div className="flex-1 h-[2px] bg-accent/40 border-dashed" />
+            </div>
+          )}
+
+          {/* Entries — absolutely positioned at minute-precise offsets */}
+          {entries.map((entry) => {
+            const isPastEntry = isPastDay || (isToday && entry.startMin + entry.durationMin <= nowTotal);
+            // In the past on today, hide empty pushed-down entries
+            if (isPastEntry && isToday && entry.pushedDown) return null;
+            const isEditing = editingTaskId === (entry.task?.id || entry.subtask?.id);
+            const dragging = dragKey === entry.key;
+            const isTask = entry.type === "task" || entry.type === "task-parent";
+            const isSubtask = entry.type === "subtask";
+            const isParentSummary = entry.type === "task-parent";
+            const entryTop = (entry.startMin - visStart) * PX_PER_MIN;
+            const entryHeight = Math.max(entry.durationMin * PX_PER_MIN, MIN_ENTRY_HEIGHT_PX);
+
+            const canReschedule = entry.pushedDown && (isTask || isSubtask) && entry.task &&
+              (!entry.task.deadline || entry.task.deadline >= todayDate);
+
+            return (
+              <div
+                key={entry.key}
+                draggable={isDraggable(entry) && !isEditing}
+                onDragStart={(e) => handleDragStart(e, entry.key)}
+                onDragEnd={handleDragEnd}
+                className={`absolute left-0 right-0 flex items-start gap-1.5 px-2 py-0.5 rounded-md text-xs group transition-all overflow-hidden
+                  ${dragging ? "opacity-50 scale-[0.97] z-10" : "z-10"}
+                  ${isPastEntry ? "opacity-50" : ""}
+                  ${isSubtask ? "ml-4 !left-4" : ""}
+                  ${entry.type === "event" ? "bg-accent/10 text-accent font-medium border-l-2 border-accent" : ""}
+                  ${isParentSummary ? "bg-gray-200 dark:bg-white/10 border border-dashed border-gray-300 dark:border-white/20 text-muted-light dark:text-muted-dark italic" : ""}
+                  ${isSubtask && !entry.overdue ? "bg-gray-50 dark:bg-white/[0.03] border-l-2 border-accent/30" : ""}
+                  ${isSubtask && entry.overdue ? "bg-danger/5 text-danger border-l-2 border-danger/30" : ""}
+                  ${isTask && !isParentSummary && entry.overdue ? "bg-danger/10 text-danger border-l-2 border-danger" : ""}
+                  ${isTask && !isParentSummary && !entry.overdue ? "bg-gray-100 dark:bg-white/5 border-l-2 border-gray-300 dark:border-white/15" : ""}
+                  ${entry.type === "break" ? "bg-warn/10 text-amber-700 dark:text-warn border-l-2 border-warn" : ""}
+                  ${entry.pushedDown ? "border-dashed !border-l-2 !border-orange-400 bg-orange-50 dark:bg-orange-900/10" : ""}
+                `}
+                style={{ top: `${entryTop}px`, height: `${entryHeight}px` }}
+              >
+                {/* Drag handle */}
+                {isDraggable(entry) && !isPastEntry && (
+                  <span className="w-3 flex-shrink-0 opacity-0 group-hover:opacity-40 cursor-grab active:cursor-grabbing transition-opacity mt-0.5">
+                    <GripVertical className="w-3 h-3 text-muted-light dark:text-muted-dark" />
+                  </span>
+                )}
+
+                {/* Time badge — minute-precise start–end */}
+                <span className="text-[9px] font-mono text-muted-light dark:text-muted-dark flex-shrink-0 mt-0.5 opacity-70">
+                  {fmtTime(entry.startMin)}–{fmtTime(entry.startMin + entry.durationMin)}
+                </span>
+
+                {/* Icons */}
+                {entry.type === "event" && <Calendar className="w-3 h-3 flex-shrink-0 mt-0.5" />}
+                {isTask && entry.overdue && <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />}
+                {isTask && entry.scheduled && !entry.overdue && <Clock className="w-3 h-3 flex-shrink-0 text-accent mt-0.5" />}
+                {isSubtask && <span className="w-1.5 h-1.5 rounded-full bg-accent/40 flex-shrink-0 mt-1" />}
+                {isParentSummary && <CheckCircle className="w-3 h-3 flex-shrink-0 opacity-50 mt-0.5" />}
+                {entry.type === "break" && <Coffee className="w-3 h-3 flex-shrink-0 mt-0.5" />}
+
+                {/* Label / edit */}
+                {isEditing ? (
+                  <input
+                    autoFocus value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onBlur={() => handleEditSave(entry.task?.id || entry.subtask?.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleEditSave(entry.task?.id || entry.subtask?.id);
+                      if (e.key === "Escape") { setEditingTaskId(null); setEditingSubtaskParent(null); }
+                    }}
+                    className="flex-1 bg-transparent outline-none border-b border-accent min-w-0 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span className="flex-1 truncate mt-0.5">
+                    {entry.label}
+                    {isParentSummary && entry.subtaskCount > 0 && <span className="ml-1 text-[10px] font-mono opacity-50">({entry.subtaskCount} ↑)</span>}
+                  </span>
+                )}
+
+                {/* Priority dot */}
+                {(isTask || isSubtask) && entry.priority && !isEditing && (
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1 ${entry.priority === "high" ? "bg-danger" : entry.priority === "medium" ? "bg-warn" : "bg-success"}`} />
+                )}
+
+                {/* Subtask parent badge */}
+                {isSubtask && entry.parentTask && (
+                  <span className="hidden sm:inline text-[9px] text-muted-light dark:text-muted-dark truncate max-w-[80px] mt-0.5" title={entry.parentTask.text}>
+                    ← {entry.parentTask.text}
+                  </span>
+                )}
+
+                {/* Reschedule to next day button */}
+                {canReschedule && !isEditing && (
+                  <button
+                    onClick={() => onRescheduleNextDay(entry.task.id)}
+                    className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-[10px] font-medium hover:bg-orange-200 dark:hover:bg-orange-800/40 transition-colors"
+                    title={t("home.rescheduleNextDay")}
+                  >
+                    <CalendarPlus className="w-3 h-3 inline -mt-0.5" /> {t("home.rescheduleNextDay")}
+                  </button>
+                )}
+
+                {/* Break remove button */}
+                {entry.type === "break" && !isPastEntry && onToggleBreakRemoved && (
+                  <button onClick={() => onToggleBreakRemoved(viewDate)}
+                    className="w-5 h-5 rounded hover:bg-amber-100 dark:hover:bg-amber-900/30 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                    title={t("home.removeBreak")} aria-label={t("home.removeBreak")}>
+                    <Trash2 className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  </button>
+                )}
+
+                {/* Break matched indicator */}
+                {entry.type === "break" && entry.matchedBreak && (
+                  <span className="text-[9px] text-amber-600/60 dark:text-amber-400/60 font-mono flex-shrink-0" title={t("home.breakMatched")}>
+                    ✓
+                  </span>
+                )}
+
+                {/* Task action buttons */}
+                {isTask && entry.task && !isPastEntry && !isEditing && (
+                  <>
+                    <button onClick={() => onCompleteTask(entry.task.id)}
+                      className="w-5 h-5 rounded border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 hover:border-accent hover:bg-accent/10 transition-colors flex items-center justify-center"
+                      title={t("tasks.complete")} aria-label={t("tasks.complete")}>
+                      <CheckCircle className="w-3 h-3 text-accent" />
+                    </button>
+                    <button onClick={() => { setEditingTaskId(entry.task.id); setEditText(entry.task.text); }}
+                      className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                      title={t("common.edit")} aria-label={t("common.edit")}>
+                      <Pencil className="w-2.5 h-2.5 text-muted-light dark:text-muted-dark" />
+                    </button>
+                  </>
+                )}
+                {isTask && !isPastEntry && isEditing && (
+                  <button onClick={() => setEditingTaskId(null)}
+                    className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center"
+                    title={t("common.cancel")} aria-label={t("common.cancel")}>
+                    <X className="w-2.5 h-2.5 text-muted-light dark:text-muted-dark" />
+                  </button>
+                )}
+
+                {/* Subtask action buttons */}
+                {isSubtask && entry.subtask && entry.parentTask && !isPastEntry && !isEditing && (
+                  <>
+                    <button onClick={() => onToggleSubtask(entry.parentTask.id, entry.subtask.id)}
+                      className={`w-5 h-5 rounded border-2 flex-shrink-0 transition-colors flex items-center justify-center ${
+                        entry.subtask.completed ? "border-success bg-success/10" : "border-gray-300 dark:border-gray-600 hover:border-accent hover:bg-accent/10"
+                      }`}
+                      title={entry.subtask.completed ? t("tasks.reopen") : t("tasks.complete")}>
+                      <CheckCircle className={`w-3 h-3 ${entry.subtask.completed ? "text-success" : "text-accent"}`} />
+                    </button>
+                    <button onClick={() => { setEditingTaskId(entry.subtask.id); setEditingSubtaskParent(entry.parentTask.id); setEditText(entry.subtask.text); }}
+                      className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                      title={t("common.edit")} aria-label={t("common.edit")}>
+                      <Pencil className="w-2.5 h-2.5 text-muted-light dark:text-muted-dark" />
+                    </button>
+                  </>
+                )}
+                {isSubtask && !isPastEntry && isEditing && (
+                  <button onClick={() => { setEditingTaskId(null); setEditingSubtaskParent(null); }}
+                    className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center"
+                    title={t("common.cancel")} aria-label={t("common.cancel")}>
+                    <X className="w-2.5 h-2.5 text-muted-light dark:text-muted-dark" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
+
+const CATEGORY_CONFIG = {
+  work:     { emoji: "💼" },
+  personal: { emoji: "👤" },
+  health:   { emoji: "💪" },
+  finance:  { emoji: "💰" },
+  learning: { emoji: "📚" },
+  home:     { emoji: "🏠" },
+  errand:   { emoji: "🏃" },
+  creative: { emoji: "🎨" },
+};
 
 const MAX_TIMELINE_TASKS = 8;
 
@@ -284,9 +841,40 @@ export default function HomePage() {
 
   const pendingTasks = state.tasks.filter((tk) => !tk.completed);
   const overdueTasks = pendingTasks.filter(isTaskOverdue);
-  const topTasks = isPast
-    ? []
-    : [...pendingTasks]
+
+  // Filter tasks for the day view:
+  // - Past days: show only tasks completed on that date
+  // - Today: show pending tasks not scheduled for a future date
+  // - Future days: show tasks scheduled for exactly that date (no duplicates across days)
+  const isFuture = viewDate > todayStr;
+  let dayTasks;
+  if (isPast) {
+    // Past: show tasks completed on this date
+    dayTasks = state.tasks.filter((tk) => {
+      if (!tk.completed) return false;
+      // Check if completedAt matches viewDate (local timezone)
+      if (tk.completedAt) {
+        const d = new Date(tk.completedAt);
+        const completedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return completedDate === viewDate;
+      }
+      return false;
+    });
+  } else if (isFuture) {
+    // Future: show tasks scheduled for exactly this date — no redundancy
+    dayTasks = pendingTasks.filter((tk) => {
+      if (tk.scheduledDate === viewDate) return true;
+      return false;
+    });
+  } else {
+    // Today: show pending tasks not scheduled for a future date
+    dayTasks = pendingTasks.filter((tk) => {
+      if (tk.scheduledDate && tk.scheduledDate > todayStr) return false;
+      return true;
+    });
+  }
+
+  const topTasks = [...dayTasks]
         .sort((a, b) => {
           const aOverdue = isTaskOverdue(a) ? 0 : 1;
           const bOverdue = isTaskOverdue(b) ? 0 : 1;
@@ -317,6 +905,41 @@ export default function HomePage() {
   };
 
   const features = settings.features || {};
+  const gridInterval = settings.timeline?.gridInterval || 30;
+  const { updateSettings } = useSettings();
+  const { state: ttState } = useTimeTracking();
+
+  // Requirement 6: Break removal and repositioning state (per-day)
+  const [removedBreaks, setRemovedBreaks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("dopamind-removed-breaks") || "[]"); } catch { return []; }
+  });
+  const [breakTimeOverrides, setBreakTimeOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("dopamind-break-overrides") || "{}"); } catch { return {}; }
+  });
+  const handleToggleBreakRemoved = (date) => {
+    setRemovedBreaks((prev) => {
+      const next = prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date];
+      localStorage.setItem("dopamind-removed-breaks", JSON.stringify(next));
+      return next;
+    });
+  };
+  const handleUpdateBreakTime = (date, time) => {
+    setBreakTimeOverrides((prev) => {
+      const next = { ...prev, [date]: time };
+      localStorage.setItem("dopamind-break-overrides", JSON.stringify(next));
+      return next;
+    });
+  };
+  // Get time tracking breaks for the viewed day (for retrospective matching)
+  const viewDayTTBreaks = (ttState.entries || [])
+    .filter((e) => e.date === viewDate)
+    .flatMap((e) => e.breaks || [])
+    .filter((b) => b.start && b.end);
+
+  const handleRescheduleNextDay = (taskId) => {
+    const tomorrow = shiftDate(todayStr, +1);
+    dispatch({ type: "UPDATE_TASK", payload: { id: taskId, scheduledDate: tomorrow } });
+  };
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -386,6 +1009,34 @@ export default function HomePage() {
                 <AlertCircle className="w-3 h-3" /> {overdueTasks.length} {t("tasks.overdue")}
               </span>
             )}
+            {/* Grid interval selector + List mode */}
+            <div className="flex items-center gap-0.5 ml-2 bg-gray-100 dark:bg-white/5 rounded-lg p-0.5">
+              {[15, 30, 60].map((iv) => (
+                <button
+                  key={iv}
+                  onClick={() => updateSettings("timeline", { gridInterval: iv })}
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition-all ${
+                    gridInterval === iv
+                      ? "bg-white dark:bg-white/15 text-accent font-bold shadow-sm"
+                      : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  }`}
+                  title={t("home.gridInterval")}
+                >
+                  {iv}m
+                </button>
+              ))}
+              <button
+                onClick={() => updateSettings("timeline", { gridInterval: "list" })}
+                className={`px-2 py-0.5 rounded text-[10px] transition-all flex items-center gap-0.5 ${
+                  gridInterval === "list"
+                    ? "bg-white dark:bg-white/15 text-accent font-bold shadow-sm"
+                    : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                }`}
+                title={t("home.listMode")}
+              >
+                <List className="w-3 h-3" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -401,10 +1052,22 @@ export default function HomePage() {
           tasks={topTasks}
           settings={settings}
           onCompleteTask={(id) => dispatch({ type: "COMPLETE_TASK", payload: id })}
+          onToggleSubtask={(taskId, subtaskId) => dispatch({ type: "TOGGLE_SUBTASK", payload: { taskId, subtaskId } })}
           isTaskOverdue={isTaskOverdue}
           onEditTask={(id, text) => dispatch({ type: "UPDATE_TASK", payload: { id, text } })}
+          onEditSubtask={(taskId, subtaskId, text) => dispatch({ type: "UPDATE_SUBTASK", payload: { taskId, subtaskId, text } })}
+          onUpdateScheduledTime={(id, time) => dispatch({ type: "UPDATE_TASK", payload: { id, scheduledTime: time } })}
+          onUpdateSubtaskScheduledTime={(taskId, subtaskId, time) => dispatch({ type: "UPDATE_SUBTASK", payload: { taskId, subtaskId, scheduledTime: time } })}
+          onRescheduleNextDay={handleRescheduleNextDay}
           isToday={isToday}
           isPastDay={isPast}
+          gridInterval={gridInterval}
+          viewDate={viewDate}
+          removedBreaks={removedBreaks}
+          onToggleBreakRemoved={handleToggleBreakRemoved}
+          breakTimeOverrides={breakTimeOverrides}
+          onUpdateBreakTime={handleUpdateBreakTime}
+          timeTrackingBreaks={viewDayTTBreaks}
         />
       </div>
     </div>

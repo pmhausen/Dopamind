@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useMail } from "../context/MailContext";
 import { useApp } from "../context/AppContext";
 import { useSettings } from "../context/SettingsContext";
 import {
   Mail, Reply, Trash2, Archive, Tag, Send, X, ChevronLeft, Loader,
-  Inbox, FileText, AlertCircle, CheckSquare, Clock, Star, Filter, Link,
+  Inbox, FileText, AlertCircle, CheckSquare, Clock, Star, Filter, Link, Square, CheckSquare2, ListPlus,
 } from "lucide-react";
 
 const TAG_COLORS = {
@@ -123,6 +123,22 @@ export default function MailPage() {
   const { state, fetchMails, selectMail, deleteMail, archiveMail, tagMail, untagMail, sendMail, startCompose, startReply, dispatch } = useMail();
   const { dispatch: appDispatch } = useApp();
   const [activeFolder, setActiveFolder] = useState("INBOX");
+  const [selectedUids, setSelectedUids] = useState([]);
+  const [showBatchTags, setShowBatchTags] = useState(false);
+
+  const isMultiSelect = selectedUids.length > 0;
+
+  const toggleSelect = useCallback((uid) => {
+    setSelectedUids((prev) => prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]);
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedUids((prev) => prev.length === state.mails.length ? [] : state.mails.map((m) => m.uid));
+  }, [state.mails]);
+
+  const clearSelection = useCallback(() => { setSelectedUids([]); setShowBatchTags(false); }, []);
+
+  const getSelectedMails = useCallback(() => state.mails.filter((m) => selectedUids.includes(m.uid)), [state.mails, selectedUids]);
 
   const handleCreateTask = (mail) => {
     // Determine priority from mail tags
@@ -142,6 +158,48 @@ export default function MailPage() {
     // Also tag the mail as "todo" on IMAP
     tagMail(mail.uid, "todo");
   };
+
+  // Batch: create one task per selected mail
+  const handleBatchCreateTasks = () => {
+    const mails = getSelectedMails();
+    for (const mail of mails) handleCreateTask(mail);
+    clearSelection();
+  };
+
+  // Batch: create a single task combining all selected mails
+  const handleBatchCreateSingleTask = useCallback(() => {
+    const mails = getSelectedMails();
+    if (mails.length === 0) return;
+    const subjects = mails.map((m) => m.subject || "(no subject)");
+    const text = mails.length === 1 ? subjects[0] : `${subjects[0]} (+${mails.length - 1})`;
+    const priorityMap = { important: "high", todo: "medium", waiting: "low" };
+    const allTags = mails.flatMap((m) => m.tags || []);
+    const tagPriority = allTags.find((tg) => priorityMap[tg]);
+    const priority = tagPriority ? priorityMap[tagPriority] : "medium";
+    appDispatch({
+      type: "ADD_TASK",
+      payload: {
+        text,
+        priority,
+        estimatedMinutes: 25 * mails.length,
+        mailRef: { uid: mails[0].uid, folder: activeFolder, subject: text, from: mails[0].from },
+      },
+    });
+    for (const mail of mails) tagMail(mail.uid, "todo");
+    clearSelection();
+  }, [getSelectedMails, clearSelection, appDispatch, activeFolder, tagMail]);
+
+  // Batch: tag all selected
+  const handleBatchTag = useCallback(async (tag) => {
+    await Promise.all(selectedUids.map((uid) => tagMail(uid, tag)));
+    setShowBatchTags(false);
+  }, [selectedUids, tagMail]);
+
+  // Batch: delete all selected
+  const handleBatchDelete = useCallback(async () => {
+    await Promise.all(selectedUids.map((uid) => deleteMail(uid)));
+    clearSelection();
+  }, [selectedUids, deleteMail, clearSelection]);
 
   const masterTag = settings.mail?.masterTagEnabled ? settings.mail?.masterTag : null;
 
@@ -175,36 +233,91 @@ export default function MailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         <div className="lg:col-span-1"><div className="glass-card p-3 space-y-1">
           {FOLDERS.map(({ key, folder, icon: Icon }) => (
-            <button key={folder} onClick={() => { setActiveFolder(folder); selectMail(null); }} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${activeFolder === folder ? "bg-accent/10 text-accent dark:bg-accent/20 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"}`}>
+            <button key={folder} onClick={() => { setActiveFolder(folder); selectMail(null); clearSelection(); }} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${activeFolder === folder ? "bg-accent/10 text-accent dark:bg-accent/20 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"}`}>
               <Icon className="w-4 h-4 flex-shrink-0" /> {t(`mail.folders.${key}`)}
             </button>
           ))}
         </div></div>
         <div className="lg:col-span-3"><div className="glass-card">
+          {/* Batch action bar */}
+          {isMultiSelect && (
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200/50 dark:border-white/5 bg-accent/5 rounded-t-xl flex-wrap">
+              <button onClick={clearSelection} className="btn-ghost p-1.5" title={t("mail.clearSelection")}><X className="w-4 h-4" /></button>
+              <span className="text-sm font-medium text-accent">{t("mail.selected").replace("{n}", String(selectedUids.length))}</span>
+              <div className="flex-1" />
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Batch tag */}
+                <div className="relative">
+                  <button onClick={() => setShowBatchTags(!showBatchTags)} className="btn-ghost text-xs flex items-center gap-1"><Tag className="w-3.5 h-3.5" /> {t("mail.tag")}</button>
+                  {showBatchTags && (
+                    <div className="absolute top-full right-0 mt-1 glass-card p-2 min-w-[140px] z-10 space-y-1">
+                      {Object.keys(TAG_COLORS).map((tag) => {
+                        const I = TAG_ICONS[tag];
+                        return (
+                          <button key={tag} onClick={() => handleBatchTag(tag)} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                            <I className="w-3.5 h-3.5" /> {t(`mail.tags.${tag}`)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {/* Batch create single task */}
+                <button onClick={handleBatchCreateSingleTask} className="btn-ghost text-xs flex items-center gap-1" title={t("mail.toSingleTask")}>
+                  <CheckSquare className="w-3.5 h-3.5" /> {t("mail.toSingleTask")}
+                </button>
+                {/* Batch create multiple tasks */}
+                <button onClick={handleBatchCreateTasks} className="btn-ghost text-xs flex items-center gap-1" title={t("mail.toMultipleTasks")}>
+                  <ListPlus className="w-3.5 h-3.5" /> {t("mail.toMultipleTasks")}
+                </button>
+                {/* Batch delete */}
+                <button onClick={handleBatchDelete} className="btn-ghost text-xs flex items-center gap-1 text-danger hover:bg-danger/10" title={t("mail.delete")}>
+                  <Trash2 className="w-3.5 h-3.5" /> {t("mail.delete")}
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Select all header */}
+          {!state.loading && !state.error && state.mails.length > 0 && !isMultiSelect && (
+            <div className="flex items-center gap-2 px-4 py-1.5 border-b border-gray-200/30 dark:border-white/[0.03]">
+              <button onClick={toggleSelectAll} className="w-5 h-5 rounded flex items-center justify-center text-muted-light dark:text-muted-dark hover:text-accent transition-colors" title={t("mail.selectAll")}>
+                <Square className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-[10px] text-muted-light dark:text-muted-dark">{t("mail.selectAll")}</span>
+            </div>
+          )}
           {state.loading && <div className="p-8 text-center text-muted-light dark:text-muted-dark"><p className="text-sm">{t("mail.loading")}</p></div>}
           {state.error && <div className="p-8 text-center text-danger"><p className="text-sm">{state.error}</p></div>}
           {!state.loading && !state.error && state.mails.length === 0 && <div className="p-8 text-center text-muted-light dark:text-muted-dark"><Mail className="w-8 h-8 mx-auto mb-2 opacity-50" /><p className="text-sm">{t("mail.noMails")}</p></div>}
           <div className="divide-y divide-gray-200/50 dark:divide-white/5">
-            {state.mails.map((m) => (
-              <div key={m.uid} onClick={() => selectMail(m)} className={`group flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] ${!m.seen ? "bg-accent/[0.03]" : ""}`}>
-                <div className="flex-shrink-0 mt-1">{!m.seen && <div className="w-2 h-2 rounded-full bg-accent" />}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm truncate ${!m.seen ? "font-semibold" : "font-medium"}`}>{m.fromName || m.from}</span>
-                    {m.tags?.map((tag) => <span key={tag} className={`badge text-[8px] ${TAG_COLORS[tag] || "bg-gray-100 dark:bg-white/10"}`}>{t(`mail.tags.${tag}`) || tag}</span>)}
+            {state.mails.map((m) => {
+              const isSelected = selectedUids.includes(m.uid);
+              return (
+                <div key={m.uid} onClick={(e) => { if (isMultiSelect) { toggleSelect(m.uid); } else { selectMail(m); } }} className={`group flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] ${!m.seen ? "bg-accent/[0.03]" : ""} ${isSelected ? "!bg-accent/10" : ""}`}>
+                  {/* Checkbox */}
+                  <button onClick={(e) => { e.stopPropagation(); toggleSelect(m.uid); }} className={`flex-shrink-0 mt-1 w-5 h-5 rounded flex items-center justify-center transition-colors ${isSelected ? "text-accent" : "text-gray-300 dark:text-gray-600 hover:text-accent"}`}>
+                    {isSelected ? <CheckSquare2 className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  </button>
+                  {/* Unread indicator */}
+                  <div className="flex-shrink-0 mt-2 w-2">{!m.seen && <div className="w-2 h-2 rounded-full bg-accent" />}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm truncate ${!m.seen ? "font-semibold" : "font-medium"}`}>{m.fromName || m.from}</span>
+                      {m.tags?.map((tag) => <span key={tag} className={`badge text-[8px] ${TAG_COLORS[tag] || "bg-gray-100 dark:bg-white/10"}`}>{t(`mail.tags.${tag}`) || tag}</span>)}
+                    </div>
+                    <p className={`text-sm truncate mt-0.5 ${!m.seen ? "font-medium" : ""}`}>{m.subject}</p>
+                    <p className="text-xs text-muted-light dark:text-muted-dark truncate mt-0.5">{m.preview}</p>
                   </div>
-                  <p className={`text-sm truncate mt-0.5 ${!m.seen ? "font-medium" : ""}`}>{m.subject}</p>
-                  <p className="text-xs text-muted-light dark:text-muted-dark truncate mt-0.5">{m.preview}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className="text-[10px] text-muted-light dark:text-muted-dark">{m.date ? new Date(m.date).toLocaleDateString() : ""}</span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); archiveMail(m.uid); }} className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-accent" title={t("mail.archive")}><Archive className="w-3.5 h-3.5" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); deleteMail(m.uid); }} className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger" title={t("mail.delete")}><Trash2 className="w-3.5 h-3.5" /></button>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className="text-[10px] text-muted-light dark:text-muted-dark">{m.date ? new Date(m.date).toLocaleDateString() : ""}</span>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.stopPropagation(); archiveMail(m.uid); }} className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-accent" title={t("mail.archive")}><Archive className="w-3.5 h-3.5" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteMail(m.uid); }} className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger" title={t("mail.delete")}><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div></div>
       </div>

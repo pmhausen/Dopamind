@@ -1,6 +1,23 @@
 version: "3.9"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dopamind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dopamind_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-dopamind}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dopamind}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   frontend:
     build:
       context: ./frontend
@@ -30,6 +47,10 @@ services:
       - PORT=4000
       - CORS_ORIGIN=http://localhost:3000,http://localhost
       - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - DATABASE_URL=${DATABASE_URL:-postgresql://dopamind:dopamind_dev@postgres:5432/dopamind}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine
@@ -40,3 +61,6 @@ services:
     depends_on:
       - frontend
       - backend
+
+volumes:
+  pgdata:

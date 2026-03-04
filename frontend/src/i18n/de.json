@@ -12,7 +12,8 @@
     "zeitmanagement": "Zeitmanagement",
     "time": "Zeit",
     "settings": "Einstellungen",
-    "achievements": "Erfolge"
+    "achievements": "Erfolge",
+    "admin": "Administration"
   },
   "tasks": {
     "title": "Aufgaben",
@@ -47,7 +48,37 @@
     "fromMail": "Aus Mail",
     "mailFrom": "Von: {from}",
     "reopen": "Wieder öffnen",
-    "complete": "Erledigen"
+    "complete": "Erledigen",
+    "scheduledTime": "Geplant",
+    "scheduledTimePlaceholder": "Uhrzeit...",
+    "scheduledDate": "Geplantes Datum",
+    "scheduledDatePlaceholder": "Ab wann...",
+    "scheduledDateConflict": "⚠ Terminkonflikt: {task} kollidiert mit Termin um {time}",
+    "category": "Kategorie",
+    "categories": {
+      "work": "💼 Arbeit",
+      "personal": "👤 Privat",
+      "health": "💪 Gesundheit",
+      "finance": "💰 Finanzen",
+      "learning": "📚 Lernen",
+      "home": "🏠 Haushalt",
+      "errand": "🏃 Besorgung",
+      "creative": "🎨 Kreativ"
+    },
+    "subtaskMinutes": "min",
+    "noCategory": "Ohne",
+    "manageCategories": "Kategorien verwalten",
+    "addCategory": "Neue Kategorie",
+    "editCategory": "Bearbeiten",
+    "deleteCategory": "Löschen",
+    "categoryName": "Name",
+    "categoryEmoji": "Emoji",
+    "categoryTasks": "Aufgaben",
+    "addTaskExpand": "Aufgabe anlegen ▸",
+    "addTaskCollapse": "▾ Einklappen",
+    "dropToAssign": "Aufgabe hierher ziehen",
+    "subtaskScheduledTime": "Uhrzeit",
+    "subtaskScheduledDate": "Datum"
   },
   "focus": {
     "title": "Fokus-Block",
@@ -82,14 +113,36 @@
     "delete": "Löschen",
     "eventTitle": "Titel",
     "eventDescription": "Beschreibung",
-    "weekdays": ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
-    "months": ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"],
+    "weekdays": [
+      "Mo",
+      "Di",
+      "Mi",
+      "Do",
+      "Fr",
+      "Sa",
+      "So"
+    ],
+    "months": [
+      "Januar",
+      "Februar",
+      "März",
+      "April",
+      "Mai",
+      "Juni",
+      "Juli",
+      "August",
+      "September",
+      "Oktober",
+      "November",
+      "Dezember"
+    ],
     "contextTypes": {
       "work": "Arbeit",
       "sick": "Krank",
       "vacation": "Urlaub",
       "childSick": "Kindkrank"
-    }
+    },
+    "eventLocation": "Ort"
   },
   "mail": {
     "title": "Posteingang",
@@ -129,7 +182,12 @@
       "drafts": "Entwürfe",
       "trash": "Papierkorb",
       "archive": "Archiv"
-    }
+    },
+    "selectAll": "Alle auswählen",
+    "selected": "{n} ausgewählt",
+    "clearSelection": "Auswahl aufheben",
+    "toSingleTask": "Als eine Aufgabe",
+    "toMultipleTasks": "Je eine Aufgabe"
   },
   "zeitmanagement": {
     "title": "Zeitmanagement",
@@ -210,7 +268,15 @@
     "gamification": "Gamification",
     "xpEnabled": "XP-System aktiviert",
     "soundEnabled": "Sound-Effekte",
-    "weekdaysShort": ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+    "weekdaysShort": [
+      "Mo",
+      "Di",
+      "Mi",
+      "Do",
+      "Fr",
+      "Sa",
+      "So"
+    ],
     "tabGeneral": "Allgemein",
     "tabWorkTime": "Arbeitszeit",
     "tabEmail": "E-Mail",
@@ -224,7 +290,32 @@
     "featureMail": "E-Mail aktiviert",
     "featureCalendar": "Kalender aktiviert",
     "featureTimeTracking": "Zeiterfassung aktiviert",
-    "featureGamification": "Gamification aktiviert"
+    "featureGamification": "Gamification aktiviert",
+    "tabAccount": "Konto",
+    "account": "Konto",
+    "profileName": "Name",
+    "profileEmail": "E-Mail",
+    "profileSave": "Profil speichern",
+    "profileSaved": "Profil gespeichert!",
+    "changePassword": "Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "passwordChanged": "Passwort wurde geändert!",
+    "deleteAccount": "Konto löschen",
+    "deleteAccountWarning": "Achtung: Diese Aktion löscht dein Konto und alle zugehörigen Daten unwiderruflich.",
+    "deleteAccountConfirm": "Gib dein Passwort ein, um die Löschung zu bestätigen.",
+    "deleteAccountButton": "Konto endgültig löschen",
+    "accountDeleted": "Konto wurde gelöscht.",
+    "timeWarnings": "Zeitdruck-Warnungen",
+    "timeWarningsEnabled": "Warnungen bei Zeitknappheit",
+    "timeWarningsModerate1": "Moderate Warnung 1 (min)",
+    "timeWarningsModerate2": "Moderate Warnung 2 (min)",
+    "timeWarningsCritical1": "Kritische Warnung 1 (min)",
+    "timeWarningsCritical2": "Kritische Warnung 2 (min)",
+    "timeWarningsDesc": "Warnungen wenn die verbleibende freie Zeit knapp wird.",
+    "timelineGridInterval": "Tagesplanungs-Raster",
+    "timelineGridIntervalDesc": "Zeitraster für die Tagesplanung (15, 30, 60 Minuten oder Listenansicht)."
   },
   "home": {
     "greeting": "Ein Schritt nach dem anderen.",
@@ -242,7 +333,20 @@
     "freeSlot": "Frei",
     "taskSlot": "Aufgabe",
     "previousDay": "Vorheriger Tag",
-    "nextDay": "Nächster Tag"
+    "nextDay": "Nächster Tag",
+    "dragHint": "Verschieben per Drag & Drop",
+    "timeWarningModerate": "Noch ~{min}min verfügbar",
+    "timeWarningCritical": "⚠ Nur ~{min}min übrig!",
+    "nowMarker": "Jetzt",
+    "rescheduleNextDay": "→ Morgen",
+    "gridInterval": "Raster",
+    "grid15": "15min",
+    "grid30": "30min",
+    "grid60": "60min",
+    "listMode": "Listenansicht",
+    "removeBreak": "Pause für heute entfernen",
+    "restoreBreak": "Pause wiederherstellen",
+    "breakMatched": "Abgeglichen mit Zeiterfassung"
   },
   "rewards": {
     "levelUp": "Level {level} erreicht – {title}!",
@@ -267,31 +371,106 @@
     "locked": "Noch nicht freigeschaltet",
     "unlocked": "Freigeschaltet",
     "xpReward": "+{xp} XP",
-    "first-task":     { "name": "Erster Schritt",       "desc": "Schließe deine erste Aufgabe ab." },
-    "first-focus":    { "name": "Erster Fokus",         "desc": "Schließe deinen ersten Fokus-Block ab." },
-    "early-bird":     { "name": "Frühaufsteher",        "desc": "Erledige eine Aufgabe vor 9 Uhr." },
-    "night-owl":      { "name": "Nachteule",            "desc": "Erledige eine Aufgabe nach 21 Uhr." },
-    "hat-trick":      { "name": "Hat-Trick",            "desc": "3 Aufgaben an einem Tag erledigen." },
-    "focus-duo":      { "name": "Fokus-Duo",            "desc": "2 Fokus-Blöcke an einem Tag." },
-    "quick-starter":  { "name": "Schnellstarter",       "desc": "Aufgabe innerhalb von 30 min nach Erstellung erledigen." },
-    "subtask-master": { "name": "Unteraufgaben-Held",   "desc": "Aufgabe mit 3+ Unteraufgaben abschließen." },
-    "daily-5":        { "name": "Fünfer-Tag",           "desc": "5 Aufgaben an einem Tag erledigen." },
-    "daily-10":       { "name": "Zehn-Crack",           "desc": "10 Aufgaben an einem Tag erledigen." },
-    "focus-hour":     { "name": "Fokus-Stunde",         "desc": "60 Fokus-Minuten an einem Tag." },
-    "week-warrior":   { "name": "Wochen-Krieger",       "desc": "20 Aufgaben in einer Woche." },
-    "streak-3":       { "name": "3-Tage-Streak",        "desc": "3 Tage in Folge aktiv." },
-    "streak-7":       { "name": "Wochen-Streak",        "desc": "7 Tage in Folge aktiv." },
-    "deadline-hero":  { "name": "Deadline-Held",        "desc": "5 Aufgaben pünktlich vor Deadline erledigen." },
-    "focus-marathon": { "name": "Fokus-Marathon",       "desc": "Einen Fokus-Block von 60+ Minuten abschließen." },
-    "streak-30":      { "name": "Monats-Legende",       "desc": "30 Tage in Folge aktiv." },
-    "streak-100":     { "name": "Hundert Tage",         "desc": "100 Tage in Folge aktiv." },
-    "month-100":      { "name": "Monats-Champion",      "desc": "100 Aufgaben in einem Monat." },
-    "year-365":       { "name": "Jahresziel",           "desc": "365 Aufgaben in einem Jahr." },
-    "focus-1000min":  { "name": "Fokus-Titan",          "desc": "1000 Fokus-Minuten gesamt." },
-    "week-50":        { "name": "Ultra-Woche",          "desc": "50 Aufgaben in einer Woche." },
-    "level-10":       { "name": "Zwei-stellig",         "desc": "Level 10 erreichen." },
-    "level-25":       { "name": "Viertelzentury",       "desc": "Level 25 erreichen." },
-    "level-50":       { "name": "Halbzeit-Held",        "desc": "Level 50 erreichen." }
+    "first-task": {
+      "name": "Erster Schritt",
+      "desc": "Schließe deine erste Aufgabe ab."
+    },
+    "first-focus": {
+      "name": "Erster Fokus",
+      "desc": "Schließe deinen ersten Fokus-Block ab."
+    },
+    "early-bird": {
+      "name": "Frühaufsteher",
+      "desc": "Erledige eine Aufgabe vor 9 Uhr."
+    },
+    "night-owl": {
+      "name": "Nachteule",
+      "desc": "Erledige eine Aufgabe nach 21 Uhr."
+    },
+    "hat-trick": {
+      "name": "Hat-Trick",
+      "desc": "3 Aufgaben an einem Tag erledigen."
+    },
+    "focus-duo": {
+      "name": "Fokus-Duo",
+      "desc": "2 Fokus-Blöcke an einem Tag."
+    },
+    "quick-starter": {
+      "name": "Schnellstarter",
+      "desc": "Aufgabe innerhalb von 30 min nach Erstellung erledigen."
+    },
+    "subtask-master": {
+      "name": "Unteraufgaben-Held",
+      "desc": "Aufgabe mit 3+ Unteraufgaben abschließen."
+    },
+    "daily-5": {
+      "name": "Fünfer-Tag",
+      "desc": "5 Aufgaben an einem Tag erledigen."
+    },
+    "daily-10": {
+      "name": "Zehn-Crack",
+      "desc": "10 Aufgaben an einem Tag erledigen."
+    },
+    "focus-hour": {
+      "name": "Fokus-Stunde",
+      "desc": "60 Fokus-Minuten an einem Tag."
+    },
+    "week-warrior": {
+      "name": "Wochen-Krieger",
+      "desc": "20 Aufgaben in einer Woche."
+    },
+    "streak-3": {
+      "name": "3-Tage-Streak",
+      "desc": "3 Tage in Folge aktiv."
+    },
+    "streak-7": {
+      "name": "Wochen-Streak",
+      "desc": "7 Tage in Folge aktiv."
+    },
+    "deadline-hero": {
+      "name": "Deadline-Held",
+      "desc": "5 Aufgaben pünktlich vor Deadline erledigen."
+    },
+    "focus-marathon": {
+      "name": "Fokus-Marathon",
+      "desc": "Einen Fokus-Block von 60+ Minuten abschließen."
+    },
+    "streak-30": {
+      "name": "Monats-Legende",
+      "desc": "30 Tage in Folge aktiv."
+    },
+    "streak-100": {
+      "name": "Hundert Tage",
+      "desc": "100 Tage in Folge aktiv."
+    },
+    "month-100": {
+      "name": "Monats-Champion",
+      "desc": "100 Aufgaben in einem Monat."
+    },
+    "year-365": {
+      "name": "Jahresziel",
+      "desc": "365 Aufgaben in einem Jahr."
+    },
+    "focus-1000min": {
+      "name": "Fokus-Titan",
+      "desc": "1000 Fokus-Minuten gesamt."
+    },
+    "week-50": {
+      "name": "Ultra-Woche",
+      "desc": "50 Aufgaben in einer Woche."
+    },
+    "level-10": {
+      "name": "Zwei-stellig",
+      "desc": "Level 10 erreichen."
+    },
+    "level-25": {
+      "name": "Viertelzentury",
+      "desc": "Level 25 erreichen."
+    },
+    "level-50": {
+      "name": "Halbzeit-Held",
+      "desc": "Level 50 erreichen."
+    }
   },
   "common": {
     "save": "Speichern",
@@ -308,5 +487,52 @@
     "today": "Heute",
     "yesterday": "Gestern",
     "tomorrow": "Morgen"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "email": "E-Mail-Adresse",
+    "emailPlaceholder": "name@beispiel.de",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "name": "Name",
+    "namePlaceholder": "Dein Name",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits registriert?",
+    "pwMin8": "Mindestens 8 Zeichen",
+    "pwUpper": "Ein Großbuchstabe",
+    "pwLower": "Ein Kleinbuchstabe",
+    "pwNumber": "Eine Zahl",
+    "pwRequirements": "Passwort erfüllt nicht die Anforderungen",
+    "pwMismatch": "Passwörter stimmen nicht überein"
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Benutzer",
+    "auditLog": "Protokoll",
+    "searchUsers": "Benutzer suchen...",
+    "search": "Suchen",
+    "totalUsers": "Benutzer gesamt",
+    "registered": "Registriert",
+    "lastLogin": "Letzter Login",
+    "disabled": "Deaktiviert",
+    "makeAdmin": "Zum Admin machen",
+    "removeAdmin": "Admin-Rechte entfernen",
+    "activate": "Aktivieren",
+    "deactivate": "Deaktivieren",
+    "confirmDelete": "Benutzer wirklich löschen?",
+    "deleted": "gelöscht",
+    "noAuditLogs": "Keine Einträge.",
+    "system": "System"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "empty": "Keine Benachrichtigungen – alles im Griff!",
+    "overdueSince": "Überfällig seit {days} Tag(en)",
+    "dueToday": "Fällig heute",
+    "dueTomorrow": "Fällig morgen",
+    "viewAll": "Alle Aufgaben anzeigen →",
+    "scheduledConflict": "⚠ \"{task}\" kollidiert mit Termin um {time}"
   }
 }

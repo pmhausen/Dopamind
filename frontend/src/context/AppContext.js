@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect } from "react";
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback } from "react";
+import { apiFetch } from "../services/api";
 
 const AppContext = createContext();
 
@@ -58,8 +59,20 @@ export const ACHIEVEMENTS = [
   { id: "level-50",       size: "large",  xp: 750 },
 ];
 
+export const DEFAULT_CATEGORIES = [
+  { id: "work",     name: "work",     emoji: "💼", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
+  { id: "personal", name: "personal", emoji: "👤", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" },
+  { id: "health",   name: "health",   emoji: "💪", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" },
+  { id: "finance",  name: "finance",  emoji: "💰", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300" },
+  { id: "learning", name: "learning", emoji: "📚", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" },
+  { id: "home",     name: "home",     emoji: "🏠", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
+  { id: "errand",   name: "errand",   emoji: "🏃", color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" },
+  { id: "creative", name: "creative", emoji: "🎨", color: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300" },
+];
+
 const initialState = {
   tasks: [],
+  categories: DEFAULT_CATEGORIES,
   xp: 0,
   level: 1,
   streak: 0,
@@ -258,6 +271,9 @@ function reducer(state, action) {
         completed: false,
         createdAt: Date.now(),
         deadline: action.payload.deadline || null,
+        scheduledTime: action.payload.scheduledTime || null,
+        scheduledDate: action.payload.scheduledDate || null,
+        category: action.payload.category || null,
         mailRef: action.payload.mailRef || null,
         subtasks: action.payload.subtasks || [],
         tags: action.payload.tags || [],
@@ -274,14 +290,29 @@ function reducer(state, action) {
       };
 
     case "ADD_SUBTASK": {
-      const { taskId, text } = action.payload;
+      const { taskId, text, estimatedMinutes: subMin, scheduledTime: subSchedTime, scheduledDate: subSchedDate } = action.payload;
       return {
         ...state,
-        tasks: state.tasks.map((t) =>
-          t.id === taskId
-            ? { ...t, subtasks: [...(t.subtasks || []), { id: Date.now().toString(36), text, completed: false }] }
-            : t
-        ),
+        tasks: state.tasks.map((t) => {
+          if (t.id !== taskId) return t;
+          const newSub = { id: Date.now().toString(36), text, completed: false, estimatedMinutes: subMin || 0, scheduledTime: subSchedTime || null, scheduledDate: subSchedDate || null };
+          const subs = [...(t.subtasks || []), newSub];
+          const subTotal = subs.reduce((sum, s) => sum + (s.estimatedMinutes || 0), 0);
+          return { ...t, subtasks: subs, estimatedMinutes: subTotal > 0 ? subTotal : t.estimatedMinutes };
+        }),
+      };
+    }
+
+    case "UPDATE_SUBTASK": {
+      const { taskId: usId, subtaskId: usSubId, ...subUpdates } = action.payload;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) => {
+          if (t.id !== usId) return t;
+          const subs = (t.subtasks || []).map((s) => s.id === usSubId ? { ...s, ...subUpdates } : s);
+          const subTotal = subs.reduce((sum, s) => sum + (s.estimatedMinutes || 0), 0);
+          return { ...t, subtasks: subs, estimatedMinutes: subTotal > 0 ? subTotal : t.estimatedMinutes };
+        }),
       };
     }
 
@@ -301,11 +332,12 @@ function reducer(state, action) {
       const { taskId: dtId, subtaskId: dsId } = action.payload;
       return {
         ...state,
-        tasks: state.tasks.map((t) =>
-          t.id === dtId
-            ? { ...t, subtasks: (t.subtasks || []).filter((s) => s.id !== dsId) }
-            : t
-        ),
+        tasks: state.tasks.map((t) => {
+          if (t.id !== dtId) return t;
+          const subs = (t.subtasks || []).filter((s) => s.id !== dsId);
+          const subTotal = subs.reduce((sum, s) => sum + (s.estimatedMinutes || 0), 0);
+          return { ...t, subtasks: subs, estimatedMinutes: subTotal > 0 ? subTotal : t.estimatedMinutes };
+        }),
       };
     }
 
@@ -370,7 +402,7 @@ function reducer(state, action) {
       const updatedState = {
         ...state,
         tasks: state.tasks.map((t) =>
-          t.id === action.payload ? { ...t, completed: true } : t
+          t.id === action.payload ? { ...t, completed: true, completedAt: new Date().toISOString() } : t
         ),
         xp: newXp + bonusXp,
         level: calcLevel(newXp + bonusXp),
@@ -483,33 +515,43 @@ function reducer(state, action) {
       const monthReset = state.lastMonthReset !== currentMonthKey;
       const yearReset = state.lastYearReset !== currentYearKey;
 
-      // --- Overdue-task XP penalties ---
+      // --- Check if user is currently on an absence (time tracking) ---
+      let absences = [];
+      try {
+        const ttData = JSON.parse(localStorage.getItem("dopamind-timetracking") || "{}");
+        absences = ttData.absences || [];
+      } catch {}
+      const isOnAbsence = absences.some((a) => a.startDate <= today && a.endDate >= today);
+
+      // --- Overdue-task XP penalties (skipped during absence) ---
       const penalizedTaskIds = [...(state.penalizedTaskIds || [])];
       const penaltyRewards = [];
       let totalPenalty = 0;
       let penaltyIdx = 0;
 
-      for (const task of state.tasks) {
-        if (task.completed || !task.deadline) continue;
-        const daysOverdue = getDaysOverdue(task.deadline);
-        if (daysOverdue <= 0) continue;
-        if (penalizedTaskIds.includes(task.id)) continue;
-        const penalty = calcOverduePenaltyXp(daysOverdue);
-        totalPenalty += penalty;
-        penalizedTaskIds.push(task.id);
-        penaltyRewards.push({
-          id: Date.now() + penaltyIdx * 1000,
-          type: "overdue-penalty",
-          messageKey: "rewards.overduePenalty",
-          xp: penalty,
-          daysOverdue,
-          timestamp: Date.now(),
-        });
-        penaltyIdx++;
+      if (!isOnAbsence) {
+        for (const task of state.tasks) {
+          if (task.completed || !task.deadline) continue;
+          const daysOverdue = getDaysOverdue(task.deadline);
+          if (daysOverdue <= 0) continue;
+          if (penalizedTaskIds.includes(task.id)) continue;
+          const penalty = calcOverduePenaltyXp(daysOverdue);
+          totalPenalty += penalty;
+          penalizedTaskIds.push(task.id);
+          penaltyRewards.push({
+            id: Date.now() + penaltyIdx * 1000,
+            type: "overdue-penalty",
+            messageKey: "rewards.overduePenalty",
+            xp: penalty,
+            daysOverdue,
+            timestamp: Date.now(),
+          });
+          penaltyIdx++;
+        }
       }
 
-      // --- Inactivity XP penalty (streak broken, not first-ever use) ---
-      if (!streakContinues && state.lastActiveDate !== null) {
+      // --- Inactivity XP penalty (streak broken, not first-ever use, skipped during absence) ---
+      if (!isOnAbsence && !streakContinues && state.lastActiveDate !== null) {
         const inactivityDays = state.lastActiveDate
           ? Math.max(1, Math.floor((new Date(today) - new Date(state.lastActiveDate)) / 86400000) - 1)
           : 0;
@@ -559,6 +601,33 @@ function reducer(state, action) {
       };
     }
 
+    case "ADD_CATEGORY": {
+      const cat = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+        name: action.payload.name,
+        emoji: action.payload.emoji || "📁",
+        color: action.payload.color || "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300",
+      };
+      return { ...state, categories: [...(state.categories || []), cat] };
+    }
+
+    case "UPDATE_CATEGORY":
+      return {
+        ...state,
+        categories: (state.categories || []).map((c) =>
+          c.id === action.payload.id ? { ...c, ...action.payload } : c
+        ),
+      };
+
+    case "DELETE_CATEGORY":
+      return {
+        ...state,
+        categories: (state.categories || []).filter((c) => c.id !== action.payload),
+        tasks: state.tasks.map((t) =>
+          t.category === action.payload ? { ...t, category: null } : t
+        ),
+      };
+
     default:
       return state;
   }
@@ -575,13 +644,40 @@ export function AppProvider({ children }) {
     } catch {}
     return init;
   });
+  const saveTimer = useRef(null);
+  const didLoad = useRef(false);
+
+  // Load state from backend on mount
+  useEffect(() => {
+    if (didLoad.current) return;
+    didLoad.current = true;
+    const token = localStorage.getItem("dopamind-token");
+    if (!token) return;
+    apiFetch("/user-data/app_state")
+      .then((res) => {
+        if (res.data && Object.keys(res.data).length > 0) {
+          dispatch({ type: "LOAD_STATE", payload: res.data });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     dispatch({ type: "RESET_DAILY" });
   }, []);
 
+  // Persist to localStorage + debounced backend sync
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const token = localStorage.getItem("dopamind-token");
+      if (!token) return;
+      apiFetch("/user-data/app_state", {
+        method: "PUT",
+        body: JSON.stringify({ data: state }),
+      }).catch(() => {});
+    }, 1000);
   }, [state]);
 
   return (

@@ -82,6 +82,7 @@ function toIcal(event) {
     dtend,
     `SUMMARY:${event.title || ""}`,
     event.description ? `DESCRIPTION:${event.description}` : "",
+    event.location ? `LOCATION:${event.location}` : "",
     "END:VEVENT",
     "END:VCALENDAR",
   ].filter(Boolean).join("\r\n");
@@ -150,6 +151,7 @@ function parseIcalEvent(ical) {
   const dtstart = get("DTSTART");
   const dtend = get("DTEND");
   const description = get("DESCRIPTION");
+  const location = get("LOCATION");
 
   if (!uid) return null;
 
@@ -191,6 +193,7 @@ function parseIcalEvent(ical) {
     id: uid.replace(/@.*/, ""),
     title: summary || "(no title)",
     description: description || "",
+    location: location || "",
     date: date || new Date().toISOString().slice(0, 10),
     start: start || null,
     end: end || null,

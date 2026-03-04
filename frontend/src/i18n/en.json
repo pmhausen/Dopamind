@@ -12,7 +12,8 @@
     "zeitmanagement": "Time Management",
     "time": "Time",
     "settings": "Settings",
-    "achievements": "Achievements"
+    "achievements": "Achievements",
+    "admin": "Administration"
   },
   "home": {
     "greeting": "One step at a time.",
@@ -30,7 +31,20 @@
     "freeSlot": "Free",
     "taskSlot": "Task",
     "previousDay": "Previous Day",
-    "nextDay": "Next Day"
+    "nextDay": "Next Day",
+    "dragHint": "Drag & drop to reorder",
+    "timeWarningModerate": "Approx. ~{min}min remaining",
+    "timeWarningCritical": "⚠ Only ~{min}min left!",
+    "nowMarker": "Now",
+    "rescheduleNextDay": "→ Tomorrow",
+    "gridInterval": "Grid",
+    "grid15": "15min",
+    "grid30": "30min",
+    "grid60": "60min",
+    "listMode": "List view",
+    "removeBreak": "Remove break for today",
+    "restoreBreak": "Restore break",
+    "breakMatched": "Matched with time tracking"
   },
   "tasks": {
     "title": "Tasks",
@@ -65,7 +79,37 @@
     "fromMail": "From mail",
     "mailFrom": "From: {from}",
     "reopen": "Reopen",
-    "complete": "Complete"
+    "complete": "Complete",
+    "scheduledTime": "Scheduled",
+    "scheduledTimePlaceholder": "Time...",
+    "scheduledDate": "Scheduled Date",
+    "scheduledDatePlaceholder": "Starting from...",
+    "scheduledDateConflict": "⚠ Conflict: {task} collides with event at {time}",
+    "category": "Category",
+    "categories": {
+      "work": "💼 Work",
+      "personal": "👤 Personal",
+      "health": "💪 Health",
+      "finance": "💰 Finance",
+      "learning": "📚 Learning",
+      "home": "🏠 Home",
+      "errand": "🏃 Errand",
+      "creative": "🎨 Creative"
+    },
+    "subtaskMinutes": "min",
+    "noCategory": "None",
+    "manageCategories": "Manage categories",
+    "addCategory": "New category",
+    "editCategory": "Edit",
+    "deleteCategory": "Delete",
+    "categoryName": "Name",
+    "categoryEmoji": "Emoji",
+    "categoryTasks": "Tasks",
+    "addTaskExpand": "Create task ▸",
+    "addTaskCollapse": "▾ Collapse",
+    "dropToAssign": "Drop task here",
+    "subtaskScheduledTime": "Time",
+    "subtaskScheduledDate": "Date"
   },
   "focus": {
     "title": "Focus Block",
@@ -100,14 +144,36 @@
     "delete": "Delete",
     "eventTitle": "Title",
     "eventDescription": "Description",
-    "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "weekdays": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun"
+    ],
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
     "contextTypes": {
       "work": "Work",
       "sick": "Sick",
       "vacation": "Vacation",
       "childSick": "Child Sick"
-    }
+    },
+    "eventLocation": "Location"
   },
   "mail": {
     "title": "Inbox",
@@ -147,7 +213,12 @@
       "drafts": "Drafts",
       "trash": "Trash",
       "archive": "Archive"
-    }
+    },
+    "selectAll": "Select all",
+    "selected": "{n} selected",
+    "clearSelection": "Clear selection",
+    "toSingleTask": "Single task",
+    "toMultipleTasks": "Multiple tasks"
   },
   "zeitmanagement": {
     "title": "Time Management",
@@ -228,7 +299,15 @@
     "gamification": "Gamification",
     "xpEnabled": "XP System enabled",
     "soundEnabled": "Sound Effects",
-    "weekdaysShort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    "weekdaysShort": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun"
+    ],
     "tabGeneral": "General",
     "tabWorkTime": "Work Time",
     "tabEmail": "Email",
@@ -242,7 +321,32 @@
     "featureMail": "Mail enabled",
     "featureCalendar": "Calendar enabled",
     "featureTimeTracking": "Time Tracking enabled",
-    "featureGamification": "Gamification enabled"
+    "featureGamification": "Gamification enabled",
+    "tabAccount": "Account",
+    "account": "Account",
+    "profileName": "Name",
+    "profileEmail": "Email",
+    "profileSave": "Save Profile",
+    "profileSaved": "Profile saved!",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "passwordChanged": "Password changed successfully!",
+    "deleteAccount": "Delete Account",
+    "deleteAccountWarning": "Warning: This action permanently deletes your account and all associated data.",
+    "deleteAccountConfirm": "Enter your password to confirm deletion.",
+    "deleteAccountButton": "Permanently Delete Account",
+    "accountDeleted": "Account has been deleted.",
+    "timeWarnings": "Time Pressure Warnings",
+    "timeWarningsEnabled": "Warn when time gets tight",
+    "timeWarningsModerate1": "Moderate warning 1 (min)",
+    "timeWarningsModerate2": "Moderate warning 2 (min)",
+    "timeWarningsCritical1": "Critical warning 1 (min)",
+    "timeWarningsCritical2": "Critical warning 2 (min)",
+    "timeWarningsDesc": "Warnings when remaining free time becomes tight.",
+    "timelineGridInterval": "Day plan grid interval",
+    "timelineGridIntervalDesc": "Time grid interval for the day plan view (15, 30, 60 minutes or list mode)."
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",
@@ -267,31 +371,106 @@
     "locked": "Not yet unlocked",
     "unlocked": "Unlocked",
     "xpReward": "+{xp} XP",
-    "first-task":     { "name": "First Step",        "desc": "Complete your first task." },
-    "first-focus":    { "name": "First Focus",       "desc": "Complete your first focus block." },
-    "early-bird":     { "name": "Early Bird",        "desc": "Complete a task before 9 AM." },
-    "night-owl":      { "name": "Night Owl",         "desc": "Complete a task after 9 PM." },
-    "hat-trick":      { "name": "Hat-Trick",         "desc": "Complete 3 tasks in one day." },
-    "focus-duo":      { "name": "Focus Duo",         "desc": "Complete 2 focus blocks in one day." },
-    "quick-starter":  { "name": "Quick Starter",     "desc": "Complete a task within 30 min of creating it." },
-    "subtask-master": { "name": "Subtask Hero",      "desc": "Complete a task with 3+ subtasks." },
-    "daily-5":        { "name": "Five-Task Day",     "desc": "Complete 5 tasks in one day." },
-    "daily-10":       { "name": "Ten-Task Crusher",  "desc": "Complete 10 tasks in one day." },
-    "focus-hour":     { "name": "Focus Hour",        "desc": "60 focus minutes in one day." },
-    "week-warrior":   { "name": "Week Warrior",      "desc": "Complete 20 tasks in one week." },
-    "streak-3":       { "name": "3-Day Streak",      "desc": "Active 3 days in a row." },
-    "streak-7":       { "name": "Week Streak",       "desc": "Active 7 days in a row." },
-    "deadline-hero":  { "name": "Deadline Hero",     "desc": "Complete 5 tasks on time before deadline." },
-    "focus-marathon": { "name": "Focus Marathon",    "desc": "Complete a focus block of 60+ minutes." },
-    "streak-30":      { "name": "Month Legend",      "desc": "Active 30 days in a row." },
-    "streak-100":     { "name": "Hundred Days",      "desc": "Active 100 days in a row." },
-    "month-100":      { "name": "Month Champion",    "desc": "Complete 100 tasks in one month." },
-    "year-365":       { "name": "Year Goal",         "desc": "Complete 365 tasks in one year." },
-    "focus-1000min":  { "name": "Focus Titan",       "desc": "1000 total focus minutes." },
-    "week-50":        { "name": "Ultra Week",        "desc": "Complete 50 tasks in one week." },
-    "level-10":       { "name": "Double Digit",      "desc": "Reach level 10." },
-    "level-25":       { "name": "Quarter Century",   "desc": "Reach level 25." },
-    "level-50":       { "name": "Halfway Hero",      "desc": "Reach level 50." }
+    "first-task": {
+      "name": "First Step",
+      "desc": "Complete your first task."
+    },
+    "first-focus": {
+      "name": "First Focus",
+      "desc": "Complete your first focus block."
+    },
+    "early-bird": {
+      "name": "Early Bird",
+      "desc": "Complete a task before 9 AM."
+    },
+    "night-owl": {
+      "name": "Night Owl",
+      "desc": "Complete a task after 9 PM."
+    },
+    "hat-trick": {
+      "name": "Hat-Trick",
+      "desc": "Complete 3 tasks in one day."
+    },
+    "focus-duo": {
+      "name": "Focus Duo",
+      "desc": "Complete 2 focus blocks in one day."
+    },
+    "quick-starter": {
+      "name": "Quick Starter",
+      "desc": "Complete a task within 30 min of creating it."
+    },
+    "subtask-master": {
+      "name": "Subtask Hero",
+      "desc": "Complete a task with 3+ subtasks."
+    },
+    "daily-5": {
+      "name": "Five-Task Day",
+      "desc": "Complete 5 tasks in one day."
+    },
+    "daily-10": {
+      "name": "Ten-Task Crusher",
+      "desc": "Complete 10 tasks in one day."
+    },
+    "focus-hour": {
+      "name": "Focus Hour",
+      "desc": "60 focus minutes in one day."
+    },
+    "week-warrior": {
+      "name": "Week Warrior",
+      "desc": "Complete 20 tasks in one week."
+    },
+    "streak-3": {
+      "name": "3-Day Streak",
+      "desc": "Active 3 days in a row."
+    },
+    "streak-7": {
+      "name": "Week Streak",
+      "desc": "Active 7 days in a row."
+    },
+    "deadline-hero": {
+      "name": "Deadline Hero",
+      "desc": "Complete 5 tasks on time before deadline."
+    },
+    "focus-marathon": {
+      "name": "Focus Marathon",
+      "desc": "Complete a focus block of 60+ minutes."
+    },
+    "streak-30": {
+      "name": "Month Legend",
+      "desc": "Active 30 days in a row."
+    },
+    "streak-100": {
+      "name": "Hundred Days",
+      "desc": "Active 100 days in a row."
+    },
+    "month-100": {
+      "name": "Month Champion",
+      "desc": "Complete 100 tasks in one month."
+    },
+    "year-365": {
+      "name": "Year Goal",
+      "desc": "Complete 365 tasks in one year."
+    },
+    "focus-1000min": {
+      "name": "Focus Titan",
+      "desc": "1000 total focus minutes."
+    },
+    "week-50": {
+      "name": "Ultra Week",
+      "desc": "Complete 50 tasks in one week."
+    },
+    "level-10": {
+      "name": "Double Digit",
+      "desc": "Reach level 10."
+    },
+    "level-25": {
+      "name": "Quarter Century",
+      "desc": "Reach level 25."
+    },
+    "level-50": {
+      "name": "Halfway Hero",
+      "desc": "Reach level 50."
+    }
   },
   "common": {
     "save": "Save",
@@ -308,5 +487,52 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "tomorrow": "Tomorrow"
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Register",
+    "logout": "Log Out",
+    "email": "Email Address",
+    "emailPlaceholder": "name@example.com",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already registered?",
+    "pwMin8": "At least 8 characters",
+    "pwUpper": "One uppercase letter",
+    "pwLower": "One lowercase letter",
+    "pwNumber": "One number",
+    "pwRequirements": "Password does not meet requirements",
+    "pwMismatch": "Passwords do not match"
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Users",
+    "auditLog": "Audit Log",
+    "searchUsers": "Search users...",
+    "search": "Search",
+    "totalUsers": "Total users",
+    "registered": "Registered",
+    "lastLogin": "Last login",
+    "disabled": "Disabled",
+    "makeAdmin": "Make admin",
+    "removeAdmin": "Remove admin",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "confirmDelete": "Really delete user?",
+    "deleted": "deleted",
+    "noAuditLogs": "No entries.",
+    "system": "System"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications – all good!",
+    "overdueSince": "Overdue by {days} day(s)",
+    "dueToday": "Due today",
+    "dueTomorrow": "Due tomorrow",
+    "viewAll": "View all tasks →",
+    "scheduledConflict": "⚠ \"{task}\" conflicts with event at {time}"
   }
 }

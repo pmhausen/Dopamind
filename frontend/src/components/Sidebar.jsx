@@ -3,6 +3,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { useApp, getLevelTitle } from "../context/AppContext";
 import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
+import { useAuth } from "../context/AuthContext";
 import {
   Home,
   CheckSquare,
@@ -13,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trophy,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import XpBar from "./XpBar";
@@ -32,6 +34,7 @@ export default function Sidebar() {
   const { state } = useApp();
   const { state: ttState } = useTimeTracking();
   const { settings } = useSettings();
+  const { isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const { lang } = useI18n();
   const levelTitle = getLevelTitle(state.level, lang);
@@ -80,6 +83,22 @@ export default function Sidebar() {
             {!collapsed && <span>{t(`nav.${key}`)}</span>}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-accent/10 text-accent dark:bg-accent/20"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
+              }`
+            }
+          >
+            <Shield className="w-5 h-5 flex-shrink-0" />
+            {!collapsed && <span>{t("nav.admin")}</span>}
+          </NavLink>
+        )}
       </nav>
 
       {/* Status footer */}

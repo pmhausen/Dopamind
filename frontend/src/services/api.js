@@ -16,6 +16,10 @@ function getSettingsConfig() {
   }
 }
 
+function getAuthToken() {
+  return localStorage.getItem("dopamind-token") || "";
+}
+
 export function getMailConfigHeader() {
   const settings = getSettingsConfig();
   if (!settings.imap?.host) return {};
@@ -40,6 +44,11 @@ export async function apiFetch(path, options = {}) {
   if (path.startsWith("/mail")) Object.assign(extraHeaders, getMailConfigHeader());
   if (path.startsWith("/calendar")) Object.assign(extraHeaders, getCalDavConfigHeader());
 
+  const token = getAuthToken();
+  if (token) {
+    extraHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
@@ -50,6 +59,14 @@ export async function apiFetch(path, options = {}) {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      // Token expired or invalid – redirect to login
+      localStorage.removeItem("dopamind-token");
+      localStorage.removeItem("dopamind-user");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
     throw new Error(body.error || `HTTP ${res.status}`);
   }
   return res.json();
