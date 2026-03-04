@@ -3,7 +3,7 @@ import { useApp, getLevelTitle } from "../context/AppContext";
 import { useSettings } from "../context/SettingsContext";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n/I18nContext";
-import { Sun, Moon, Globe, Settings, Trophy, LogOut, User } from "lucide-react";
+import { Sun, Moon, Settings, Trophy, LogOut, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import XpBar from "./XpBar";
 import NotificationBell from "./NotificationBell";
@@ -11,7 +11,7 @@ import NotificationBell from "./NotificationBell";
 export default function Header() {
   const { dark, toggle } = useTheme();
   const { state } = useApp();
-  const { lang, switchLang, availableLanguages, t } = useI18n();
+  const { t, lang } = useI18n();
   const { settings } = useSettings();
   const { user, logout } = useAuth();
   const levelTitle = getLevelTitle(state.level, lang);
@@ -46,16 +46,16 @@ export default function Header() {
             <Settings className="w-4 h-4" />
           </Link>
           <NotificationBell />
-          <button
-            onClick={() => {
-              const idx = availableLanguages.indexOf(lang);
-              switchLang(availableLanguages[(idx + 1) % availableLanguages.length]);
-            }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-muted-light dark:text-muted-dark"
-            title={lang.toUpperCase()}
-          >
-            <Globe className="w-4 h-4" />
-          </button>
+          {state.energyLevel && (
+            <span className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
+              state.energyLevel === "high" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" :
+              state.energyLevel === "low" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" :
+              "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+            }`}>
+              {state.energyLevel === "high" ? "🚀" : state.energyLevel === "low" ? "🔋" : "⚡"}
+              <span>{t(`home.energyActive.${state.energyLevel}`)}</span>
+            </span>
+          )}
 
           <button
             onClick={toggle}

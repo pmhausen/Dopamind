@@ -12,7 +12,7 @@
     "zeitmanagement": "Zeitmanagement",
     "time": "Zeit",
     "settings": "Einstellungen",
-    "achievements": "Erfolge",
+    "achievements": "Statistiken",
     "admin": "Administration"
   },
   "tasks": {
@@ -79,7 +79,8 @@
     "dropToAssign": "Aufgabe hierher ziehen",
     "subtaskScheduledTime": "Uhrzeit",
     "subtaskScheduledDate": "Datum",
-    "startNow": "Jetzt starten ▶"
+    "startNow": "Jetzt starten ▶",
+    "start": "Starten"
   },
   "focus": {
     "title": "Fokus-Block",
@@ -99,7 +100,34 @@
     "open": "Offen",
     "focusMin": "Fokus",
     "estimatedMin": "Geschätzt",
-    "min": "min"
+    "min": "min",
+    "pageTitle": "Statistiken",
+    "tabReport": "Brain Report",
+    "tabAchievements": "Erfolge",
+    "tabXP": "XP-Verlauf",
+    "tabStats": "Statistiken",
+    "thisWeek": "Diese Woche",
+    "thisMonth": "Diesen Monat",
+    "allTime": "Gesamt",
+    "previousWeek": "Letzte Woche",
+    "exportJSON": "Als JSON exportieren",
+    "exportPrint": "Drucken / PDF",
+    "focus": "Fokus",
+    "totalFocus": "Gesamt-Fokuszeit",
+    "focusBlocksToday": "Fokus-Blöcke heute",
+    "focusBlocksWeek": "Fokus-Blöcke diese Woche",
+    "focusMinToday": "Fokus-Minuten heute",
+    "tasks": "Aufgaben",
+    "streak": "Streak",
+    "longestStreak": "Längster Streak",
+    "currentStreak": "Aktueller Streak",
+    "streakStats": "Streak",
+    "level": "Level",
+    "xpProgress": "XP-Fortschritt",
+    "toNextLevel": "zum nächsten Level",
+    "xpSources": "XP-Quellen",
+    "xpFromTasks": "XP gesamt",
+    "thisYear": "Dieses Jahr"
   },
   "calendar": {
     "title": "Kalender",
@@ -327,7 +355,9 @@
     "energyCheckinEnabled": "Energie-Check-in",
     "dailyChallengeEnabled": "Tägliche Herausforderung",
     "pauseSuggestionsEnabled": "Pausenvorschläge",
-    "weeklyReportEnabled": "Wochenbericht"
+    "weeklyReportEnabled": "Wochenbericht",
+    "hideParentWithSubtasks": "Hauptaufgaben ausblenden wenn Unteraufgaben vorhanden",
+    "timeline": "Tagesplanung"
   },
   "home": {
     "greeting": "Ein Schritt nach dem anderen.",
@@ -380,7 +410,11 @@
     "weeklyReportDismiss": "Diese Woche rocken!",
     "compassionMode": "Kein guter Tag",
     "notMyDay": "Nicht mein Tag",
-    "compassionActive": "Kompassion aktiv"
+    "compassionActive": "Kompassion aktiv",
+    "pushDown": "Verschieben",
+    "pushConfirmQuestion": "Bereits erledigt?",
+    "toggleFullDay": "Ganzer Tag",
+    "workHoursOnly": "Nur Arbeitszeit"
   },
   "rewards": {
     "levelUp": "Level {level} erreicht – {title}!",

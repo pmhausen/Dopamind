@@ -12,7 +12,7 @@
     "zeitmanagement": "Time Management",
     "time": "Time",
     "settings": "Settings",
-    "achievements": "Achievements",
+    "achievements": "Statistics",
     "admin": "Administration"
   },
   "home": {
@@ -66,7 +66,11 @@
     "compassionMode": "Not my best day",
     "notMyDay": "Not my day",
     "compassionActive": "Compassion on",
-    "weeklyReportDismiss": "Let's go this week!"
+    "weeklyReportDismiss": "Let's go this week!",
+    "pushDown": "Push down",
+    "pushConfirmQuestion": "Already done?",
+    "toggleFullDay": "Full day",
+    "workHoursOnly": "Work hours only"
   },
   "tasks": {
     "title": "Tasks",
@@ -132,7 +136,8 @@
     "dropToAssign": "Drop task here",
     "subtaskScheduledTime": "Time",
     "subtaskScheduledDate": "Date",
-    "startNow": "Start now ▶"
+    "startNow": "Start now ▶",
+    "start": "Start"
   },
   "focus": {
     "title": "Focus Block",
@@ -152,7 +157,34 @@
     "open": "Open",
     "focusMin": "Focus",
     "estimatedMin": "Estimated",
-    "min": "min"
+    "min": "min",
+    "pageTitle": "Statistics",
+    "tabReport": "Brain Report",
+    "tabAchievements": "Achievements",
+    "tabXP": "XP History",
+    "tabStats": "Statistics",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "allTime": "All Time",
+    "previousWeek": "Last Week",
+    "exportJSON": "Export as JSON",
+    "exportPrint": "Print / PDF",
+    "focus": "Focus",
+    "totalFocus": "Total Focus Time",
+    "focusBlocksToday": "Focus blocks today",
+    "focusBlocksWeek": "Focus blocks this week",
+    "focusMinToday": "Focus minutes today",
+    "tasks": "Tasks",
+    "streak": "Streak",
+    "longestStreak": "Longest Streak",
+    "currentStreak": "Current Streak",
+    "streakStats": "Streak",
+    "level": "Level",
+    "xpProgress": "XP Progress",
+    "toNextLevel": "to next level",
+    "xpSources": "XP Sources",
+    "xpFromTasks": "Total XP",
+    "thisYear": "This Year"
   },
   "calendar": {
     "title": "Calendar",
@@ -380,7 +412,9 @@
     "energyCheckinEnabled": "Energy Check-in",
     "dailyChallengeEnabled": "Daily Challenge",
     "pauseSuggestionsEnabled": "Pause Suggestions",
-    "weeklyReportEnabled": "Weekly Report"
+    "weeklyReportEnabled": "Weekly Report",
+    "hideParentWithSubtasks": "Hide parent tasks when subtasks are present",
+    "timeline": "Day Planning"
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",

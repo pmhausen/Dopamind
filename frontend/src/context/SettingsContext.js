@@ -44,6 +44,7 @@ const defaultSettings = {
   },
   timeline: {
     gridInterval: 30, // 15 | 30 | 60
+    hideParentWithSubtasks: false,
   },
 };
 

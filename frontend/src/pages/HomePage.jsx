@@ -5,6 +5,7 @@ import { DAILY_CHALLENGES } from "../context/AppContext";
 import { useCalendar } from "../context/CalendarContext";
 import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
+import CountdownStart from "../components/CountdownStart";
 import {
   CheckCircle, Calendar, Plus,
   LogIn, LogOut, Coffee, AlertCircle, Clock, ChevronLeft, ChevronRight, Pencil, X, GripVertical, CalendarPlus, List, Trash2,
@@ -88,7 +89,7 @@ function QuickAddTask({ t, onAdd }) {
   );
 }
 
-function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onToggleSubtask, isTaskOverdue, onEditTask, onEditSubtask, onUpdateScheduledTime, onUpdateSubtaskScheduledTime, onRescheduleNextDay, isToday, isPastDay, gridInterval, viewDate, removedBreaks, onToggleBreakRemoved, breakTimeOverrides, onUpdateBreakTime, timeTrackingBreaks }) {
+function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onToggleSubtask, isTaskOverdue, onEditTask, onEditSubtask, onUpdateScheduledTime, onUpdateSubtaskScheduledTime, onRescheduleNextDay, isToday, isPastDay, gridInterval, viewDate, removedBreaks, onToggleBreakRemoved, breakTimeOverrides, onUpdateBreakTime, timeTrackingBreaks, onStartTask, countdownStartEnabled, showFullDay, hideParentWithSubtasks }) {
   const workStartH = parseInt(settings.workSchedule.start.split(":")[0], 10);
   const workStartM = parseInt(settings.workSchedule.start.split(":")[1] || "0", 10);
   const workEndH = parseInt(settings.workSchedule.end.split(":")[0], 10);
@@ -96,6 +97,10 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   const breakMin = settings.workSchedule.breakMinutes;
   const timeTrackingEnabled = settings.features?.timeTrackingEnabled !== false;
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [confirmedPushIds, setConfirmedPushIds] = useState(() => new Set());
+  useEffect(() => {
+    setConfirmedPushIds(new Set());
+  }, [viewDate]);
   useEffect(() => {
     if (!isToday) return;
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -111,8 +116,8 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   const PX_PER_MIN = ROW_HEIGHT / STEP;
   const MIN_ENTRY_HEIGHT_PX = 20;
 
-  const DAY_START = timeTrackingEnabled ? 0 : 6 * 60;
-  const DAY_END = timeTrackingEnabled ? 24 * 60 : 22 * 60;
+  const DAY_START = showFullDay ? 0 : workStart;
+  const DAY_END = showFullDay ? 24 * 60 : workEnd;
 
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingSubtaskParent, setEditingSubtaskParent] = useState(null);
@@ -223,13 +228,15 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   const placeTask = (task, desiredStart) => {
     const subtasks = (task.subtasks || []).filter((s) => !s.completed);
     if (subtasks.length > 0) {
-      // Requirement 5: Main task is scheduled independently using its OWN estimatedMinutes.
-      // Subtasks are scheduled separately.
-      const parentDur = Math.max(STEP, task.estimatedMinutes || 25);
-      const parentStart = findFreeStart(desiredStart, parentDur);
-      entries.push({ key: `task-${task.id}`, type: "task-parent", startMin: parentStart, durationMin: parentDur, label: task.text, task, priority: task.priority, overdue: isTaskOverdue(task), scheduled: !!task.scheduledTime, subtaskCount: subtasks.length });
-      claimRange(parentStart, parentStart + parentDur);
-      let cursor = parentStart + parentDur;
+      let cursor = desiredStart;
+      if (!hideParentWithSubtasks) {
+        // Requirement 5: Main task is scheduled independently using its OWN estimatedMinutes.
+        const parentDur = Math.max(STEP, task.estimatedMinutes || 25);
+        const parentStart = findFreeStart(desiredStart, parentDur);
+        entries.push({ key: `task-${task.id}`, type: "task-parent", startMin: parentStart, durationMin: parentDur, label: task.text, task, priority: task.priority, overdue: isTaskOverdue(task), scheduled: !!task.scheduledTime, subtaskCount: subtasks.length });
+        claimRange(parentStart, parentStart + parentDur);
+        cursor = parentStart + parentDur;
+      }
       for (const sub of subtasks) {
         const subDur = Math.max(STEP, sub.estimatedMinutes ?? STEP);
         let subStart;
@@ -268,6 +275,11 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
     // Snap to next grid slot after now
     pushCursor = Math.ceil(pushCursor / STEP) * STEP;
     for (const oe of overdueEntries) {
+      const entryId = oe.task?.id || oe.subtask?.id;
+      if ((oe.type === "task" || oe.type === "task-parent" || oe.type === "subtask") && entryId && !confirmedPushIds.has(entryId)) {
+        oe.needsPushConfirm = true;
+        continue; // don't push yet, keep at original position for confirmation
+      }
       // Unclaim original range
       usedRanges = usedRanges.filter((r) => !(r.from === oe.startMin && r.to === oe.startMin + oe.durationMin));
       // Find new spot after now
@@ -360,6 +372,16 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
             </div>
           </div>
         )}
+
+        {/* Push-down confirmation cards */}
+        {entries.filter(e => e.needsPushConfirm).map(e => (
+          <div key={`confirm-${e.key}`} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-500/20 text-sm mb-1">
+            <AlertCircle className="w-3.5 h-3.5 text-orange-600 flex-shrink-0" />
+            <span className="flex-1 truncate text-sm">{e.label}</span>
+            <button onClick={() => e.task ? onCompleteTask(e.task.id) : (e.parentTask && onCompleteTask(e.parentTask.id))} className="px-2 py-1 rounded-lg bg-success/10 text-success text-xs font-medium hover:bg-success/20 transition-colors">✓ {t("tasks.complete")}</button>
+            <button onClick={() => setConfirmedPushIds(prev => new Set([...prev, e.task?.id || e.subtask?.id]))} className="px-2 py-1 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs font-medium hover:bg-orange-200 transition-colors">→ {t("home.pushDown")}</button>
+          </div>
+        ))}
 
         {/* List entries */}
         {sortedEntries.map((entry) => {
@@ -474,6 +496,13 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                     title={t("tasks.complete")}>
                     <CheckCircle className="w-3 h-3 text-accent" />
                   </button>
+                  {onStartTask && countdownStartEnabled && (
+                    <button onClick={() => onStartTask(entry.task)}
+                      className="w-5 h-5 rounded bg-accent/10 flex-shrink-0 hover:bg-accent hover:text-white transition-colors flex items-center justify-center text-accent text-[10px]"
+                      title={t("tasks.start")}>
+                      ▶
+                    </button>
+                  )}
                   <button onClick={() => { setEditingTaskId(entry.task.id); setEditText(entry.task.text); }}
                     className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                     title={t("common.edit")}>
@@ -673,6 +702,7 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                   ${isTask && !isParentSummary && !entry.overdue ? "bg-gray-100 dark:bg-white/5 border-l-2 border-gray-300 dark:border-white/15" : ""}
                   ${entry.type === "break" ? "bg-warn/10 text-amber-700 dark:text-warn border-l-2 border-warn" : ""}
                   ${entry.pushedDown ? "border-dashed !border-l-2 !border-orange-400 bg-orange-50 dark:bg-orange-900/10" : ""}
+                  ${entry.needsPushConfirm ? "!border-l-2 !border-amber-400 bg-amber-50 dark:bg-amber-900/10" : ""}
                 `}
                 style={{ top: `${entryTop}px`, height: `${entryHeight}px` }}
               >
@@ -763,6 +793,20 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                       title={t("tasks.complete")} aria-label={t("tasks.complete")}>
                       <CheckCircle className="w-3 h-3 text-accent" />
                     </button>
+                    {onStartTask && countdownStartEnabled && (
+                      <button onClick={() => onStartTask(entry.task)}
+                        className="w-5 h-5 rounded bg-accent/10 flex-shrink-0 hover:bg-accent hover:text-white transition-colors flex items-center justify-center text-accent text-[10px]"
+                        title={t("tasks.start")} aria-label={t("tasks.start")}>
+                        ▶
+                      </button>
+                    )}
+                    {entry.needsPushConfirm && (
+                      <button onClick={() => setConfirmedPushIds(prev => new Set([...prev, entry.task?.id || entry.subtask?.id]))}
+                        className="w-5 h-5 rounded bg-amber-100 dark:bg-amber-900/30 flex-shrink-0 hover:bg-amber-200 transition-colors flex items-center justify-center text-amber-700 dark:text-amber-300 text-[10px]"
+                        title={t("home.pushDown")}>
+                        →
+                      </button>
+                    )}
                     <button onClick={() => { setEditingTaskId(entry.task.id); setEditText(entry.task.text); }}
                       className="w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                       title={t("common.edit")} aria-label={t("common.edit")}>
@@ -837,6 +881,8 @@ export default function HomePage() {
 
   // New gamification state
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [countdownTask, setCountdownTask] = useState(null);
+  const [timelineShowFullDay, setTimelineShowFullDay] = useState(false);
 
   // Weekly report: show on Monday if not yet dismissed this week
   useEffect(() => {
@@ -1174,6 +1220,19 @@ export default function HomePage() {
               >
                 <List className="w-3 h-3" />
               </button>
+              {features.timeTrackingEnabled !== false && (
+                <button
+                  onClick={() => setTimelineShowFullDay(v => !v)}
+                  className={`px-2 py-0.5 rounded text-[10px] transition-all flex items-center gap-0.5 ${
+                    timelineShowFullDay
+                      ? "bg-white dark:bg-white/15 text-accent font-bold shadow-sm"
+                      : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  }`}
+                  title={t("home.toggleFullDay")}
+                >
+                  24h
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1206,8 +1265,19 @@ export default function HomePage() {
           breakTimeOverrides={breakTimeOverrides}
           onUpdateBreakTime={handleUpdateBreakTime}
           timeTrackingBreaks={viewDayTTBreaks}
+          onStartTask={(task) => setCountdownTask(task)}
+          countdownStartEnabled={settings.gamification?.countdownStartEnabled !== false}
+          showFullDay={!features.timeTrackingEnabled || timelineShowFullDay}
+          hideParentWithSubtasks={settings.timeline?.hideParentWithSubtasks === true}
         />
       </div>
+
+      {countdownTask && (
+        <CountdownStart
+          estimatedMinutes={countdownTask.estimatedMinutes || 25}
+          onClose={() => setCountdownTask(null)}
+        />
+      )}
     </div>
   );
 }

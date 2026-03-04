@@ -538,6 +538,13 @@ export default function SettingsPage() {
                 </button>
               </div>
             </Section>
+            <Section title={t("settings.timeline")}>
+              <Toggle
+                checked={settings.timeline?.hideParentWithSubtasks === true}
+                onChange={(v) => updateSettings("timeline", { hideParentWithSubtasks: v })}
+                label={t("settings.hideParentWithSubtasks")}
+              />
+            </Section>
             </>
           )}
 
