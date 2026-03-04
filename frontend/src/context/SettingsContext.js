@@ -14,7 +14,19 @@ const defaultSettings = {
     breakMinutes: 60,
     workDays: [1, 2, 3, 4, 5],
   },
-  gamification: { xpEnabled: true, soundEnabled: false },
+  gamification: {
+    xpEnabled: true,
+    soundEnabled: false,
+    compassionModeEnabled: true,
+    microConfettiEnabled: true,
+    variableRewardsEnabled: true,
+    flowShieldEnabled: true,
+    countdownStartEnabled: true,
+    energyCheckinEnabled: true,
+    dailyChallengeEnabled: true,
+    pauseSuggestionsEnabled: true,
+    weeklyReportEnabled: true,
+  },
   notifications: { enabled: true, focusReminder: true },
   mail: { masterTagEnabled: false, masterTag: "dopamind" },
   features: {
@@ -32,6 +44,9 @@ const defaultSettings = {
   },
   timeline: {
     gridInterval: 30, // 15 | 30 | 60
+    hideParentWithSubtasks: false,
+    taskSchedulingRound: "halfHour", // "halfHour" | "fullHour" | "custom"
+    taskSchedulingCustomMinutes: 30,
   },
 };
 

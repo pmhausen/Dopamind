@@ -538,6 +538,40 @@ export default function SettingsPage() {
                 </button>
               </div>
             </Section>
+            <Section title={t("settings.taskSchedulingRound")}>
+              <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.taskSchedulingRoundDesc")}</p>
+              <div className="flex gap-2 flex-wrap">
+                {["halfHour", "fullHour", "custom"].map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => updateSettings("timeline", { taskSchedulingRound: mode })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      (settings.timeline?.taskSchedulingRound || "halfHour") === mode
+                        ? "bg-accent text-white"
+                        : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {t(`settings.taskSchedulingRound_${mode}`)}
+                  </button>
+                ))}
+              </div>
+              {(settings.timeline?.taskSchedulingRound || "halfHour") === "custom" && (
+                <Field label={t("settings.taskSchedulingCustomMinutes")}>
+                  <Input
+                    type="number"
+                    value={settings.timeline?.taskSchedulingCustomMinutes ?? 30}
+                    onChange={(v) => updateSettings("timeline", { taskSchedulingCustomMinutes: Math.min(1440, Math.max(1, Number(v))) })}
+                  />
+                </Field>
+              )}
+            </Section>
+            <Section title={t("settings.timeline")}>
+              <Toggle
+                checked={settings.timeline?.hideParentWithSubtasks === true}
+                onChange={(v) => updateSettings("timeline", { hideParentWithSubtasks: v })}
+                label={t("settings.hideParentWithSubtasks")}
+              />
+            </Section>
             </>
           )}
 
@@ -657,6 +691,51 @@ export default function SettingsPage() {
                 checked={settings.gamification.soundEnabled}
                 onChange={(v) => updateSettings("gamification", { soundEnabled: v })}
                 label={t("settings.soundEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.compassionModeEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { compassionModeEnabled: v })}
+                label={t("settings.compassionModeEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.microConfettiEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { microConfettiEnabled: v })}
+                label={t("settings.microConfettiEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.variableRewardsEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { variableRewardsEnabled: v })}
+                label={t("settings.variableRewardsEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.flowShieldEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { flowShieldEnabled: v })}
+                label={t("settings.flowShieldEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.countdownStartEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { countdownStartEnabled: v })}
+                label={t("settings.countdownStartEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.energyCheckinEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { energyCheckinEnabled: v })}
+                label={t("settings.energyCheckinEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.dailyChallengeEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { dailyChallengeEnabled: v })}
+                label={t("settings.dailyChallengeEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.pauseSuggestionsEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { pauseSuggestionsEnabled: v })}
+                label={t("settings.pauseSuggestionsEnabled")}
+              />
+              <Toggle
+                checked={settings.gamification.weeklyReportEnabled !== false}
+                onChange={(v) => updateSettings("gamification", { weeklyReportEnabled: v })}
+                label={t("settings.weeklyReportEnabled")}
               />
             </Section>
           )}

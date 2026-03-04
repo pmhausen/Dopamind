@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
-import { useApp, getLevelTitle } from "../context/AppContext";
+import { useApp, getLevelTitle, DAILY_CHALLENGES } from "../context/AppContext";
 import { useTimeTracking } from "../context/TimeTrackingContext";
 import { useSettings } from "../context/SettingsContext";
 import { useAuth } from "../context/AuthContext";
@@ -36,6 +36,7 @@ export default function Sidebar() {
   const { settings } = useSettings();
   const { isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [showChallengeDetail, setShowChallengeDetail] = useState(false);
   const { lang } = useI18n();
   const levelTitle = getLevelTitle(state.level, lang);
 
@@ -120,6 +121,42 @@ export default function Sidebar() {
             <XpBar />
           </div>
         )}
+
+        {!collapsed && features.gamificationEnabled !== false && settings.gamification?.dailyChallengeEnabled && state.dailyChallenge && (() => {
+          const def = DAILY_CHALLENGES.find((d) => d.id === state.dailyChallenge.challengeId);
+          if (!def) return null;
+          const progress = def.type === "complete_tasks" ? state.completedToday : state.focusMinutesToday;
+          const pct = Math.min(100, Math.round((progress / def.target) * 100));
+          return (
+            <div className="px-1">
+              <button
+                onClick={() => setShowChallengeDetail((v) => !v)}
+                className="w-full text-left"
+                title={t("home.dailyChallenge")}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-muted-light dark:text-muted-dark flex items-center gap-1">
+                    🎯 <span>{t("home.dailyChallenge")}</span>
+                    {state.dailyChallenge.completed && <span className="text-success text-[10px]">✓</span>}
+                  </span>
+                  <span className="text-[10px] text-muted-light dark:text-muted-dark">{pct}%</span>
+                </div>
+                <div className="w-full h-1 rounded-full bg-gray-200 dark:bg-white/10">
+                  <div
+                    className={`h-full rounded-full transition-all ${state.dailyChallenge.completed ? "bg-success" : "bg-accent"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </button>
+              {showChallengeDetail && (
+                <div className="mt-1.5 p-2 rounded-lg bg-gray-50 dark:bg-white/5 text-[10px] text-muted-light dark:text-muted-dark">
+                  <p>{t(`home.challenge.${def.type}`, { target: def.target })}</p>
+                  <p className="mt-0.5 font-medium">{progress}/{def.target}</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         <button
           onClick={() => setCollapsed((c) => !c)}

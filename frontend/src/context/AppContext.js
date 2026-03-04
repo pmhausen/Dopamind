@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useRef, useCallback } from "react";
 import { apiFetch } from "../services/api";
+import dailyChallengesData from "../data/dailyChallenges.json";
 
 const AppContext = createContext();
 
@@ -27,6 +28,8 @@ export function getLevelTitle(level, lang = "de") {
   }
   return LEVEL_TITLES[1][lang] || LEVEL_TITLES[1].de;
 }
+
+export const DAILY_CHALLENGES = dailyChallengesData;
 
 export const ACHIEVEMENTS = [
   // Small (25–75 XP)
@@ -57,6 +60,7 @@ export const ACHIEVEMENTS = [
   { id: "level-10",       size: "large",  xp: 250 },
   { id: "level-25",       size: "large",  xp: 500 },
   { id: "level-50",       size: "large",  xp: 750 },
+  { id: "daily-champion", size: "large",  xp: 500 },
 ];
 
 export const DEFAULT_CATEGORIES = [
@@ -96,6 +100,18 @@ const initialState = {
   deadlineHeroCount: 0,
   totalFocusMinutes: 0,
   penalizedTaskIds: [],
+  // New gamification fields
+  compassionModeDate: null,
+  flowModeActive: false,
+  energyLevel: null,
+  energyCheckDate: null,
+  energyLog: [],
+  notMyDayCount: 0,
+  dailyChallenge: null,
+  previousWeekStats: null,
+  focusLog: [],
+  lastWeeklyReport: null,
+  microConfettiQueue: [],
 };
 
 function calcLevel(xp) {
@@ -260,6 +276,42 @@ function applyAchievements(state, newAchievements) {
   };
 }
 
+function rollVariableReward() {
+  const r = Math.random();
+  if (r < 0.05) {
+    const xp = Math.round(75 + Math.random() * 75);
+    return { type: "jackpot", xp };
+  } else if (r < 0.25) {
+    const xp = Math.round(20 + Math.random() * 20);
+    return { type: "medium", xp };
+  } else if (r < 0.55) {
+    const xp = Math.round(5 + Math.random() * 10);
+    return { type: "small", xp };
+  }
+  return null;
+}
+
+function getDailyChallengeForDate(dateStr) {
+  // Deterministically pick a challenge by day-of-year (using UTC to avoid DST issues)
+  const d = new Date(dateStr + "T00:00:00Z");
+  const start = new Date(d.getUTCFullYear() + "-01-01T00:00:00Z");
+  const dayOfYear = Math.floor((d - start) / 86400000);
+  return DAILY_CHALLENGES[dayOfYear % DAILY_CHALLENGES.length];
+}
+
+function checkDailyChallengeCompletion(state) {
+  if (!state.dailyChallenge || state.dailyChallenge.completed) return null;
+  const ch = state.dailyChallenge;
+  const def = DAILY_CHALLENGES.find((d) => d.id === ch.challengeId);
+  if (!def) return null;
+  const progress = def.type === "complete_tasks" ? state.completedToday : state.focusMinutesToday;
+  if (progress >= def.target) {
+    const ach = ACHIEVEMENTS.find((a) => a.id === "daily-champion");
+    return ach || null;
+  }
+  return null;
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case "ADD_TASK": {
@@ -281,13 +333,31 @@ function reducer(state, action) {
       return { ...state, tasks: [...state.tasks, task] };
     }
 
-    case "UPDATE_TASK":
-      return {
-        ...state,
-        tasks: state.tasks.map((t) =>
-          t.id === action.payload.id ? { ...t, ...action.payload } : t
-        ),
-      };
+    case "UPDATE_TASK": {
+      const prevTask = state.tasks.find((t) => t.id === action.payload.id);
+      const updatedTasks = state.tasks.map((t) =>
+        t.id === action.payload.id ? { ...t, ...action.payload } : t
+      );
+      const microQueue = [...(state.microConfettiQueue || [])];
+      let bonusXp = 0;
+      // Detect deadline being set (prev null/empty, new has value)
+      if (prevTask && !prevTask.deadline && action.payload.deadline) {
+        bonusXp += 2;
+        microQueue.push({ id: `${Date.now()}-deadline-${Math.random()}`, xp: 2, type: "deadline" });
+      }
+      // Detect tags growing
+      const prevTagCount = (prevTask?.tags || []).length;
+      const newTagCount = (action.payload.tags || prevTask?.tags || []).length;
+      if (prevTask && newTagCount > prevTagCount) {
+        bonusXp += 1;
+        microQueue.push({ id: `${Date.now()}-tag-${Math.random()}`, xp: 1, type: "tag" });
+      }
+      if (bonusXp > 0) {
+        const newXp = state.xp + bonusXp;
+        return { ...state, tasks: updatedTasks, xp: newXp, level: calcLevel(newXp), microConfettiQueue: microQueue };
+      }
+      return { ...state, tasks: updatedTasks };
+    }
 
     case "ADD_SUBTASK": {
       const { taskId, text, estimatedMinutes: subMin, scheduledTime: subSchedTime, scheduledDate: subSchedDate } = action.payload;
@@ -318,14 +388,26 @@ function reducer(state, action) {
 
     case "TOGGLE_SUBTASK": {
       const { taskId: tId, subtaskId } = action.payload;
-      return {
-        ...state,
-        tasks: state.tasks.map((t) =>
-          t.id === tId
-            ? { ...t, subtasks: (t.subtasks || []).map((s) => s.id === subtaskId ? { ...s, completed: !s.completed } : s) }
-            : t
-        ),
-      };
+      const targetTask = state.tasks.find((t) => t.id === tId);
+      const targetSub = targetTask && (targetTask.subtasks || []).find((s) => s.id === subtaskId);
+      const wasCompleted = targetSub ? targetSub.completed : true;
+      const newTasks = state.tasks.map((t) =>
+        t.id === tId
+          ? { ...t, subtasks: (t.subtasks || []).map((s) => s.id === subtaskId ? { ...s, completed: !s.completed } : s) }
+          : t
+      );
+      // Add micro confetti if completing (not unchecking)
+      if (!wasCompleted) {
+        const microItem = { id: Date.now() + Math.random(), xp: 1, type: "subtask" };
+        return {
+          ...state,
+          tasks: newTasks,
+          xp: state.xp + 1,
+          level: calcLevel(state.xp + 1),
+          microConfettiQueue: [...(state.microConfettiQueue || []), microItem],
+        };
+      }
+      return { ...state, tasks: newTasks };
     }
 
     case "DELETE_SUBTASK": {
@@ -414,8 +496,49 @@ function reducer(state, action) {
         rewards: newRewards,
       };
 
-      const newAchs = checkAchievements(updatedState, { type: "COMPLETE_TASK", task });
-      return applyAchievements(updatedState, newAchs);
+      let stateAfterAchs = applyAchievements(updatedState, checkAchievements(updatedState, { type: "COMPLETE_TASK", task }));
+
+      // Variable reward roll
+      const varReward = rollVariableReward();
+      if (varReward) {
+        const varXp = varReward.xp;
+        const newVarXp = stateAfterAchs.xp + varXp;
+        const varRewards = [...stateAfterAchs.rewards, {
+          id: Date.now() + 900,
+          type: "variable-reward",
+          varType: varReward.type,
+          messageKey: varReward.type === "jackpot" ? "rewards.jackpot" : varReward.type === "medium" ? "rewards.variableMedium" : "rewards.variableSmall",
+          xp: varXp,
+          timestamp: Date.now(),
+        }];
+        stateAfterAchs = { ...stateAfterAchs, xp: newVarXp, level: calcLevel(newVarXp), rewards: varRewards };
+      }
+
+      // Check daily challenge completion
+      const dailyChallengeAch = checkDailyChallengeCompletion(stateAfterAchs);
+      if (dailyChallengeAch && stateAfterAchs.dailyChallenge && !stateAfterAchs.dailyChallenge.completed) {
+        const dcXp = dailyChallengeAch.xp;
+        const dcNewXp = stateAfterAchs.xp + dcXp;
+        const dcRewards = [...stateAfterAchs.rewards, {
+          id: Date.now() + 950,
+          type: "daily-champion",
+          size: "large",
+          achievementId: "daily-champion",
+          messageKey: "rewards.achievementLarge",
+          xp: dcXp,
+          timestamp: Date.now(),
+        }];
+        stateAfterAchs = {
+          ...stateAfterAchs,
+          xp: dcNewXp,
+          level: calcLevel(dcNewXp),
+          rewards: dcRewards,
+          unlockedAchievements: [...(stateAfterAchs.unlockedAchievements || []), "daily-champion"],
+          dailyChallenge: { ...stateAfterAchs.dailyChallenge, completed: true },
+        };
+      }
+
+      return stateAfterAchs;
     }
 
     case "REOPEN_TASK":
@@ -438,7 +561,8 @@ function reducer(state, action) {
       const xpPerMin = calcFocusXpPerMin(minutes);
       const baseXp = Math.round(minutes * xpPerMin);
       const mult = getStreakMultiplier(state.currentStreakDays);
-      const xpGain = Math.round(baseXp * mult);
+      const flowMultiplier = action.flow ? 2 : 1;
+      const xpGain = Math.round(baseXp * mult * flowMultiplier);
       const newXp = state.xp + xpGain;
       const newLevel = calcLevel(newXp);
       const leveledUp = newLevel > state.level;
@@ -462,6 +586,14 @@ function reducer(state, action) {
       }
 
       let bonusXp = 0;
+      if (action.flow) {
+        newRewards.push({
+          id: Date.now() + 5,
+          type: "flow-session",
+          messageKey: "rewards.flowSession",
+          timestamp: Date.now(),
+        });
+      }
       if (focusBlocksToday === 3) {
         bonusXp += 15;
         newRewards.push({
@@ -484,10 +616,42 @@ function reducer(state, action) {
         focusBlocksThisWeek,
         totalFocusMinutes,
         rewards: newRewards,
+        focusLog: [
+          ...(state.focusLog || []).filter((entry) => {
+            const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+            return entry.date >= sevenDaysAgo;
+          }),
+          { date: getTodayStr(), hour: new Date().getHours(), minutes },
+        ],
       };
 
-      const newAchs = checkAchievements(updatedState, { type: "ADD_FOCUS_MINUTES", focusMinutes: minutes });
-      return applyAchievements(updatedState, newAchs);
+      let stateAfterAchs = applyAchievements(updatedState, checkAchievements(updatedState, { type: "ADD_FOCUS_MINUTES", focusMinutes: minutes }));
+
+      // Check daily challenge completion
+      const focusDCach = checkDailyChallengeCompletion(stateAfterAchs);
+      if (focusDCach && stateAfterAchs.dailyChallenge && !stateAfterAchs.dailyChallenge.completed) {
+        const dcXp = focusDCach.xp;
+        const dcNewXp = stateAfterAchs.xp + dcXp;
+        const dcRewards = [...stateAfterAchs.rewards, {
+          id: Date.now() + 950,
+          type: "daily-champion",
+          size: "large",
+          achievementId: "daily-champion",
+          messageKey: "rewards.achievementLarge",
+          xp: dcXp,
+          timestamp: Date.now(),
+        }];
+        stateAfterAchs = {
+          ...stateAfterAchs,
+          xp: dcNewXp,
+          level: calcLevel(dcNewXp),
+          rewards: dcRewards,
+          unlockedAchievements: [...(stateAfterAchs.unlockedAchievements || []), "daily-champion"],
+          dailyChallenge: { ...stateAfterAchs.dailyChallenge, completed: true },
+        };
+      }
+
+      return stateAfterAchs;
     }
 
     case "DISMISS_REWARD":
@@ -495,6 +659,53 @@ function reducer(state, action) {
         ...state,
         rewards: state.rewards.filter((r) => r.id !== action.payload),
       };
+
+    case "CLEAR_MICRO_CONFETTI":
+      return {
+        ...state,
+        microConfettiQueue: (state.microConfettiQueue || []).filter((m) => m.id !== action.payload),
+      };
+
+    case "SET_COMPASSION_MODE":
+      return { ...state, compassionModeDate: getTodayStr(), notMyDayCount: state.notMyDayCount + 1 };
+
+    case "SET_FLOW_MODE":
+      return { ...state, flowModeActive: !!action.payload };
+
+    case "SET_ENERGY_LEVEL": {
+      const today = getTodayStr();
+      // Append every change with a timestamp so all changes flow into the Brain Report.
+      // Retain entries from the last 90 days to prevent unbounded growth.
+      const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const newEnergyLog = [
+        ...(state.energyLog || []).filter((e) => e.date >= cutoff),
+        { date: today, level: action.payload, changedAt: new Date().toISOString() },
+      ];
+      return { ...state, energyLevel: action.payload, energyCheckDate: today, energyLog: newEnergyLog };
+    }
+
+    case "UPDATE_DAILY_CHALLENGE": {
+      if (!state.dailyChallenge) return state;
+      return {
+        ...state,
+        dailyChallenge: { ...state.dailyChallenge, ...action.payload },
+      };
+    }
+
+    case "DISMISS_WEEKLY_REPORT":
+      return { ...state, lastWeeklyReport: getWeekStart(getTodayStr()) };
+
+    case "START_FOCUS": {
+      const sfXp = 3;
+      const newXp = state.xp + sfXp;
+      const microItem = { id: Date.now() + Math.random(), xp: sfXp, type: "focus_start" };
+      return {
+        ...state,
+        xp: newXp,
+        level: calcLevel(newXp),
+        microConfettiQueue: [...(state.microConfettiQueue || []), microItem],
+      };
+    }
 
     case "LOAD_STATE":
       return { ...initialState, ...action.payload };
@@ -505,7 +716,13 @@ function reducer(state, action) {
 
       const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
       const streakContinues = state.lastActiveDate === yesterday;
-      const newStreak = streakContinues ? (state.currentStreakDays || 0) + 1 : 1;
+      const compassionToday = state.compassionModeDate === today;
+      const compassionYesterday = state.compassionModeDate === yesterday;
+
+      // Compassion mode: skip inactivity streak break if compassion was yesterday and >=1 task completed
+      const skipStreakBreak = compassionYesterday && (state.completedToday >= 1);
+      const effectiveStreakContinues = streakContinues || skipStreakBreak;
+      const newStreak = effectiveStreakContinues ? (state.currentStreakDays || 0) + 1 : 1;
 
       const currentWeekStart = getWeekStart(today);
       const currentMonthKey = getMonthKey(today);
@@ -515,6 +732,22 @@ function reducer(state, action) {
       const monthReset = state.lastMonthReset !== currentMonthKey;
       const yearReset = state.lastYearReset !== currentYearKey;
 
+      // Save previous week stats before weekly reset
+      let previousWeekStats = state.previousWeekStats;
+      if (weekReset) {
+        const topDayHours = {};
+        (state.focusLog || []).forEach((entry) => {
+          topDayHours[entry.date] = (topDayHours[entry.date] || 0) + entry.minutes;
+        });
+        const topDay = Object.keys(topDayHours).sort((a, b) => topDayHours[b] - topDayHours[a])[0] || null;
+        previousWeekStats = {
+          tasks: state.completedThisWeek,
+          focusMinutes: state.focusMinutesThisWeek,
+          xp: state.xp,
+          topDay,
+        };
+      }
+
       // --- Check if user is currently on an absence (time tracking) ---
       let absences = [];
       try {
@@ -523,13 +756,13 @@ function reducer(state, action) {
       } catch {}
       const isOnAbsence = absences.some((a) => a.startDate <= today && a.endDate >= today);
 
-      // --- Overdue-task XP penalties (skipped during absence) ---
+      // --- Overdue-task XP penalties (skipped during absence and compassion mode) ---
       const penalizedTaskIds = [...(state.penalizedTaskIds || [])];
       const penaltyRewards = [];
       let totalPenalty = 0;
       let penaltyIdx = 0;
 
-      if (!isOnAbsence) {
+      if (!isOnAbsence && !compassionToday) {
         for (const task of state.tasks) {
           if (task.completed || !task.deadline) continue;
           const daysOverdue = getDaysOverdue(task.deadline);
@@ -550,8 +783,8 @@ function reducer(state, action) {
         }
       }
 
-      // --- Inactivity XP penalty (streak broken, not first-ever use, skipped during absence) ---
-      if (!isOnAbsence && !streakContinues && state.lastActiveDate !== null) {
+      // --- Inactivity XP penalty (streak broken, not first-ever use, skipped during absence and compassion) ---
+      if (!isOnAbsence && !effectiveStreakContinues && state.lastActiveDate !== null && !compassionToday) {
         const inactivityDays = state.lastActiveDate
           ? Math.max(1, Math.floor((new Date(today) - new Date(state.lastActiveDate)) / 86400000) - 1)
           : 0;
@@ -571,6 +804,16 @@ function reducer(state, action) {
 
       const newXp = Math.max(0, state.xp - totalPenalty);
 
+      // Prune focusLog to last 7 days
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+      const prunedFocusLog = (state.focusLog || []).filter((entry) => entry.date >= sevenDaysAgo);
+
+      // Pick daily challenge for today
+      const todayChallenge = getDailyChallengeForDate(today);
+      const dailyChallenge = (state.dailyChallenge && state.dailyChallenge.date === today)
+        ? state.dailyChallenge
+        : { date: today, challengeId: todayChallenge.id, completed: false, progress: 0 };
+
       return {
         ...state,
         completedToday: 0,
@@ -583,6 +826,12 @@ function reducer(state, action) {
         level: calcLevel(newXp),
         penalizedTaskIds,
         rewards: [...state.rewards, ...penaltyRewards],
+        energyLevel: null,
+        energyCheckDate: null,
+        compassionModeDate: null,
+        focusLog: prunedFocusLog,
+        dailyChallenge,
+        previousWeekStats,
         ...(weekReset ? {
           completedThisWeek: 0,
           focusMinutesThisWeek: 0,

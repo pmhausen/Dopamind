@@ -12,7 +12,7 @@
     "zeitmanagement": "Time Management",
     "time": "Time",
     "settings": "Settings",
-    "achievements": "Achievements",
+    "achievements": "Statistics",
     "admin": "Administration"
   },
   "home": {
@@ -25,6 +25,7 @@
     "noMails": "No new mails.",
     "openTasks": "Today's Tasks",
     "noTasks": "No open tasks.",
+    "moreTasksHidden": "more tasks not shown (open Task view to see all)",
     "quickAdd": "Quick add...",
     "dayPlan": "Day Plan",
     "dayPlanHint": "Suggested time blocks based on events and tasks.",
@@ -44,7 +45,40 @@
     "listMode": "List view",
     "removeBreak": "Remove break for today",
     "restoreBreak": "Restore break",
-    "breakMatched": "Matched with time tracking"
+    "breakMatched": "Matched with time tracking",
+    "energyCost": "Energy demand",
+    "energyCheckin": "How is your energy today?",
+    "energy": {
+      "low": "🔋 Low",
+      "normal": "🌀 Normal",
+      "high": "⚡ High"
+    },
+    "energyActive": {
+      "low": "Low energy mode – easier tasks first",
+      "normal": "Normal energy",
+      "high": "High energy – tackle the hard tasks!"
+    },
+    "dailyChallenge": "Daily Challenge",
+    "challenge": {
+      "complete_tasks": "Complete {target} tasks today",
+      "focus_minutes": "Focus for {target} minutes today"
+    },
+    "weeklyReport": "Weekly Report",
+    "weeklyTopDay": "Best day",
+    "compassionMode": "Not my best day",
+    "notMyDay": "Not my day",
+    "compassionActive": "Compassion on",
+    "weeklyReportDismiss": "Let's go this week!",
+    "pushDown": "Push down",
+    "pushConfirmQuestion": "Already done?",
+    "toggleFullDay": "Full day",
+    "workHoursOnly": "Work hours only",
+    "energyEdit": "Edit energy level",
+    "planView": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    }
   },
   "tasks": {
     "title": "Tasks",
@@ -109,7 +143,9 @@
     "addTaskCollapse": "▾ Collapse",
     "dropToAssign": "Drop task here",
     "subtaskScheduledTime": "Time",
-    "subtaskScheduledDate": "Date"
+    "subtaskScheduledDate": "Date",
+    "startNow": "Start now ▶",
+    "start": "Start"
   },
   "focus": {
     "title": "Focus Block",
@@ -119,7 +155,9 @@
     "resume": "Resume",
     "again": "Again",
     "done": "Done!",
-    "xpHint": "+{xp} XP on completion"
+    "xpHint": "+{xp} XP on completion",
+    "flowDetected": "You are in the Flow! 🌊 Double XP on completion.",
+    "pauseSuggestion": "Break suggestion:"
   },
   "stats": {
     "today": "Today",
@@ -127,7 +165,39 @@
     "open": "Open",
     "focusMin": "Focus",
     "estimatedMin": "Estimated",
-    "min": "min"
+    "min": "min",
+    "pageTitle": "Statistics",
+    "tabReport": "Brain Report",
+    "tabAchievements": "Achievements",
+    "tabXP": "XP History",
+    "tabStats": "Statistics",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "allTime": "All Time",
+    "previousWeek": "Last Week",
+    "exportJSON": "Export as JSON",
+    "exportPrint": "Print / PDF",
+    "focus": "Focus",
+    "totalFocus": "Total Focus Time",
+    "focusBlocksToday": "Focus blocks today",
+    "focusBlocksWeek": "Focus blocks this week",
+    "focusMinToday": "Focus minutes today",
+    "tasks": "Tasks",
+    "streak": "Streak",
+    "longestStreak": "Longest Streak",
+    "currentStreak": "Current Streak",
+    "streakStats": "Streak",
+    "level": "Level",
+    "xpProgress": "XP Progress",
+    "toNextLevel": "to next level",
+    "xpSources": "XP Sources",
+    "xpFromTasks": "Total XP",
+    "thisYear": "This Year",
+    "customPeriod": "Custom",
+    "energyHistory": "Energy History",
+    "noEnergyData": "No energy data for this period yet.",
+    "notMyDayTitle": "\"Not My Day\"",
+    "notMyDayLabel": "times activated"
   },
   "calendar": {
     "title": "Calendar",
@@ -346,7 +416,24 @@
     "timeWarningsCritical2": "Critical warning 2 (min)",
     "timeWarningsDesc": "Warnings when remaining free time becomes tight.",
     "timelineGridInterval": "Day plan grid interval",
-    "timelineGridIntervalDesc": "Time grid interval for the day plan view (15, 30, 60 minutes or list mode)."
+    "timelineGridIntervalDesc": "Time grid interval for the day plan view (15, 30, 60 minutes or list mode).",
+    "compassionModeEnabled": "Compassion Mode",
+    "microConfettiEnabled": "Micro Confetti",
+    "variableRewardsEnabled": "Variable Rewards",
+    "flowShieldEnabled": "Flow Shield",
+    "countdownStartEnabled": "Countdown Start",
+    "energyCheckinEnabled": "Energy Check-in",
+    "dailyChallengeEnabled": "Daily Challenge",
+    "pauseSuggestionsEnabled": "Pause Suggestions",
+    "weeklyReportEnabled": "Weekly Report",
+    "hideParentWithSubtasks": "Hide parent tasks when subtasks are present",
+    "taskSchedulingRound": "Earliest task scheduling (rounding)",
+    "taskSchedulingRoundDesc": "How early can a newly created task be suggested in the day plan?",
+    "taskSchedulingRound_halfHour": "Half hour (xx:00 / xx:30)",
+    "taskSchedulingRound_fullHour": "Full hour (xx:00)",
+    "taskSchedulingRound_custom": "Minutes after creation",
+    "taskSchedulingCustomMinutes": "Minutes after creation",
+    "timeline": "Day Planning"
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",
@@ -361,7 +448,11 @@
     "dailyBonus": "Daily Bonus! +{xp} XP",
     "deadlineBonus": "On time! +15 XP Bonus",
     "overduePenalty": "⚠ Overdue task: -{xp} XP ({daysOverdue} days late)",
-    "inactivityPenalty": "😴 Inactivity: -{xp} XP ({days} days inactive)"
+    "inactivityPenalty": "😴 Inactivity: -{xp} XP ({days} days inactive)",
+    "jackpot": "🎰 Jackpot! +{xp} XP bonus!",
+    "variableMedium": "🎁 Bonus! +{xp} XP",
+    "variableSmall": "✨ +{xp} XP bonus",
+    "flowSession": "🌊 Flow Session! Double XP earned!"
   },
   "achievements": {
     "title": "Achievements",
@@ -534,5 +625,9 @@
     "dueTomorrow": "Due tomorrow",
     "viewAll": "View all tasks →",
     "scheduledConflict": "⚠ \"{task}\" conflicts with event at {time}"
+  },
+  "countdown": {
+    "title": "Get ready...",
+    "go": "GO!"
   }
 }

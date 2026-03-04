@@ -1,17 +1,48 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
+import { useSettings } from "../context/SettingsContext";
 
 const PRESETS = [15, 25, 45];
+
+const PAUSE_ACTIVITIES = [
+  "🚶 Kurz spazieren gehen",
+  "💧 Ein Glas Wasser trinken",
+  "🧘 2 Minuten tief atmen",
+  "👁 Augen 20 Sekunden entspannen",
+  "🤸 Kurz strecken",
+  "☀️ Ans Fenster treten",
+  "🎵 Ein Lied genießen",
+  "🍎 Gesunden Snack holen",
+  "📝 Gedanken notieren",
+  "😄 Jemanden anlächeln",
+  "🌿 Pflanze gießen",
+  "🧹 Schreibtisch aufräumen",
+  "📖 Eine Seite lesen",
+  "🎨 Kurz kritzeln",
+  "🐾 Haustier streicheln",
+  "☕ Tee oder Kaffee machen",
+  "💭 Tagträumen",
+  "👐 Hände waschen",
+  "🧠 Wortspiel denken",
+  "🎯 Kurz meditieren",
+];
 
 export default function FocusTimer() {
   const { dispatch } = useApp();
   const { t } = useI18n();
+  const { settings } = useSettings();
   const [duration, setDuration] = useState(25);
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [flowDetected, setFlowDetected] = useState(false);
+  const [pauseSuggestion, setPauseSuggestion] = useState(null);
   const intervalRef = useRef(null);
+  const startedAtRef = useRef(null);
+
+  const flowShieldEnabled = settings.gamification?.flowShieldEnabled !== false;
+  const pauseSuggestionsEnabled = settings.gamification?.pauseSuggestionsEnabled !== false;
 
   const totalSeconds = duration * 60;
   const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
@@ -22,8 +53,13 @@ export default function FocusTimer() {
     setRunning(false);
     setCompleted(true);
     clearInterval(intervalRef.current);
-    dispatch({ type: "ADD_FOCUS_MINUTES", payload: duration });
-  }, [dispatch, duration]);
+    dispatch({ type: "ADD_FOCUS_MINUTES", payload: duration, flow: flowDetected && flowShieldEnabled });
+    if (pauseSuggestionsEnabled) {
+      const idx = Math.floor(Math.random() * PAUSE_ACTIVITIES.length);
+      setPauseSuggestion(PAUSE_ACTIVITIES[idx]);
+    }
+    setFlowDetected(false);
+  }, [dispatch, duration, flowDetected, pauseSuggestionsEnabled]);
 
   useEffect(() => {
     if (running && secondsLeft > 0) {
@@ -36,24 +72,41 @@ export default function FocusTimer() {
     }
   }, [running, secondsLeft, handleComplete]);
 
+  // Flow detection: elapsed >= 45 minutes
+  useEffect(() => {
+    if (!running || !flowShieldEnabled) return;
+    const elapsed = totalSeconds - secondsLeft;
+    if (elapsed >= 45 * 60 && !flowDetected) {
+      setFlowDetected(true);
+      dispatch({ type: "SET_FLOW_MODE", payload: true });
+    }
+  }, [running, secondsLeft, totalSeconds, flowDetected, flowShieldEnabled, dispatch]);
+
   const handleStart = () => {
     if (completed) {
       setCompleted(false);
+      setPauseSuggestion(null);
       setSecondsLeft(duration * 60);
     }
+    startedAtRef.current = Date.now();
+    setFlowDetected(false);
     setRunning(true);
   };
 
   const handlePause = () => {
     setRunning(false);
     clearInterval(intervalRef.current);
+    dispatch({ type: "SET_FLOW_MODE", payload: false });
   };
 
   const handleReset = () => {
     setRunning(false);
     setCompleted(false);
+    setPauseSuggestion(null);
+    setFlowDetected(false);
     clearInterval(intervalRef.current);
     setSecondsLeft(duration * 60);
+    dispatch({ type: "SET_FLOW_MODE", payload: false });
   };
 
   const handlePreset = (mins) => {
@@ -61,6 +114,8 @@ export default function FocusTimer() {
     setDuration(mins);
     setSecondsLeft(mins * 60);
     setCompleted(false);
+    setPauseSuggestion(null);
+    setFlowDetected(false);
   };
 
   const radius = 58;
@@ -78,6 +133,12 @@ export default function FocusTimer() {
       <h2 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
         {t("focus.title")}
       </h2>
+
+      {flowDetected && flowShieldEnabled && (
+        <div className="mb-3 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium flex items-center gap-2 animate-fade-in">
+          🌊 {t("focus.flowDetected")}
+        </div>
+      )}
 
       <div className="flex flex-col items-center">
         <div className="relative w-40 h-40 mb-4">
@@ -140,7 +201,15 @@ export default function FocusTimer() {
         <p className="text-[10px] text-muted-light dark:text-muted-dark mt-3">
           {t("focus.xpHint", { xp: duration * 2 })}
         </p>
+
+        {pauseSuggestion && pauseSuggestionsEnabled && completed && (
+          <div className="mt-3 px-3 py-2 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs text-center animate-fade-in">
+            <p className="font-medium mb-0.5">{t("focus.pauseSuggestion")}</p>
+            <p>{pauseSuggestion}</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

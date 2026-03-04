@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
 import { useMail } from "../context/MailContext";
+import { useSettings } from "../context/SettingsContext";
+import CountdownStart from "../components/CountdownStart";
 import { Mail, Calendar, Plus, ChevronDown, ChevronRight, CheckSquare, Square, Trash2, AlertCircle, Pencil, RotateCcw, Check, X, Tag, Clock, Folder, CalendarDays, Settings2, GripVertical, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 const PRIORITY_CONFIG = {
@@ -47,13 +49,14 @@ function isTaskOverdue(task) {
   return !!(task.deadline && !task.completed && new Date(task.deadline + "T23:59:59") < new Date());
 }
 
-function SubtaskItem({ subtask, taskId, t }) {
+function SubtaskItem({ subtask, taskId, t, countdownStartEnabled }) {
   const { dispatch } = useApp();
   const [editingMin, setEditingMin] = useState(false);
   const [minVal, setMinVal] = useState(subtask.estimatedMinutes || 0);
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [schedTime, setSchedTime] = useState(subtask.scheduledTime || "");
   const [schedDate, setSchedDate] = useState(subtask.scheduledDate || "");
+  const [showCountdown, setShowCountdown] = useState(false);
   const saveMinutes = () => {
     dispatch({ type: "UPDATE_SUBTASK", payload: { taskId, subtaskId: subtask.id, estimatedMinutes: minVal } });
     setEditingMin(false);
@@ -71,6 +74,15 @@ function SubtaskItem({ subtask, taskId, t }) {
         >
           {subtask.completed ? <CheckSquare className="w-4 h-4 text-success" /> : <Square className="w-4 h-4" />}
         </button>
+        {!subtask.completed && countdownStartEnabled && (
+          <button
+            onClick={() => setShowCountdown(true)}
+            className="w-4 h-4 flex-shrink-0 rounded text-muted-light dark:text-muted-dark hover:text-accent hover:bg-accent/10 transition-all flex items-center justify-center text-[10px]"
+            title={t("tasks.startNow")}
+          >
+            ▶
+          </button>
+        )}
         <span className={`text-xs flex-1 ${subtask.completed ? "line-through text-muted-light dark:text-muted-dark" : ""}`}>
           {subtask.text}
         </span>
@@ -145,11 +157,17 @@ function SubtaskItem({ subtask, taskId, t }) {
           </button>
         </div>
       )}
+      {showCountdown && (
+        <CountdownStart
+          estimatedMinutes={subtask.estimatedMinutes || 25}
+          onClose={() => setShowCountdown(false)}
+        />
+      )}
     </div>
   );
 }
 
-function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
+function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownStartEnabled }) {
   const { dispatch } = useApp();
   const { untagMail } = useMail();
   const priority = PRIORITY_CONFIG[task.priority];
@@ -165,6 +183,7 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
   const [editCategory, setEditCategory] = useState(task.category || "");
   const [editTags, setEditTags] = useState(task.tags || []);
   const [editTagInput, setEditTagInput] = useState("");
+  const [showCountdown, setShowCountdown] = useState(false);
 
   const catObj = categories.find((c) => c.id === task.category);
 
@@ -422,6 +441,15 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+          {!task.completed && countdownStartEnabled && (
+            <button
+              onClick={() => setShowCountdown(true)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
+              title={t("tasks.startNow")}
+            >
+              <span className="text-xs font-bold">▶</span>
+            </button>
+          )}
           <button
             onClick={() => { setEditText(task.text); setEditPriority(task.priority); setEditMinutes(task.estimatedMinutes); setEditDeadline(task.deadline || ""); setEditScheduledTime(task.scheduledTime || ""); setEditScheduledDate(task.scheduledDate || ""); setEditCategory(task.category || ""); setEditTags(task.tags || []); setEditing(true); }}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
@@ -461,7 +489,7 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
             </Link>
           )}
           {subtasks.map((s) => (
-            <SubtaskItem key={s.id} subtask={s} taskId={task.id} t={t} />
+            <SubtaskItem key={s.id} subtask={s} taskId={task.id} t={t} countdownStartEnabled={countdownStartEnabled} />
           ))}
           {!task.completed && (
             <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pl-8 mt-1">
@@ -477,6 +505,12 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
           )}
         </div>
       )}
+      {showCountdown && (
+        <CountdownStart
+          estimatedMinutes={task.estimatedMinutes || 25}
+          onClose={() => setShowCountdown(false)}
+        />
+      )}
     </div>
   );
 }
@@ -484,6 +518,8 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories }) {
 export default function TasksPage() {
   const { t } = useI18n();
   const { state, dispatch } = useApp();
+  const { settings } = useSettings();
+  const countdownStartEnabled = settings.gamification?.countdownStartEnabled !== false;
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("medium");
   const [minutes, setMinutes] = useState(25);
@@ -971,6 +1007,7 @@ export default function TasksPage() {
                   categories={categories}
                   onTagClick={(tag) => setFilterTag((prev) => (prev === tag ? null : tag))}
                   onCategoryClick={(cat) => setFilterCategory((prev) => (prev === cat ? null : cat))}
+                  countdownStartEnabled={countdownStartEnabled}
                 />
               ))}
             </div>
