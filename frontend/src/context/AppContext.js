@@ -393,7 +393,7 @@ function reducer(state, action) {
       const wasCompleted = targetSub ? targetSub.completed : true;
       const newTasks = state.tasks.map((t) =>
         t.id === tId
-          ? { ...t, subtasks: (t.subtasks || []).map((s) => s.id === subtaskId ? { ...s, completed: !s.completed } : s) }
+          ? { ...t, subtasks: (t.subtasks || []).map((s) => s.id === subtaskId ? { ...s, completed: !s.completed, completedAt: !s.completed ? new Date().toISOString() : null } : s) }
           : t
       );
       // Add micro confetti if completing (not unchecking)

@@ -1036,9 +1036,9 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
       } else {
         items.push({ type: "task", id: task.id, parentId: null, text: task.text, estimatedMinutes: task.estimatedMinutes || 30, scheduledTime: task.scheduledTime, priority: task.priority });
         for (const sub of incompleteSubs) {
-          // Show subtask if it has its own scheduledTime or was explicitly scheduled for this day
-          if (sub.scheduledDate === date || (!sub.scheduledDate && sub.scheduledTime)) {
-            items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || 30, scheduledTime: sub.scheduledTime, priority: task.priority });
+          // Show subtask if it belongs to this day (no explicit scheduledDate or scheduled for this date)
+          if (!sub.scheduledDate || sub.scheduledDate === date) {
+            items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || 30, scheduledTime: sub.scheduledTime || task.scheduledTime, priority: task.priority });
           }
         }
       }
@@ -1139,13 +1139,15 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
           const items = getItemsForDay(date);
           const events = getEventsForDate(date).filter((ev) => !ev.allDay && ev.start);
           const isDragTarget = dragOver === date;
-          // Safe offset for unscheduled items stacked at the top
-          let unscheduledOffsetPx = 0;
+          // Place unscheduled items starting at workStart (consistent with day view)
+          let unscheduledNextMin = workStart;
+          // Account for scheduled items that might overlap with workStart area
           items.forEach((item) => {
             if (!item.scheduledTime) return;
             const [sh, sm] = item.scheduledTime.split(":").map(Number);
-            if ((sh * 60 + sm - effectiveStart) * PX_PER_MIN <= 0) {
-              unscheduledOffsetPx = Math.max(unscheduledOffsetPx, Math.max(14, (item.estimatedMinutes || 30) * PX_PER_MIN) + 1);
+            const itemEnd = sh * 60 + sm + (item.estimatedMinutes || 30);
+            if (sh * 60 + sm <= unscheduledNextMin && itemEnd > unscheduledNextMin) {
+              unscheduledNextMin = itemEnd;
             }
           });
 
@@ -1262,8 +1264,8 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
                     const [h, m] = item.scheduledTime.split(":").map(Number);
                     topPx = (h * 60 + m - effectiveStart) * PX_PER_MIN;
                   } else {
-                    topPx = unscheduledOffsetPx;
-                    unscheduledOffsetPx += heightPx + 1;
+                    topPx = (unscheduledNextMin - effectiveStart) * PX_PER_MIN;
+                    unscheduledNextMin += dur;
                   }
                   // Clip to canvas bounds (Req 2)
                   if (topPx + heightPx < 0 || topPx >= totalHeight) return null;
