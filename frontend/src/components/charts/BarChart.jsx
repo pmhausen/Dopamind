@@ -1,4 +1,4 @@
-// BarChart – CSS/Tailwind-based, no external library
+// BarChart - CSS/Tailwind-based, no external library
 // Props: data: [{ label, value, color? }], maxValue?, height?, horizontal?
 export function BarChart({ data, maxValue, height = 80, horizontal = false }) {
   if (!data || data.length === 0) return null;
@@ -44,7 +44,7 @@ export function BarChart({ data, maxValue, height = 80, horizontal = false }) {
   );
 }
 
-// TrendIndicator – inline arrow + value
+// TrendIndicator - inline arrow + value
 // Props: value (number), suffix?
 export function TrendIndicator({ value, suffix = "%" }) {
   if (value === null || value === undefined) {
@@ -59,7 +59,7 @@ export function TrendIndicator({ value, suffix = "%" }) {
   return <span className="text-gray-400 text-xs">→0{suffix}</span>;
 }
 
-// MiniSparkline – SVG polyline for inline trends
+// MiniSparkline - SVG polyline for inline trends
 // Props: data: [number], color?, height?
 export function MiniSparkline({ data, color = "#6366f1", height = 24 }) {
   if (!data || data.length < 2) return null;
@@ -93,8 +93,8 @@ export function MiniSparkline({ data, color = "#6366f1", height = 24 }) {
   );
 }
 
-// HeatmapGrid – 7-column grid for weekday productivity heatmap
-// Props: data: [number] (7 values Mon–Sun), labels: [string], colorScale?
+// HeatmapGrid - 7-column grid for weekday productivity heatmap
+// Props: data: [number] (7 values Mon-Sun), labels: [string], colorScale?
 export function HeatmapGrid({ data, labels }) {
   if (!data || data.length !== 7) return null;
   const max = Math.max(...data, 1);

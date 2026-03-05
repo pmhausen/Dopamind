@@ -296,7 +296,8 @@
     "xpFromAchievements": "Achievements & Bonuses",
     "xpFromChallenges": "Daily Challenges",
     "xpFromFocusStart": "Focus Start",
-    "xpFromStreak": "Streak Bonus"
+    "xpFromStreak": "Streak Bonus",
+    "avgXpPerDay": "Avg XP/day"
   },
   "calendar": {
     "title": "Calendar",

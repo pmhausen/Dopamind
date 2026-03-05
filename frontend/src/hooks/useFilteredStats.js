@@ -185,7 +185,9 @@ export function useFilteredStats(state, period, customFrom, customTo) {
     } else if (period === "year") {
       periodLabel = today.slice(0, 4);
     } else if (period === "all") {
-      periodLabel = "Gesamt";
+      periodLabel = periodStart !== today
+        ? `${formatShortDate(periodStart)} – ${formatShortDate(today)}`
+        : formatShortDate(today);
     } else {
       periodLabel = `${formatShortDate(periodStart)} – ${formatShortDate(periodEnd)}`;
     }

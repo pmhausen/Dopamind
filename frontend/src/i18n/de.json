@@ -222,7 +222,8 @@
     "xpFromAchievements": "Erfolge & Boni",
     "xpFromChallenges": "Tägliche Challenges",
     "xpFromFocusStart": "Fokus-Start",
-    "xpFromStreak": "Streak-Bonus"
+    "xpFromStreak": "Streak-Bonus",
+    "avgXpPerDay": "Ø XP/Tag"
   },
   "calendar": {
     "title": "Kalender",

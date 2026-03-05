@@ -169,7 +169,7 @@ function EnergyHistoryChart({ t, energyLog, period, customFrom, customTo }) {
       {sorted.map((entry, i) => {
         const cfg = ENERGY_COLORS[entry.level] || ENERGY_COLORS.normal;
         return (
-          <div key={`${entry.date}-${i}`} className="flex items-center gap-2">
+          <div key={entry.changedAt || `${entry.date}-${i}`} className="flex items-center gap-2">
             <span className="text-[10px] text-muted-light dark:text-muted-dark w-20 shrink-0">{entry.date}</span>
             <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
               <div className={`h-full rounded-full ${cfg.bg}`} style={{ width: "100%" }} />
@@ -451,7 +451,7 @@ function XpHistoryTab({ t, state }) {
         <div className="space-y-2">
           {avgXpPerDay > 0 && (
             <div className="flex justify-between text-sm mb-3">
-              <span className="text-muted-light dark:text-muted-dark">Ø XP/Tag</span>
+              <span className="text-muted-light dark:text-muted-dark">{t("stats.avgXpPerDay")}</span>
               <span className="font-medium">{avgXpPerDay} XP</span>
             </div>
           )}
