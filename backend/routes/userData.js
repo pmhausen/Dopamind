@@ -17,7 +17,9 @@ function validateData(type, data) {
 
   if (type === "settings") {
     const allowed = ["imap", "smtp", "caldav", "general", "notifications", "theme",
-      "language", "estimation", "scheduling", "gamification", "focusTimer", "ui"];
+      "language", "estimation", "scheduling", "gamification", "focusTimer", "ui",
+      "assistanceWindow", "breakPattern", "workSchedule", "features", "timeWarnings",
+      "timeline", "timezone", "mail"];
     const keys = Object.keys(data);
     for (const key of keys) {
       if (!allowed.includes(key)) {
@@ -98,6 +100,7 @@ router.put("/:type", async (req, res) => {
       return res.status(400).json({ error: "Invalid data type" });
     }
 
+    const { data } = req.body;
     if (data === undefined || data === null) {
       return res.status(400).json({ error: "Data is required" });
     }

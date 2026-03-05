@@ -166,7 +166,7 @@ router.patch("/:id", async (req, res) => {
   try {
     const pool = getPool();
     const { rows: existing } = await pool.query(
-      "SELECT id FROM tasks WHERE id = $1 AND user_id = $2",
+      "SELECT id, updated_at FROM tasks WHERE id = $1 AND user_id = $2",
       [req.params.id, req.user.id]
     );
     if (existing.length === 0) return res.status(404).json({ error: "Task not found" });
@@ -206,6 +206,22 @@ router.patch("/:id", async (req, res) => {
     if (setClauses.length === 0) return res.status(400).json({ error: "No fields to update" });
 
     setClauses.push(`updated_at = NOW()`);
+
+    // Optional optimistic locking: if client sends updatedAt, only update if it matches
+    if (req.body.updatedAt !== undefined) {
+      const optimisticValues = [...values, req.params.id, req.user.id, req.body.updatedAt];
+      const { rows, rowCount } = await pool.query(
+        `UPDATE tasks SET ${setClauses.join(", ")} WHERE id = $${idx} AND user_id = $${idx + 1} AND updated_at = $${idx + 2} RETURNING *`,
+        optimisticValues
+      );
+      if (rowCount === 0) return res.status(409).json({ error: "Conflict: task was modified by another session" });
+      const { rows: subs } = await pool.query(
+        "SELECT * FROM subtasks WHERE task_id = $1 ORDER BY sort_order ASC",
+        [rows[0].id]
+      );
+      return res.json(taskRow(rows[0], subs));
+    }
+
     values.push(req.params.id, req.user.id);
 
     const { rows } = await pool.query(
@@ -257,7 +273,8 @@ router.post("/:id/subtasks", async (req, res) => {
     if (taskRows.length === 0) return res.status(404).json({ error: "Task not found" });
 
     const metadata = extractMetadata(req.body);
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    // Accept a pre-generated client ID if provided (allows frontend/backend ID consistency)
+    const id = req.body.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const { rows } = await pool.query(
       `INSERT INTO subtasks (id, task_id, text, estimated_minutes, sort_order, metadata)
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
