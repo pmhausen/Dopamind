@@ -79,14 +79,13 @@ function migrateSettings(s) {
     s.workSchedule = {
       start: s.assistanceWindow.start,
       end: s.assistanceWindow.end,
-      breakMinutes: 0,
       workDays: s.assistanceWindow.activeDays,
     };
   } else if (s.assistanceWindow && s.workSchedule) {
     s.workSchedule.start = s.assistanceWindow.start;
     s.workSchedule.end = s.assistanceWindow.end;
     s.workSchedule.workDays = s.assistanceWindow.activeDays;
-    s.workSchedule.breakMinutes = 0;
+    delete s.workSchedule.breakMinutes;
   }
   // Backward-compat: keep timeTrackingEnabled alias
   if (s.features) {

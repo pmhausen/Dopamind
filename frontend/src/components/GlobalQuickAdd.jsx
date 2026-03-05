@@ -183,23 +183,8 @@ export default function GlobalQuickAdd() {
     }
   };
 
-  // Global keydown: Enter opens bubble (when no input focused)
-  useEffect(() => {
-    const handler = (e) => {
-      if (open) return;
-      if (e.key !== "Enter") return;
-      const tag = document.activeElement?.tagName?.toLowerCase();
-      const editable = document.activeElement?.isContentEditable;
-      if (tag === "input" || tag === "textarea" || tag === "select" || editable) return;
-      if (document.querySelector("[role='dialog']") || document.querySelector(".modal-card")) return;
-      e.preventDefault();
-      // Open with default task mode via context
-      // GlobalQuickAdd relies on QuickAddContext for open state;
-      // pressing Enter when closed calls openQuickAdd from context — handled in App.js via a side-effect
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [open]);
+  // Global keydown: Enter is handled by QuickAddEnterListener (mounted in AppLayout)
+  // to open the bubble when no input is focused.
 
   // 3-finger tap for mobile — handled via EnterKeyListener below
 
