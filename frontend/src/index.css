@@ -41,6 +41,12 @@
     @apply shadow-sm hover:shadow-md transition-shadow duration-200;
   }
 
+  .modal-card {
+    @apply bg-card-light border border-gray-200/50 rounded-2xl;
+    @apply dark:bg-card-dark dark:border-white/10;
+    @apply shadow-xl;
+  }
+
   .btn-primary {
     @apply px-5 py-2.5 bg-accent text-white font-medium rounded-xl;
     @apply hover:bg-accent-soft active:scale-[0.98] transition-all duration-150;

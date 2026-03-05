@@ -33,8 +33,8 @@ export default function CountdownStart({ taskId, taskText, estimatedMinutes = 25
   const offset = circ - ((5 - count) / 5) * circ;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="glass-card p-8 flex flex-col items-center gap-4 min-w-[12rem]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="modal-card p-8 flex flex-col items-center gap-4 min-w-[12rem]">
         <p className="text-sm font-medium text-muted-light dark:text-muted-dark">
           {t("countdown.title")}
         </p>

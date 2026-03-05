@@ -253,8 +253,8 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
 
   if (editing) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setEditing(false); }}>
-        <div className="glass-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[85vh] overflow-y-auto animate-fade-in">
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/60" onClick={(e) => { if (e.target === e.currentTarget) setEditing(false); }}>
+        <div className="modal-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[90vh] overflow-y-auto animate-fade-in">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold">{t("common.edit")}</h3>
             <button onClick={() => setEditing(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10">
@@ -866,8 +866,8 @@ export default function TasksPage() {
           <div className="glass-card">
             {/* Collapsible Add form */}
             {addFormExpanded && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setAddFormExpanded(false); }}>
-                <div className="glass-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[85vh] overflow-y-auto animate-fade-in">
+              <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/60" onClick={(e) => { if (e.target === e.currentTarget) setAddFormExpanded(false); }}>
+                <div className="modal-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[90vh] overflow-y-auto animate-fade-in">
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-semibold">{t("tasks.createTask")}</h3>
                     <button onClick={() => setAddFormExpanded(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10">

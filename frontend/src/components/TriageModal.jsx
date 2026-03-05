@@ -44,8 +44,8 @@ export default function TriageModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="glass-card p-6 max-w-lg w-full mx-4 space-y-5 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/60">
+      <div className="modal-card p-6 max-w-lg w-full mx-4 space-y-5 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold">{t("triage.welcomeBack")}</h3>

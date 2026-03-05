@@ -530,10 +530,21 @@
     "workHoursOnly": "Nur Assistenzfenster",
     "energyEdit": "Energie bearbeiten",
     "planView": {
-      "day": "Tag",
+      "block": "Blöcke",
+      "timeline": "Timeline",
       "week": "Woche",
       "month": "Monat"
-    }
+    },
+    "blockView": {
+      "morning": "Vormittag",
+      "afternoon": "Nachmittag",
+      "evening": "Abend",
+      "noTasks": "Keine Aufgaben in diesem Block",
+      "events": "Termine"
+    },
+    "nextStep": "Nächster Schritt",
+    "nextStepEmpty": "Alles erledigt – gönn dir eine Pause!",
+    "nextStepStart": "Jetzt starten"
   },
   "rewards": {
     "levelUp": "Level {level} erreicht – {title}!",

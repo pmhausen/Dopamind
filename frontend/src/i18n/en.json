@@ -76,10 +76,21 @@
     "workHoursOnly": "Assistance window only",
     "energyEdit": "Edit energy level",
     "planView": {
-      "day": "Day",
+      "block": "Blocks",
+      "timeline": "Timeline",
       "week": "Week",
       "month": "Month"
-    }
+    },
+    "blockView": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "noTasks": "No tasks in this block",
+      "events": "Events"
+    },
+    "nextStep": "Next Step",
+    "nextStepEmpty": "All done — take a break!",
+    "nextStepStart": "Start now"
   },
   "tasks": {
     "title": "Tasks",

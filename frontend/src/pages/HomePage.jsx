@@ -162,6 +162,204 @@ function getTimeRangeBounds(settings, workStart, workEnd) {
   };
 }
 
+// --- Block Day View: ADHD-friendly block-based day view ---
+const ENERGY_BADGE = { low: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", medium: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300", high: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" };
+const PRIORITY_BADGE = { high: "border-l-danger", medium: "border-l-warn", low: "border-l-emerald-400" };
+
+function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onCompleteTask, onToggleSubtask, onStartTask, countdownStartEnabled, isTaskOverdue }) {
+  const workStart = parseTimeToMin(settings.workSchedule?.start || "08:00");
+  const workEnd = parseTimeToMin(settings.workSchedule?.end || "18:00");
+
+  // Block boundaries
+  const blocks = [
+    { id: "morning", start: workStart, end: 12 * 60 },
+    { id: "afternoon", start: 12 * 60, end: 17 * 60 },
+    { id: "evening", start: 17 * 60, end: Math.max(workEnd, 22 * 60) },
+  ];
+
+  // Current time block
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const currentBlockId = isToday ? (blocks.find((b) => nowMin >= b.start && nowMin < b.end)?.id || "morning") : null;
+
+  // Assign tasks to blocks
+  const getTaskBlock = (task) => {
+    if (task.timeOfDay === "morning") return "morning";
+    if (task.timeOfDay === "afternoon") return "afternoon";
+    if (task.timeOfDay === "evening") return "evening";
+    if (task.scheduledTime) {
+      const [h] = task.scheduledTime.split(":").map(Number);
+      const min = h * 60;
+      if (min < 12 * 60) return "morning";
+      if (min < 17 * 60) return "afternoon";
+      return "evening";
+    }
+    return currentBlockId || "morning";
+  };
+
+  // Assign events to blocks
+  const getEventBlock = (ev) => {
+    if (!ev.start || ev.allDay) return null;
+    const startDate = new Date(ev.start);
+    const min = startDate.getHours() * 60 + startDate.getMinutes();
+    if (min < 12 * 60) return "morning";
+    if (min < 17 * 60) return "afternoon";
+    return "evening";
+  };
+
+  // Sort within block: overdue first, then by priority, energy match
+  const sortTasks = (taskList) => [...taskList].sort((a, b) => {
+    const aOD = isTaskOverdue(a) ? 0 : 1;
+    const bOD = isTaskOverdue(b) ? 0 : 1;
+    if (aOD !== bOD) return aOD - bOD;
+    const p = { high: 0, medium: 1, low: 2 };
+    if (energyLevel === "low") return (p[b.priority] ?? 1) - (p[a.priority] ?? 1);
+    return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
+  });
+
+  // "Next Step" logic: find best task for right now
+  const allUncompleted = tasks.filter((tk) => !tk.completed);
+  const nextStep = (() => {
+    if (!isToday || allUncompleted.length === 0) return null;
+    // Prefer task in current block that matches energy
+    const currentBlockTasks = allUncompleted.filter((tk) => getTaskBlock(tk) === currentBlockId);
+    if (energyLevel) {
+      const matched = currentBlockTasks.find((tk) => (tk.energyCost || "medium") === energyLevel);
+      if (matched) return matched;
+    }
+    if (currentBlockTasks.length > 0) return sortTasks(currentBlockTasks)[0];
+    // Fallback: highest priority uncompleted
+    return sortTasks(allUncompleted)[0];
+  })();
+
+  const BLOCK_COLORS = {
+    morning: "bg-amber-50/50 dark:bg-amber-900/10 border-amber-200/50 dark:border-amber-700/30",
+    afternoon: "bg-sky-50/50 dark:bg-sky-900/10 border-sky-200/50 dark:border-sky-700/30",
+    evening: "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200/50 dark:border-indigo-700/30",
+  };
+  const BLOCK_HEADER = {
+    morning: "text-amber-700 dark:text-amber-300",
+    afternoon: "text-sky-700 dark:text-sky-300",
+    evening: "text-indigo-700 dark:text-indigo-300",
+  };
+
+  const fmtTime = (d) => {
+    const date = new Date(d);
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Next Step highlight */}
+      {isToday && (
+        <div className="rounded-xl bg-accent/5 border border-accent/20 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-2">{t("home.nextStep")}</p>
+          {nextStep ? (
+            <div className="flex items-center gap-3">
+              <button onClick={() => onCompleteTask(nextStep.id)} className="w-6 h-6 rounded-full border-2 border-accent/40 hover:bg-accent/10 flex-shrink-0 transition-colors" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{nextStep.text}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {nextStep.energyCost && <span className={`text-[10px] px-1.5 py-0.5 rounded ${ENERGY_BADGE[nextStep.energyCost]}`}>{t(`tasks.energy.${nextStep.energyCost}`)}</span>}
+                  <span className="text-[10px] text-muted-light dark:text-muted-dark">~{nextStep.estimatedMinutes || 25}{t("common.min")}</span>
+                  {nextStep.deadline && <span className={`text-[10px] ${isTaskOverdue(nextStep) ? "text-danger font-medium" : "text-muted-light dark:text-muted-dark"}`}>{t("tasks.hardDeadline")}: {new Date(nextStep.deadline + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}</span>}
+                </div>
+              </div>
+              {countdownStartEnabled && onStartTask && (
+                <button onClick={() => onStartTask(nextStep)} className="btn-primary text-xs py-1.5 px-3 flex-shrink-0">{t("home.nextStepStart")}</button>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-light dark:text-muted-dark">{t("home.nextStepEmpty")}</p>
+          )}
+        </div>
+      )}
+
+      {/* Time blocks */}
+      {blocks.map((block) => {
+        const blockTasks = sortTasks(tasks.filter((tk) => !tk.completed && getTaskBlock(tk) === block.id));
+        const completedTasks = tasks.filter((tk) => tk.completed && getTaskBlock(tk) === block.id);
+        const blockEvents = events.filter((ev) => !ev.allDay && getEventBlock(ev) === block.id);
+        const isCurrent = currentBlockId === block.id;
+        const isPastBlock = isToday && nowMin >= block.end;
+
+        return (
+          <div key={block.id} className={`rounded-xl border p-3 transition-all ${BLOCK_COLORS[block.id]} ${isCurrent ? "ring-1 ring-accent/30" : ""} ${isPastBlock ? "opacity-60" : ""}`}>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className={`text-xs font-bold uppercase tracking-wider ${BLOCK_HEADER[block.id]}`}>
+                {t(`home.blockView.${block.id}`)}
+                {isCurrent && <span className="ml-1.5 text-[9px] font-normal text-accent">●</span>}
+              </h4>
+              <span className="text-[10px] text-muted-light dark:text-muted-dark">
+                {String(Math.floor(block.start / 60)).padStart(2, "0")}:00 – {String(Math.floor(block.end / 60)).padStart(2, "0")}:00
+              </span>
+            </div>
+
+            {/* Calendar events */}
+            {blockEvents.length > 0 && (
+              <div className="space-y-1 mb-2">
+                {blockEvents.map((ev, i) => (
+                  <div key={i} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-accent/5 text-xs">
+                    <Calendar className="w-3 h-3 text-accent flex-shrink-0" />
+                    <span className="font-mono text-accent text-[10px]">{ev.start ? fmtTime(ev.start) : ""}</span>
+                    <span className="truncate">{ev.summary || ev.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Tasks */}
+            {blockTasks.length === 0 && blockEvents.length === 0 && (
+              <p className="text-xs text-muted-light dark:text-muted-dark py-2">{t("home.blockView.noTasks")}</p>
+            )}
+            <div className="space-y-1">
+              {blockTasks.map((task) => (
+                <div key={task.id} className={`flex items-start gap-2 px-2 py-1.5 rounded-lg bg-white/60 dark:bg-white/5 border-l-2 ${PRIORITY_BADGE[task.priority] || "border-l-gray-300"}`}>
+                  <button onClick={() => onCompleteTask(task.id)} className="w-4 h-4 mt-0.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-accent/10 flex-shrink-0 transition-colors" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{task.text}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      {task.energyCost && <span className={`text-[9px] px-1 py-0.5 rounded ${ENERGY_BADGE[task.energyCost]}`}>{t(`tasks.energy.${task.energyCost}`)}</span>}
+                      <span className="text-[9px] text-muted-light dark:text-muted-dark">~{task.estimatedMinutes || 25}{t("common.min")}</span>
+                      {task.scheduledTime && <span className="text-[9px] text-accent font-mono">{task.scheduledTime}</span>}
+                      {isTaskOverdue(task) && <span className="text-[9px] text-danger font-medium flex items-center gap-0.5"><AlertCircle className="w-2.5 h-2.5" /> {t("tasks.overdue")}</span>}
+                    </div>
+                    {/* Subtasks */}
+                    {(task.subtasks || []).filter((s) => !s.completed).length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {(task.subtasks || []).filter((s) => !s.completed).map((sub) => (
+                          <div key={sub.id} className="flex items-center gap-1.5 pl-2">
+                            <button onClick={() => onToggleSubtask(task.id, sub.id)} className="w-3 h-3 rounded border border-gray-300 dark:border-gray-600 flex-shrink-0" />
+                            <span className="text-[10px] text-muted-light dark:text-muted-dark truncate">{sub.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {countdownStartEnabled && onStartTask && (
+                    <button onClick={() => onStartTask(task)} className="text-[10px] text-accent hover:bg-accent/10 px-1.5 py-0.5 rounded transition-colors flex-shrink-0 mt-0.5">▶</button>
+                  )}
+                </div>
+              ))}
+              {/* Completed in this block */}
+              {completedTasks.length > 0 && (
+                <div className="mt-1 pt-1 border-t border-gray-200/50 dark:border-white/5">
+                  {completedTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-2 px-2 py-0.5 opacity-50">
+                      <CheckCircle className="w-3 h-3 text-success flex-shrink-0" />
+                      <span className="text-[10px] line-through truncate">{task.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Module-level utility: compute the earliest allowed start minute for a task based on scheduling settings
 // Compute the earliest allowed start minute for a task placement based on scheduling round settings.
 // Only applies rounding for tasks created today; returns workStart for tasks created on other days.
@@ -1560,6 +1758,96 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
 }
 
 
+// --- Week Summary View: Simplified day cards with task counts and top items ---
+function WeekSummaryView({ t, tasks, getEventsForDate, weekStart, onSelectDay, todayStr, settings, energyLevel }) {
+  const shiftDateBy = (dateStr, delta) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10);
+  };
+  const days = Array.from({ length: 7 }, (_, i) => shiftDateBy(weekStart, i));
+  const dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+  const ENERGY_DOT = { low: "bg-emerald-400", medium: "bg-amber-400", high: "bg-red-400" };
+
+  const getTasksForDay = (date) => {
+    if (date > todayStr) return tasks.filter((tk) => !tk.completed && tk.scheduledDate === date);
+    if (date === todayStr) return tasks.filter((tk) => {
+      if (tk.completed) return tk.completedAt && tk.completedAt.slice(0, 10) === date;
+      return !tk.scheduledDate || tk.scheduledDate <= todayStr;
+    });
+    return tasks.filter((tk) => {
+      if (tk.completed && tk.completedAt) return tk.completedAt.slice(0, 10) === date;
+      return !tk.completed && tk.scheduledDate === date;
+    });
+  };
+
+  return (
+    <div className="grid grid-cols-7 gap-1.5">
+      {days.map((date, i) => {
+        const dayTasks = getTasksForDay(date);
+        const pendingTasks = dayTasks.filter((tk) => !tk.completed);
+        const completedTasks = dayTasks.filter((tk) => tk.completed);
+        const events = getEventsForDate(date).filter((ev) => !ev.allDay);
+        const isToday = date === todayStr;
+        const isPast = date < todayStr;
+        const dayNum = date.slice(8);
+
+        // Energy balance
+        const energyCounts = { low: 0, medium: 0, high: 0 };
+        pendingTasks.forEach((tk) => { energyCounts[tk.energyCost || "medium"]++; });
+
+        return (
+          <button
+            key={date}
+            onClick={() => onSelectDay(date)}
+            className={`rounded-xl p-2 text-left transition-all hover:ring-1 hover:ring-accent/30 ${
+              isToday ? "ring-1 ring-accent/40 bg-accent/5" : isPast ? "opacity-60 bg-gray-50 dark:bg-white/[0.02]" : "bg-gray-50 dark:bg-white/[0.02]"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-[10px] font-bold uppercase ${isToday ? "text-accent" : "text-muted-light dark:text-muted-dark"}`}>
+                {dayNames[i]}
+              </span>
+              <span className={`text-xs font-mono ${isToday ? "text-accent font-bold" : ""}`}>{dayNum}</span>
+            </div>
+
+            {/* Task count */}
+            <div className="flex items-center gap-1 mb-1">
+              {pendingTasks.length > 0 && <span className="text-xs font-bold">{pendingTasks.length}</span>}
+              {completedTasks.length > 0 && <span className="text-[10px] text-success">✓{completedTasks.length}</span>}
+              {events.length > 0 && <span className="text-[10px] text-accent">📅{events.length}</span>}
+            </div>
+
+            {/* Energy dots */}
+            {pendingTasks.length > 0 && (
+              <div className="flex gap-0.5 mb-1">
+                {Object.entries(energyCounts).filter(([, c]) => c > 0).map(([level, count]) => (
+                  <div key={level} className="flex gap-px">
+                    {Array.from({ length: Math.min(count, 3) }).map((_, j) => (
+                      <span key={j} className={`w-1.5 h-1.5 rounded-full ${ENERGY_DOT[level]}`} />
+                    ))}
+                    {count > 3 && <span className="text-[8px] text-muted-light dark:text-muted-dark">+{count - 3}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Top 2 task names */}
+            <div className="space-y-0.5">
+              {pendingTasks.slice(0, 2).map((tk) => (
+                <p key={tk.id} className="text-[9px] truncate text-muted-light dark:text-muted-dark leading-tight">{tk.text}</p>
+              ))}
+              {pendingTasks.length > 2 && (
+                <p className="text-[8px] text-muted-light dark:text-muted-dark">+{pendingTasks.length - 2}</p>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 
 function MonthPlanView({ t, tasks, getEventsForDate, monthStart, onSelectDay, todayStr }) {
   const [y, m] = monthStart.split("-").map(Number);
@@ -1643,7 +1931,7 @@ export default function HomePage() {
   // New gamification state
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [countdownTask, setCountdownTask] = useState(null);
-  const [planView, setPlanView] = useState("day"); // "day" | "week" | "month"
+  const [planView, setPlanView] = useState("block"); // "block" | "timeline" | "week" | "month"
 
   // Weekly report: show on Monday if not yet dismissed this week
   useEffect(() => {
@@ -1828,8 +2116,8 @@ export default function HomePage() {
     <div className="space-y-5 animate-fade-in">
       {/* Weekly Report Modal (Feature 9) */}
       {showWeeklyReport && state.previousWeekStats && settings.gamification?.weeklyReportEnabled && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="glass-card p-6 max-w-sm w-full mx-4 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="modal-card p-6 max-w-sm w-full mx-4 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold">📊 {t("home.weeklyReport")}</h3>
               <button
@@ -1962,7 +2250,7 @@ export default function HomePage() {
           <div className="flex items-center gap-1 flex-wrap justify-end">
             {/* View mode switcher */}
             <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-white/5 rounded-lg p-0.5">
-              {["day", "week", "month"].map((v) => (
+              {["block", "timeline", "week", "month"].map((v) => (
                 <button
                   key={v}
                   onClick={() => setPlanView(v)}
@@ -1992,13 +2280,13 @@ export default function HomePage() {
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            {overdueTasks.length > 0 && isToday && planView === "day" && (
+            {overdueTasks.length > 0 && isToday && (planView === "block" || planView === "timeline") && (
               <span className="badge bg-danger/10 text-danger text-[10px] flex items-center gap-1 ml-1">
                 <AlertCircle className="w-3 h-3" /> {overdueTasks.length} {t("tasks.overdue")}
               </span>
             )}
             {/* Grid interval selector + List mode – only in day view */}
-            {planView === "day" && (
+            {planView === "timeline" && (
               <div className="flex items-center gap-0.5 ml-1 bg-gray-100 dark:bg-white/5 rounded-lg p-0.5">
                 {[15, 30, 60].map((iv) => (
                   <button
@@ -2031,20 +2319,14 @@ export default function HomePage() {
         </div>
 
         {planView === "week" && (
-          <WeekTimelineView
+          <WeekSummaryView
             t={t}
             tasks={state.tasks}
             getEventsForDate={getEventsForDate}
             weekStart={weekStart}
-            onSelectDay={(date) => { setViewDate(date); setPlanView("day"); }}
+            onSelectDay={(date) => { setViewDate(date); setPlanView("block"); }}
             todayStr={todayStr}
             settings={settings}
-            onMoveTask={(taskId, date, time) => dispatch({ type: "UPDATE_TASK", payload: { id: taskId, scheduledDate: date, scheduledTime: time } })}
-            onMoveSubtask={(parentId, subId, date, time) => dispatch({ type: "UPDATE_SUBTASK", payload: { taskId: parentId, subtaskId: subId, scheduledDate: date, scheduledTime: time } })}
-            onCompleteTask={(id) => dispatch({ type: "COMPLETE_TASK", payload: id })}
-            onToggleSubtask={(taskId, subtaskId) => dispatch({ type: "TOGGLE_SUBTASK", payload: { taskId, subtaskId } })}
-            onStartTask={(task) => setCountdownTask(task)}
-            countdownStartEnabled={settings.gamification?.countdownStartEnabled !== false}
             energyLevel={state.energyLevel}
           />
         )}
@@ -2055,12 +2337,35 @@ export default function HomePage() {
             tasks={state.tasks}
             getEventsForDate={getEventsForDate}
             monthStart={monthStart}
-            onSelectDay={(date) => { setViewDate(date); setPlanView("day"); }}
+            onSelectDay={(date) => { setViewDate(date); setPlanView("block"); }}
             todayStr={todayStr}
           />
         )}
 
-        {planView === "day" && (
+        {planView === "block" && (
+          <>
+            {isToday && (
+              <div className="mb-3">
+                <QuickAddTask t={t} onAdd={handleQuickAdd} />
+              </div>
+            )}
+            <BlockDayView
+              t={t}
+              tasks={topTasks}
+              events={viewEvents}
+              settings={settings}
+              isToday={isToday}
+              energyLevel={state.energyLevel}
+              onCompleteTask={(id) => dispatch({ type: "COMPLETE_TASK", payload: id })}
+              onToggleSubtask={(taskId, subtaskId) => dispatch({ type: "TOGGLE_SUBTASK", payload: { taskId, subtaskId } })}
+              onStartTask={(task) => setCountdownTask(task)}
+              countdownStartEnabled={settings.gamification?.countdownStartEnabled !== false}
+              isTaskOverdue={isTaskOverdue}
+            />
+          </>
+        )}
+
+        {planView === "timeline" && (
           <>
             {isToday && (
               <div className="mb-3">
