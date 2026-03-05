@@ -20,7 +20,6 @@
     "build": "react-scripts build",
     "test": "react-scripts test"
   },
-  "proxy": "http://localhost:4000",
   "overrides": {
     "@babel/plugin-proposal-private-methods": "npm:@babel/plugin-transform-private-methods@^7.25.9",
     "@babel/plugin-proposal-class-properties": "npm:@babel/plugin-transform-class-properties@^7.25.9",

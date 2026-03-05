@@ -30,6 +30,7 @@ services:
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
+      - BACKEND_URL=http://backend:4000
     stdin_open: true
     tty: true
 
