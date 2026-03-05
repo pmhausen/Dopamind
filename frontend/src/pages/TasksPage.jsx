@@ -84,7 +84,7 @@ function SubtaskItem({ subtask, taskId, task, t, countdownStartEnabled, categori
       {/* Badges row — priority dot, deadline, tags only */}
       <div className="flex items-center gap-1.5 mt-0.5 ml-6 flex-wrap">
         {priCfg && (
-          <span className={`w-1.5 h-1.5 rounded-full ${priCfg.dot} flex-shrink-0`} title={subtask.priority} />
+          <span className={`w-1.5 h-1.5 rounded-full ${priCfg.dot} flex-shrink-0`} role="img" aria-label={subtask.priority} />
         )}
         {subtask.deadline && (
           <span className={`badge text-[9px] flex items-center gap-0.5 ${isOverdue ? "bg-danger/10 text-danger" : "bg-gray-100 dark:bg-white/5 text-muted-light dark:text-muted-dark"}`}>
@@ -343,7 +343,7 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setExpanded(!expanded)} className="text-muted-light dark:text-muted-dark hover:text-accent transition-colors">
+            <button onClick={() => setExpanded(!expanded)} className="text-muted-light dark:text-muted-dark hover:text-accent transition-colors" aria-label={expanded ? t("common.collapse") : t("common.expand")}>
               {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <p className={`text-sm font-medium truncate ${task.completed ? "line-through text-muted-light" : ""}`}>
@@ -352,7 +352,7 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
           </div>
           {/* Collapsed badge row: priority dot, deadline, subtask counter, tags */}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${priority.dot}`} title={task.priority} />
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${priority.dot}`} role="img" aria-label={t(`tasks.priority.${task.priority}`)} />
             {task.deadline && (
               <span className={`badge text-[10px] flex items-center gap-1 ${isOverdue ? "bg-danger/10 text-danger" : "bg-gray-100 dark:bg-white/5 text-muted-light dark:text-muted-dark"}`}>
                 {isOverdue && <AlertCircle className="w-3 h-3" />}
@@ -661,7 +661,7 @@ export default function TasksPage() {
                         </div>
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => { dispatch({ type: "UPDATE_CATEGORY", payload: { id: cat.id, name: editCatName, color: editCatColor } }); setEditingCatId(null); }}
+                            onClick={() => { dispatch({ type: "UPDATE_CATEGORY", payload: { id: cat.id, name: editCatName, color: editCatColor, type: cat.type || "area" } }); setEditingCatId(null); }}
                             className="text-accent"
                           ><Check className="w-4 h-4" /></button>
                           <button onClick={() => setEditingCatId(null)} className="text-muted-light"><X className="w-4 h-4" /></button>
@@ -722,7 +722,7 @@ export default function TasksPage() {
                     <button
                       onClick={() => {
                         if (!newCatName.trim()) return;
-                        dispatch({ type: "ADD_CATEGORY", payload: { name: newCatName.trim(), color: newCatColor } });
+                        dispatch({ type: "ADD_CATEGORY", payload: { name: newCatName.trim(), color: newCatColor, type: "area" } });
                         setNewCatName("");
                         setNewCatColor("blue");
                       }}

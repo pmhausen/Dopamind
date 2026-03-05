@@ -711,7 +711,9 @@
     "hours": "h",
     "today": "Heute",
     "yesterday": "Gestern",
-    "tomorrow": "Morgen"
+    "tomorrow": "Morgen",
+    "expand": "Erweitern",
+    "collapse": "Einklappen"
   },
   "auth": {
     "login": "Anmelden",
