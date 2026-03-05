@@ -304,6 +304,26 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
                 ))}
               </div>
             </div>
+            {/* Duration (T-shirt sizing) */}
+            <div>
+              <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionDuration")}</label>
+              <div className="flex gap-1.5">
+                {["quick", "short", "medium", "long"].map((key) => (
+                  <button key={key} type="button" onClick={() => { setEditSizeCategory(key); setEditShowCustom(false); }} className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all text-center ${!editShowCustom && editSizeCategory === key ? "bg-accent/10 text-accent ring-1 ring-accent/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
+                    {t(`tasks.size.${key}`)} <span className="opacity-50">~{sizeMappings[key]}{t("common.min")}</span>
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => { setEditShowCustom(!editShowCustom); if (!editCustomMinutes) setEditCustomMinutes(sizeMappings[editSizeCategory] || 25); }} className={`mt-1 text-[10px] transition-colors ${editShowCustom ? "text-accent font-medium" : "text-muted-light dark:text-muted-dark hover:text-accent"}`}>
+                {editShowCustom ? t("tasks.sizeUsePreset") : t("tasks.sizeCustom")}
+              </button>
+              {editShowCustom && (
+                <div className="flex items-center gap-2 mt-1 animate-fade-in">
+                  <input type="range" min={5} max={240} step={5} value={editCustomMinutes || 25} onChange={(e) => setEditCustomMinutes(Number(e.target.value))} className="flex-1 accent-accent" />
+                  <span className="text-xs font-mono text-accent w-12 text-right">{editCustomMinutes || 25}{t("common.min")}</span>
+                </div>
+              )}
+            </div>
             {/* Details */}
             <div>
               <button type="button" onClick={() => setEditShowDetails(!editShowDetails)} className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5">
@@ -316,26 +336,6 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
                     <AlertCircle className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
                     <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.hardDeadline")}</span>
                     <input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30" />
-                  </div>
-                  {/* Duration (T-shirt sizing) */}
-                  <div>
-                    <span className="text-xs text-muted-light dark:text-muted-dark mb-1 block">{t("tasks.sectionDuration")}</span>
-                    <div className="flex gap-1.5">
-                      {["quick", "short", "medium", "long"].map((key) => (
-                        <button key={key} type="button" onClick={() => { setEditSizeCategory(key); setEditShowCustom(false); }} className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all text-center ${!editShowCustom && editSizeCategory === key ? "bg-accent/10 text-accent ring-1 ring-accent/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
-                          {t(`tasks.size.${key}`)} <span className="opacity-50">~{sizeMappings[key]}{t("common.min")}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <button type="button" onClick={() => { setEditShowCustom(!editShowCustom); if (!editCustomMinutes) setEditCustomMinutes(sizeMappings[editSizeCategory] || 25); }} className={`mt-1 text-[10px] transition-colors ${editShowCustom ? "text-accent font-medium" : "text-muted-light dark:text-muted-dark hover:text-accent"}`}>
-                      {editShowCustom ? t("tasks.sizeUsePreset") : t("tasks.sizeCustom")}
-                    </button>
-                    {editShowCustom && (
-                      <div className="flex items-center gap-2 mt-1 animate-fade-in">
-                        <input type="range" min={5} max={240} step={5} value={editCustomMinutes || 25} onChange={(e) => setEditCustomMinutes(Number(e.target.value))} className="flex-1 accent-accent" />
-                        <span className="text-xs font-mono text-accent w-12 text-right">{editCustomMinutes || 25}{t("common.min")}</span>
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
@@ -986,6 +986,18 @@ export default function TasksPage() {
                       </div>
                     </div>
 
+                    {/* Section: Duration (T-shirt sizing) */}
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionDuration")}</label>
+                      <div className="flex gap-1.5">
+                        {["quick", "short", "medium", "long"].map((key) => (
+                          <button key={key} type="button" onClick={() => setSizeCategory(key)} className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all text-center ${sizeCategory === key ? "bg-accent/10 text-accent ring-1 ring-accent/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
+                            {t(`tasks.size.${key}`)} <span className="opacity-50">~{sizeMappings[key]}{t("common.min")}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Section: Details (collapsible) */}
                     <div>
                       <button
@@ -1008,17 +1020,6 @@ export default function TasksPage() {
                               onChange={(e) => setDeadline(e.target.value)}
                               className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
                             />
-                          </div>
-                          {/* Duration (T-shirt sizing) */}
-                          <div>
-                            <span className="text-xs text-muted-light dark:text-muted-dark mb-1 block">{t("tasks.sectionDuration")}</span>
-                            <div className="flex gap-1.5">
-                              {["quick", "short", "medium", "long"].map((key) => (
-                                <button key={key} type="button" onClick={() => setSizeCategory(key)} className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all text-center ${sizeCategory === key ? "bg-accent/10 text-accent ring-1 ring-accent/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
-                                  {t(`tasks.size.${key}`)} <span className="opacity-50">~{sizeMappings[key]}{t("common.min")}</span>
-                                </button>
-                              ))}
-                            </div>
                           </div>
                           {/* Category */}
                           <div className="flex items-center gap-1.5 flex-wrap">

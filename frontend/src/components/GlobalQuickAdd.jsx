@@ -64,7 +64,7 @@ export default function GlobalQuickAdd() {
   const reset = useCallback(() => {
     setStep(0);
     setText("");
-    setPriority("high");
+    setPriority("medium");
     setWhen(smartWhenDefault);
     setEnergy("medium");
     setSize("medium");
