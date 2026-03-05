@@ -124,7 +124,7 @@ function EstimationAccuracySection({ t, timeLog }) {
   );
 }
 
-function BrainReportTab({ t, state, resourceMonitorState, breakPattern }) {
+function BrainReportTab({ t, state, resourceMonitorState }) {
   const [period, setPeriod] = useState("week");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -160,7 +160,6 @@ function BrainReportTab({ t, state, resourceMonitorState, breakPattern }) {
       energyLog: state.energyLog || [],
       activitySessions: (resourceMonitorState?.activitySessions || []).slice(-30),
       absenceHistory: resourceMonitorState?.absenceHistory || [],
-      breakPattern: breakPattern || null,
       exportedBy: "Dopamind Brain Report",
     };
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
@@ -400,7 +399,7 @@ export default function AchievementsPage() {
         ))}
       </div>
 
-      {activeTab === "report" && <BrainReportTab t={t} state={state} resourceMonitorState={rmState} breakPattern={settings.breakPattern} />}
+      {activeTab === "report" && <BrainReportTab t={t} state={state} resourceMonitorState={rmState} />}
       {activeTab === "achievements" && <AchievementsPanel />}
       {activeTab === "xp" && <XpHistoryTab t={t} state={state} />}
       {activeTab === "statistics" && <StatsTab t={t} state={state} />}

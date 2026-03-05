@@ -466,60 +466,6 @@ export default function SettingsPage() {
                 </div>
               </Field>
             </Section>
-            <Section title={t("settings.breakPattern")}>
-              <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.breakPatternDesc")}</p>
-              <Field label={t("settings.breakStyle")}>
-                <div className="grid grid-cols-2 gap-2">
-                  {["fewLong", "manyShort", "balanced", "custom"].map((style) => (
-                    <button
-                      key={style}
-                      onClick={() => {
-                        if (style === "custom") {
-                          updateSettings("breakPattern", { style });
-                        } else {
-                          const presets = { fewLong: { intervalMinutes: 120, durationMinutes: 30 }, manyShort: { intervalMinutes: 45, durationMinutes: 10 }, balanced: { intervalMinutes: 90, durationMinutes: 15 } };
-                          updateSettings("breakPattern", { style, ...presets[style] });
-                        }
-                      }}
-                      className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                        settings.breakPattern.style === style
-                          ? "bg-accent text-white"
-                          : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10"
-                      }`}
-                    >
-                      {t(`settings.breakStyle${style.charAt(0).toUpperCase() + style.slice(1)}`)}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-              {settings.breakPattern.style === "custom" && (
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <Field label={t("settings.breakInterval")}>
-                    <Input
-                      type="number"
-                      min={15}
-                      max={180}
-                      step={5}
-                      value={settings.breakPattern.intervalMinutes}
-                      onChange={(v) => updateSettings("breakPattern", { intervalMinutes: Number(v) })}
-                    />
-                  </Field>
-                  <Field label={t("settings.breakDurationPattern")}>
-                    <Input
-                      type="number"
-                      min={5}
-                      max={45}
-                      step={5}
-                      value={settings.breakPattern.durationMinutes}
-                      onChange={(v) => updateSettings("breakPattern", { durationMinutes: Number(v) })}
-                    />
-                  </Field>
-                </div>
-              )}
-              <p className="text-xs text-accent mt-2 font-medium">
-                {t("settings.breakPreview").replace("{interval}", settings.breakPattern.intervalMinutes).replace("{duration}", settings.breakPattern.durationMinutes)}
-              </p>
-            </Section>
             <Section title={t("settings.timeWarnings")}>
               <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.timeWarningsDesc")}</p>
               <Toggle

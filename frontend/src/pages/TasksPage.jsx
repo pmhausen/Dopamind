@@ -4,6 +4,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
 import { useMail } from "../context/MailContext";
 import { useSettings } from "../context/SettingsContext";
+import { useQuickAdd } from "../context/QuickAddContext";
 import CountdownStart from "../components/CountdownStart";
 import TaskFormModal from "../components/TaskFormModal";
 import { Mail, Calendar, Plus, ChevronDown, ChevronRight, CheckSquare, Square, Trash2, AlertCircle, Pencil, RotateCcw, Check, X, Tag, Clock, Folder, CalendarDays, Settings2, GripVertical, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -20,7 +21,6 @@ const ENERGY_CONFIG = {
   high: { color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
 };
 
-const WHEN_OPTIONS = ["today", "tomorrow", "dayAfter", "nextWeek", "pickDate"];
 const TIME_OF_DAY_OPTIONS = ["morning", "afternoon", "evening", "exact"];
 
 const CATEGORY_COLORS = [
@@ -180,9 +180,9 @@ function SubtaskItem({ subtask, taskId, task, t, countdownStartEnabled, categori
 function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownStartEnabled, sizeMappings }) {
   const { dispatch } = useApp();
   const { untagMail } = useMail();
+  const { openQuickAdd } = useQuickAdd();
   const priority = PRIORITY_CONFIG[task.priority];
   const [expanded, setExpanded] = useState(false);
-  const [showSubtaskModal, setShowSubtaskModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const [editPriority, setEditPriority] = useState(task.priority);
@@ -206,10 +206,6 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
   const completedSubtasks = subtasks.filter((s) => s.completed).length;
   const tags = task.tags || [];
   const isOverdue = isTaskOverdue(task);
-
-  const handleAddSubtask = (formData) => {
-    dispatch({ type: "ADD_SUBTASK", payload: { taskId: task.id, ...formData } });
-  };
 
   const handleDelete = () => {
     if (task.mailRef) untagMail(task.mailRef.uid, "todo");
@@ -523,14 +519,11 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
           ))}
           {!task.completed && (
             <div className="pl-8 mt-1">
-              <button onClick={() => setShowSubtaskModal(true)} className="flex items-center gap-1.5 text-xs text-muted-light dark:text-muted-dark hover:text-accent transition-colors py-1">
+              <button onClick={() => openQuickAdd({ mode: "subtask", parentTaskId: task.id, inheritedCategory: task.category })} className="flex items-center gap-1.5 text-xs text-muted-light dark:text-muted-dark hover:text-accent transition-colors py-1">
                 <Plus className="w-3.5 h-3.5" />
                 {t("tasks.addSubtask")}
               </button>
             </div>
-          )}
-          {showSubtaskModal && (
-            <TaskFormModal t={t} onSubmit={handleAddSubtask} onClose={() => setShowSubtaskModal(false)} isSubtask inheritedCategory={task.category} categories={categories} sizeMappings={sizeMappings} />
           )}
         </div>
       )}
@@ -551,25 +544,13 @@ export default function TasksPage() {
   const { t } = useI18n();
   const { state, dispatch } = useApp();
   const { settings } = useSettings();
+  const { openQuickAdd } = useQuickAdd();
   const countdownStartEnabled = settings.gamification?.countdownStartEnabled !== false;
   const sizeMappings = settings.estimation?.sizeMappings || { quick: 10, short: 25, medium: 45, long: 90 };
-  const [text, setText] = useState("");
-  const [priority, setPriority] = useState("medium");
-  const [energyCost, setEnergyCost] = useState("medium");
-  const [sizeCategory, setSizeCategory] = useState("medium");
-  const [deadline, setDeadline] = useState("");
-  const [timeOfDay, setTimeOfDay] = useState("");
-  const [scheduledTime, setScheduledTime] = useState("");
-  const [scheduledDate, setScheduledDate] = useState("");
-  const [category, setCategory] = useState("");
-  const [tags, setTags] = useState([]);
-  const [tagInput, setTagInput] = useState("");
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("priority");
   const [filterTag, setFilterTag] = useState(null);
   const [filterCategory, setFilterCategory] = useState(null);
-  const [addFormExpanded, setAddFormExpanded] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
   const [managingCategories, setManagingCategories] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newCatName, setNewCatName] = useState("");
@@ -579,59 +560,6 @@ export default function TasksPage() {
   const [editCatEmoji, setEditCatEmoji] = useState("");
 
   const categories = state.categories || [];
-
-  const handleTagKeyDown = (e) => {
-    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
-      e.preventDefault();
-      const tag = sanitizeTag(tagInput);
-      if (tag && !tags.includes(tag)) setTags([...tags, tag]);
-      setTagInput("");
-    }
-  };
-
-  const resolveRelativeDate = (when) => {
-    const today = new Date();
-    const fmt = (d) => d.toISOString().slice(0, 10);
-    switch (when) {
-      case "today": return fmt(today);
-      case "tomorrow": return fmt(new Date(today.getTime() + 86400000));
-      case "dayAfter": return fmt(new Date(today.getTime() + 2 * 86400000));
-      case "nextWeek": { const d = new Date(today); d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7); return fmt(d); }
-      default: return when || null;
-    }
-  };
-
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!text.trim()) return;
-    dispatch({
-      type: "ADD_TASK",
-      payload: {
-        text: text.trim(),
-        priority,
-        energyCost,
-        estimatedMinutes: sizeMappings[sizeCategory] || 25,
-        sizeCategory,
-        deadline: deadline || null,
-        timeOfDay: timeOfDay || null,
-        scheduledTime: (timeOfDay === "exact" ? scheduledTime : null) || null,
-        scheduledDate: resolveRelativeDate(scheduledDate),
-        category: category || null,
-        tags,
-      },
-    });
-    setText("");
-    setDeadline("");
-    setTimeOfDay("");
-    setScheduledTime("");
-    setScheduledDate("");
-    setCategory("");
-    setEnergyCost("medium");
-    setTags([]);
-    setTagInput("");
-    setAddFormExpanded(false);
-    setShowDetails(false);
-  };
 
   const allTags = useMemo(() => {
     const tagSet = new Set();
@@ -716,7 +644,7 @@ export default function TasksPage() {
           >
             {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
           </button>
-          <button type="button" onClick={() => setAddFormExpanded(true)} className="btn-primary text-sm flex items-center gap-2">
+          <button type="button" onClick={() => openQuickAdd({ mode: "task" })} className="btn-primary text-sm flex items-center gap-2">
             <Plus className="w-4 h-4" /> {t("tasks.add")}
           </button>
         </div>
@@ -865,209 +793,6 @@ export default function TasksPage() {
         {/* Main task list */}
         <div className={sidebarOpen ? "lg:col-span-3" : "col-span-1"}>
           <div className="glass-card">
-            {/* Collapsible Add form */}
-            {addFormExpanded && (
-              <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/60" onClick={(e) => { if (e.target === e.currentTarget) setAddFormExpanded(false); }}>
-                <div className="modal-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[90vh] overflow-y-auto animate-fade-in">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold">{t("tasks.createTask")}</h3>
-                    <button onClick={() => setAddFormExpanded(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <form onSubmit={handleAdd} className="space-y-5">
-                    {/* Section: What */}
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionWhat")}</label>
-                      <input
-                        type="text"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        placeholder={t("tasks.addPlaceholder")}
-                        autoFocus
-                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm placeholder:text-muted-light dark:placeholder:text-muted-dark focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all"
-                      />
-                    </div>
-
-                    {/* Section: Importance */}
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionImportance")}</label>
-                      <div className="flex gap-1.5">
-                        {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setPriority(key)}
-                            className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all text-center ${
-                              priority === key
-                                ? cfg.color + " ring-1 ring-current/20"
-                                : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
-                            }`}
-                          >
-                            {t(`tasks.priority.${key}`)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Section: When */}
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionWhen")}</label>
-                      <div className="flex gap-1.5 flex-wrap mb-2">
-                        {WHEN_OPTIONS.map((opt) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => { if (opt === "pickDate") { setScheduledDate(""); } else { setScheduledDate(scheduledDate === opt ? "" : opt); } }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              scheduledDate === opt
-                                ? "bg-accent/10 text-accent ring-1 ring-accent/20"
-                                : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
-                            }`}
-                          >
-                            {t(`tasks.whenOptions.${opt}`)}
-                          </button>
-                        ))}
-                      </div>
-                      {scheduledDate === "pickDate" && (
-                        <input
-                          type="date"
-                          onChange={(e) => setScheduledDate(e.target.value)}
-                          className="px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                        />
-                      )}
-                      {/* Time of day */}
-                      {scheduledDate && (
-                        <div className="flex gap-1.5 flex-wrap mt-2">
-                          {TIME_OF_DAY_OPTIONS.map((opt) => (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => setTimeOfDay(timeOfDay === opt ? "" : opt)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                timeOfDay === opt
-                                  ? "bg-accent/10 text-accent ring-1 ring-accent/20"
-                                  : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
-                              }`}
-                            >
-                              {t(`tasks.timeOfDayOptions.${opt}`)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {timeOfDay === "exact" && (
-                        <input
-                          type="time"
-                          value={scheduledTime}
-                          onChange={(e) => setScheduledTime(e.target.value)}
-                          className="mt-2 px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                        />
-                      )}
-                    </div>
-
-                    {/* Section: Energy */}
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionEnergy")}</label>
-                      <div className="flex gap-1.5">
-                        {Object.entries(ENERGY_CONFIG).map(([key, cfg]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setEnergyCost(key)}
-                            className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all text-center ${
-                              energyCost === key
-                                ? cfg.color + " ring-1 ring-current/20"
-                                : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
-                            }`}
-                          >
-                            {t(`tasks.energy.${key}`)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Section: Duration (T-shirt sizing) */}
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionDuration")}</label>
-                      <div className="flex gap-1.5">
-                        {["quick", "short", "medium", "long"].map((key) => (
-                          <button key={key} type="button" onClick={() => setSizeCategory(key)} className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all text-center ${sizeCategory === key ? "bg-accent/10 text-accent ring-1 ring-accent/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
-                            {t(`tasks.size.${key}`)} <span className="opacity-50">~{sizeMappings[key]}{t("common.min")}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Section: Details (collapsible) */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setShowDetails(!showDetails)}
-                        className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5"
-                      >
-                        {showDetails ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                        {t("tasks.sectionDetails")}
-                      </button>
-                      {showDetails && (
-                        <div className="space-y-3 animate-fade-in">
-                          {/* Hard deadline */}
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                            <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.hardDeadline")}</span>
-                            <input
-                              type="date"
-                              value={deadline}
-                              onChange={(e) => setDeadline(e.target.value)}
-                              className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                            />
-                          </div>
-                          {/* Category */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                            {categories.map((cat) => (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => setCategory(category === cat.id ? "" : cat.id)}
-                                className={`px-2.5 py-1 rounded-lg text-xs transition-all ${category === cat.id ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
-                              >
-                                {cat.name || cat.emoji}
-                              </button>
-                            ))}
-                          </div>
-                          {/* Tags */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                            {tags.map((tag) => (
-                              <span key={tag} className={`badge text-[10px] ${getTagColor(tag)} flex items-center gap-1`}>
-                                {tag}
-                                <button type="button" onClick={() => setTags(tags.filter((x) => x !== tag))}>
-                                  <X className="w-2.5 h-2.5" />
-                                </button>
-                              </span>
-                            ))}
-                            <input
-                              type="text"
-                              value={tagInput}
-                              onChange={(e) => setTagInput(e.target.value)}
-                              onKeyDown={handleTagKeyDown}
-                              placeholder={t("tasks.addTag")}
-                              className="flex-1 min-w-[80px] text-xs px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Submit */}
-                    <button type="submit" className="btn-primary text-sm w-full">
-                      {t("tasks.createTask")}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
-
             {/* Filter + Sort bar */}
             <div className="flex items-center justify-between gap-2 px-5 py-3 border-b border-gray-200/50 dark:border-white/5 flex-wrap">
               <div className="flex gap-1.5">

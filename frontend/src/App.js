@@ -8,13 +8,14 @@ import { TimeTrackingProvider } from "./context/TimeTrackingContext";
 import { MailProvider } from "./context/MailContext";
 import { CalendarProvider } from "./context/CalendarContext";
 import { FocusTimerProvider } from "./context/FocusTimerContext";
+import { QuickAddProvider } from "./context/QuickAddContext";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
 import RewardToast from "./components/RewardToast";
 import MicroConfettiManager from "./components/MicroConfettiManager";
 import TaskTimerWidget from "./components/TaskTimerWidget";
-import GlobalQuickAdd from "./components/GlobalQuickAdd";
+import GlobalQuickAdd, { QuickAddEnterListener } from "./components/GlobalQuickAdd";
 import TriageModal from "./components/TriageModal";
 import ActivityBridge from "./components/ActivityBridge";
 import HomePage from "./pages/HomePage";
@@ -91,35 +92,38 @@ function AppLayout() {
           <MailProvider>
             <CalendarProvider>
               <FocusTimerProvider>
-                <div className="min-h-screen flex">
-                  <Sidebar />
-                  <div className="flex-1 flex flex-col min-w-0">
-                    <Header />
-                    <main className="flex-1 px-4 py-6 pb-24 md:pb-6 max-w-7xl w-full mx-auto">
-                      <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/tasks" element={<TasksPage />} />
-                        <Route path="/calendar" element={<CalendarPage />} />
-                        <Route path="/mail" element={<MailPage />} />
-                        <Route path="/time" element={<TimeTrackingPage />} />
-                        <Route path="/zeitmanagement" element={<Navigate to="/time?tab=focus" replace />} />
-                        <Route path="/settings" element={<SettingsPage />} />
-                        <Route path="/achievements" element={<AchievementsPage />} />
-                        <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
-                      </Routes>
-                    </main>
-                    <footer className="hidden md:block text-center py-4 text-[10px] text-muted-light dark:text-muted-dark">
-                      Dopamind &middot; For the ADHD Community
-                    </footer>
+                <QuickAddProvider>
+                  <div className="min-h-screen flex">
+                    <Sidebar />
+                    <div className="flex-1 flex flex-col min-w-0">
+                      <Header />
+                      <main className="flex-1 px-4 py-6 pb-24 md:pb-6 max-w-7xl w-full mx-auto">
+                        <Routes>
+                          <Route path="/" element={<HomePage />} />
+                          <Route path="/tasks" element={<TasksPage />} />
+                          <Route path="/calendar" element={<CalendarPage />} />
+                          <Route path="/mail" element={<MailPage />} />
+                          <Route path="/time" element={<TimeTrackingPage />} />
+                          <Route path="/zeitmanagement" element={<Navigate to="/time?tab=focus" replace />} />
+                          <Route path="/settings" element={<SettingsPage />} />
+                          <Route path="/achievements" element={<AchievementsPage />} />
+                          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+                        </Routes>
+                      </main>
+                      <footer className="hidden md:block text-center py-4 text-[10px] text-muted-light dark:text-muted-dark">
+                        Dopamind &middot; For the ADHD Community
+                      </footer>
+                    </div>
+                    <MobileNav />
+                    <RewardToast />
+                    <MicroConfettiManager />
+                    <TaskTimerWidget />
+                    <GlobalQuickAdd />
+                    <QuickAddEnterListener />
+                    <TriageModal />
+                    <ActivityBridge />
                   </div>
-                  <MobileNav />
-                  <RewardToast />
-                  <MicroConfettiManager />
-                  <TaskTimerWidget />
-                  <GlobalQuickAdd />
-                  <TriageModal />
-                  <ActivityBridge />
-                </div>
+                </QuickAddProvider>
               </FocusTimerProvider>
             </CalendarProvider>
           </MailProvider>
