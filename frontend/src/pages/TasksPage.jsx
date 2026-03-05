@@ -13,6 +13,15 @@ const PRIORITY_CONFIG = {
   low: { dot: "bg-success", color: "bg-success/10 text-success dark:bg-success/20" },
 };
 
+const ENERGY_CONFIG = {
+  low: { color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" },
+  medium: { color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
+  high: { color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
+};
+
+const WHEN_OPTIONS = ["today", "tomorrow", "dayAfter", "nextWeek", "pickDate"];
+const TIME_OF_DAY_OPTIONS = ["morning", "afternoon", "evening", "exact"];
+
 const CATEGORY_COLORS = [
   "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
@@ -175,16 +184,20 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
   const priority = PRIORITY_CONFIG[task.priority];
   const [expanded, setExpanded] = useState(false);
   const [subtaskText, setSubtaskText] = useState("");
+  const [subtaskEnergy, setSubtaskEnergy] = useState("");
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const [editPriority, setEditPriority] = useState(task.priority);
+  const [editEnergyCost, setEditEnergyCost] = useState(task.energyCost || "medium");
   const [editMinutes, setEditMinutes] = useState(task.estimatedMinutes);
   const [editDeadline, setEditDeadline] = useState(task.deadline || "");
+  const [editTimeOfDay, setEditTimeOfDay] = useState(task.timeOfDay || "");
   const [editScheduledTime, setEditScheduledTime] = useState(task.scheduledTime || "");
   const [editScheduledDate, setEditScheduledDate] = useState(task.scheduledDate || "");
   const [editCategory, setEditCategory] = useState(task.category || "");
   const [editTags, setEditTags] = useState(task.tags || []);
   const [editTagInput, setEditTagInput] = useState("");
+  const [editShowDetails, setEditShowDetails] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
 
   const catObj = categories.find((c) => c.id === task.category);
@@ -197,8 +210,9 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
   const handleAddSubtask = (e) => {
     e.preventDefault();
     if (!subtaskText.trim()) return;
-    dispatch({ type: "ADD_SUBTASK", payload: { taskId: task.id, text: subtaskText.trim() } });
+    dispatch({ type: "ADD_SUBTASK", payload: { taskId: task.id, text: subtaskText.trim(), energyCost: subtaskEnergy || undefined } });
     setSubtaskText("");
+    setSubtaskEnergy("");
   };
 
   const handleDelete = () => {
@@ -215,9 +229,11 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
         id: task.id,
         text: editText.trim(),
         priority: editPriority,
+        energyCost: editEnergyCost,
         estimatedMinutes: editMinutes,
         deadline: editDeadline || null,
-        scheduledTime: editScheduledTime || null,
+        timeOfDay: editTimeOfDay || null,
+        scheduledTime: (editTimeOfDay === "exact" ? editScheduledTime : null) || null,
         scheduledDate: editScheduledDate || null,
         category: editCategory || null,
         tags: editTags,
@@ -237,113 +253,104 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
 
   if (editing) {
     return (
-      <div className="rounded-xl bg-gray-50 dark:bg-white/[0.03] p-3 space-y-2">
-        <form onSubmit={handleSaveEdit} className="space-y-2">
-          <input
-            type="text"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-            autoFocus
-          />
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1">
-              {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setEditPriority(key)}
-                  className={`px-2 py-1 rounded-lg text-xs transition-all ${editPriority === key ? cfg.color + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
-                >
-                  {t(`tasks.priority.${key}`)}
-                </button>
-              ))}
-            </div>
-            <input
-              type="date"
-              value={editDeadline}
-              onChange={(e) => setEditDeadline(e.target.value)}
-              title={t("tasks.deadline")}
-              className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-            />
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark" />
-              <input
-                type="time"
-                value={editScheduledTime}
-                onChange={(e) => setEditScheduledTime(e.target.value)}
-                title={t("tasks.scheduledTime")}
-                className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <CalendarDays className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark" />
-              <input
-                type="date"
-                value={editScheduledDate}
-                onChange={(e) => setEditScheduledDate(e.target.value)}
-                title={t("tasks.scheduledDate")}
-                className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-              />
-            </div>
-            <div className="flex items-center gap-1 ml-auto">
-              <input
-                type="number"
-                min={5}
-                max={480}
-                step={5}
-                value={editMinutes}
-                onChange={(e) => setEditMinutes(Number(e.target.value))}
-                className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-center text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-              />
-              <span className="text-xs text-muted-light dark:text-muted-dark">{t("common.min")}</span>
-            </div>
-          </div>
-          {/* Category selector */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-            <button
-              type="button"
-              onClick={() => setEditCategory("")}
-              className={`px-2 py-1 rounded-lg text-[10px] transition-all ${!editCategory ? "bg-gray-200 dark:bg-white/10 ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
-            >
-              {t("tasks.noCategory")}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setEditing(false); }}>
+        <div className="glass-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[85vh] overflow-y-auto animate-fade-in">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold">{t("common.edit")}</h3>
+            <button onClick={() => setEditing(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10">
+              <X className="w-4 h-4" />
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setEditCategory(cat.id)}
-                className={`px-2 py-1 rounded-lg text-[10px] transition-all ${editCategory === cat.id ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
-              >
-                {cat.emoji}
+          </div>
+          <form onSubmit={handleSaveEdit} className="space-y-5">
+            {/* Task name */}
+            <div>
+              <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionWhat")}</label>
+              <input type="text" value={editText} onChange={(e) => setEditText(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" autoFocus />
+            </div>
+            {/* Importance */}
+            <div>
+              <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionImportance")}</label>
+              <div className="flex gap-1.5">
+                {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                  <button key={key} type="button" onClick={() => setEditPriority(key)} className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all text-center ${editPriority === key ? cfg.color + " ring-1 ring-current/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
+                    {t(`tasks.priority.${key}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* When */}
+            <div>
+              <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionWhen")}</label>
+              <div className="flex items-center gap-2 mb-2">
+                <CalendarDays className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark" />
+                <input type="date" value={editScheduledDate} onChange={(e) => setEditScheduledDate(e.target.value)} className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30" />
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {TIME_OF_DAY_OPTIONS.map((opt) => (
+                  <button key={opt} type="button" onClick={() => setEditTimeOfDay(editTimeOfDay === opt ? "" : opt)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${editTimeOfDay === opt ? "bg-accent/10 text-accent ring-1 ring-accent/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
+                    {t(`tasks.timeOfDayOptions.${opt}`)}
+                  </button>
+                ))}
+              </div>
+              {editTimeOfDay === "exact" && (
+                <input type="time" value={editScheduledTime} onChange={(e) => setEditScheduledTime(e.target.value)} className="mt-2 px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30" />
+              )}
+            </div>
+            {/* Energy */}
+            <div>
+              <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionEnergy")}</label>
+              <div className="flex gap-1.5">
+                {Object.entries(ENERGY_CONFIG).map(([key, cfg]) => (
+                  <button key={key} type="button" onClick={() => setEditEnergyCost(key)} className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all text-center ${editEnergyCost === key ? cfg.color + " ring-1 ring-current/20" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"}`}>
+                    {t(`tasks.energy.${key}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Details */}
+            <div>
+              <button type="button" onClick={() => setEditShowDetails(!editShowDetails)} className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5">
+                {editShowDetails ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                {t("tasks.sectionDetails")}
               </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-            {editTags.map((tag) => (
-              <span key={tag} className={`badge text-[10px] ${getTagColor(tag)} flex items-center gap-1`}>
-                {tag}
-                <button type="button" onClick={() => setEditTags(editTags.filter((x) => x !== tag))}>
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            ))}
-            <input
-              type="text"
-              value={editTagInput}
-              onChange={(e) => setEditTagInput(e.target.value)}
-              onKeyDown={handleEditTagKeyDown}
-              placeholder={t("tasks.addTag")}
-              className="flex-1 min-w-[80px] text-xs px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="btn-primary text-xs flex items-center gap-1.5 py-1.5"><Check className="w-3.5 h-3.5" /> {t("common.save")}</button>
-            <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs py-1.5"><X className="w-3.5 h-3.5" /></button>
-          </div>
-        </form>
+              {editShowDetails && (
+                <div className="space-y-3 animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                    <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.hardDeadline")}</span>
+                    <input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                    <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.estimatedDuration")}</span>
+                    <input type="number" min={5} max={480} step={5} value={editMinutes} onChange={(e) => setEditMinutes(Number(e.target.value))} className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-center text-xs focus:outline-none focus:ring-1 focus:ring-accent/30" />
+                    <span className="text-xs text-muted-light dark:text-muted-dark">{t("common.min")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                    <button type="button" onClick={() => setEditCategory("")} className={`px-2.5 py-1 rounded-lg text-xs transition-all ${!editCategory ? "bg-gray-200 dark:bg-white/10 ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}>{t("tasks.noCategory")}</button>
+                    {categories.map((cat) => (
+                      <button key={cat.id} type="button" onClick={() => setEditCategory(cat.id)} className={`px-2.5 py-1 rounded-lg text-xs transition-all ${editCategory === cat.id ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}>
+                        {cat.name || cat.emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                    {editTags.map((tag) => (
+                      <span key={tag} className={`badge text-[10px] ${getTagColor(tag)} flex items-center gap-1`}>{tag}<button type="button" onClick={() => setEditTags(editTags.filter((x) => x !== tag))}><X className="w-2.5 h-2.5" /></button></span>
+                    ))}
+                    <input type="text" value={editTagInput} onChange={(e) => setEditTagInput(e.target.value)} onKeyDown={handleEditTagKeyDown} placeholder={t("tasks.addTag")} className="flex-1 min-w-[80px] text-xs px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="btn-primary text-xs flex items-center gap-1.5 py-1.5 flex-1"><Check className="w-3.5 h-3.5" /> {t("common.save")}</button>
+              <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs py-1.5"><X className="w-3.5 h-3.5" /></button>
+            </div>
+          </form>
+        </div>
       </div>
     );
   }
@@ -391,16 +398,26 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
                 onClick={() => onCategoryClick(catObj.id)}
                 className={`badge text-[10px] ${catObj.color || "bg-gray-100 text-gray-700"} cursor-pointer hover:opacity-80 transition-opacity`}
               >
-                {catObj.emoji}
+                {catObj.name || catObj.emoji}
               </button>
             )}
             <span className={`badge text-[10px] ${priority.color}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${priority.dot} mr-1`} />
               {t(`tasks.priority.${task.priority}`)}
             </span>
+            {task.energyCost && (
+              <span className={`badge text-[10px] ${ENERGY_CONFIG[task.energyCost]?.color || "bg-gray-100 text-gray-700"}`}>
+                {t(`tasks.energy.${task.energyCost}`)}
+              </span>
+            )}
             <span className="text-[10px] text-muted-light dark:text-muted-dark font-mono">
               ~{task.estimatedMinutes}{t("common.min")}
             </span>
+            {task.timeOfDay && task.timeOfDay !== "exact" && (
+              <span className="badge text-[10px] bg-accent/10 text-accent">
+                {t(`tasks.timeOfDayOptions.${task.timeOfDay}`)}
+              </span>
+            )}
             {task.scheduledTime && (
               <span className="badge text-[10px] bg-accent/10 text-accent flex items-center gap-1">
                 <Clock className="w-3 h-3" />
@@ -453,7 +470,7 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
             </button>
           )}
           <button
-            onClick={() => { setEditText(task.text); setEditPriority(task.priority); setEditMinutes(task.estimatedMinutes); setEditDeadline(task.deadline || ""); setEditScheduledTime(task.scheduledTime || ""); setEditScheduledDate(task.scheduledDate || ""); setEditCategory(task.category || ""); setEditTags(task.tags || []); setEditing(true); }}
+            onClick={() => { setEditText(task.text); setEditPriority(task.priority); setEditEnergyCost(task.energyCost || "medium"); setEditMinutes(task.estimatedMinutes); setEditDeadline(task.deadline || ""); setEditTimeOfDay(task.timeOfDay || ""); setEditScheduledTime(task.scheduledTime || ""); setEditScheduledDate(task.scheduledDate || ""); setEditCategory(task.category || ""); setEditTags(task.tags || []); setEditing(true); }}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-light hover:text-accent hover:bg-accent/10 transition-all"
             title={t("common.edit")}
           >
@@ -494,15 +511,27 @@ function TaskItem({ task, t, onTagClick, onCategoryClick, categories, countdownS
             <SubtaskItem key={s.id} subtask={s} taskId={task.id} t={t} countdownStartEnabled={countdownStartEnabled} />
           ))}
           {!task.completed && (
-            <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pl-8 mt-1">
-              <Plus className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-              <input
-                type="text"
-                value={subtaskText}
-                onChange={(e) => setSubtaskText(e.target.value)}
-                placeholder={t("tasks.addSubtask")}
-                className="flex-1 text-xs px-2 py-1 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
-              />
+            <form onSubmit={handleAddSubtask} className="pl-8 mt-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <Plus className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                <input
+                  type="text"
+                  value={subtaskText}
+                  onChange={(e) => setSubtaskText(e.target.value)}
+                  placeholder={t("tasks.addSubtask")}
+                  className="flex-1 text-xs px-2 py-1 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
+                />
+              </div>
+              {subtaskText.trim() && (
+                <div className="flex items-center gap-1 pl-6 animate-fade-in">
+                  <span className="text-[10px] text-muted-light dark:text-muted-dark mr-1">{t("tasks.energyCost")}:</span>
+                  {Object.entries(ENERGY_CONFIG).map(([key, cfg]) => (
+                    <button key={key} type="button" onClick={() => setSubtaskEnergy(subtaskEnergy === key ? "" : key)} className={`px-2 py-0.5 rounded text-[10px] transition-all ${subtaskEnergy === key ? cfg.color + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}>
+                      {t(`tasks.energy.${key}`)}
+                    </button>
+                  ))}
+                </div>
+              )}
             </form>
           )}
         </div>
@@ -526,8 +555,10 @@ export default function TasksPage() {
   const countdownStartEnabled = settings.gamification?.countdownStartEnabled !== false;
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [energyCost, setEnergyCost] = useState("medium");
   const [minutes, setMinutes] = useState(25);
   const [deadline, setDeadline] = useState("");
+  const [timeOfDay, setTimeOfDay] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [category, setCategory] = useState("");
@@ -538,6 +569,7 @@ export default function TasksPage() {
   const [filterTag, setFilterTag] = useState(null);
   const [filterCategory, setFilterCategory] = useState(null);
   const [addFormExpanded, setAddFormExpanded] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [managingCategories, setManagingCategories] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newCatName, setNewCatName] = useState("");
@@ -557,6 +589,18 @@ export default function TasksPage() {
     }
   };
 
+  const resolveRelativeDate = (when) => {
+    const today = new Date();
+    const fmt = (d) => d.toISOString().slice(0, 10);
+    switch (when) {
+      case "today": return fmt(today);
+      case "tomorrow": return fmt(new Date(today.getTime() + 86400000));
+      case "dayAfter": return fmt(new Date(today.getTime() + 2 * 86400000));
+      case "nextWeek": { const d = new Date(today); d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7); return fmt(d); }
+      default: return when || null;
+    }
+  };
+
   const handleAdd = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
@@ -565,22 +609,27 @@ export default function TasksPage() {
       payload: {
         text: text.trim(),
         priority,
+        energyCost,
         estimatedMinutes: minutes,
         deadline: deadline || null,
-        scheduledTime: scheduledTime || null,
-        scheduledDate: scheduledDate || null,
+        timeOfDay: timeOfDay || null,
+        scheduledTime: (timeOfDay === "exact" ? scheduledTime : null) || null,
+        scheduledDate: resolveRelativeDate(scheduledDate),
         category: category || null,
         tags,
       },
     });
     setText("");
     setDeadline("");
+    setTimeOfDay("");
     setScheduledTime("");
     setScheduledDate("");
     setCategory("");
+    setEnergyCost("medium");
     setTags([]);
     setTagInput("");
     setAddFormExpanded(false);
+    setShowDetails(false);
   };
 
   const allTags = useMemo(() => {
@@ -817,122 +866,207 @@ export default function TasksPage() {
           <div className="glass-card">
             {/* Collapsible Add form */}
             {addFormExpanded && (
-              <div className="p-5 border-b border-gray-200/50 dark:border-white/5 space-y-3 animate-fade-in">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("tasks.add")}</h3>
-                  <button onClick={() => setAddFormExpanded(false)} className="text-xs text-muted-light dark:text-muted-dark hover:text-accent">{t("tasks.addTaskCollapse")}</button>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setAddFormExpanded(false); }}>
+                <div className="glass-card p-6 max-w-lg w-full mx-4 space-y-4 max-h-[85vh] overflow-y-auto animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-semibold">{t("tasks.createTask")}</h3>
+                    <button onClick={() => setAddFormExpanded(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <form onSubmit={handleAdd} className="space-y-5">
+                    {/* Section: What */}
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionWhat")}</label>
+                      <input
+                        type="text"
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        placeholder={t("tasks.addPlaceholder")}
+                        autoFocus
+                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm placeholder:text-muted-light dark:placeholder:text-muted-dark focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all"
+                      />
+                    </div>
+
+                    {/* Section: Importance */}
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionImportance")}</label>
+                      <div className="flex gap-1.5">
+                        {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setPriority(key)}
+                            className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all text-center ${
+                              priority === key
+                                ? cfg.color + " ring-1 ring-current/20"
+                                : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
+                            }`}
+                          >
+                            {t(`tasks.priority.${key}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section: When */}
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionWhen")}</label>
+                      <div className="flex gap-1.5 flex-wrap mb-2">
+                        {WHEN_OPTIONS.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => { if (opt === "pickDate") { setScheduledDate(""); } else { setScheduledDate(scheduledDate === opt ? "" : opt); } }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              scheduledDate === opt
+                                ? "bg-accent/10 text-accent ring-1 ring-accent/20"
+                                : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
+                            }`}
+                          >
+                            {t(`tasks.whenOptions.${opt}`)}
+                          </button>
+                        ))}
+                      </div>
+                      {scheduledDate === "pickDate" && (
+                        <input
+                          type="date"
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          className="px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                        />
+                      )}
+                      {/* Time of day */}
+                      {scheduledDate && (
+                        <div className="flex gap-1.5 flex-wrap mt-2">
+                          {TIME_OF_DAY_OPTIONS.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setTimeOfDay(timeOfDay === opt ? "" : opt)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                timeOfDay === opt
+                                  ? "bg-accent/10 text-accent ring-1 ring-accent/20"
+                                  : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
+                              }`}
+                            >
+                              {t(`tasks.timeOfDayOptions.${opt}`)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {timeOfDay === "exact" && (
+                        <input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="mt-2 px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                        />
+                      )}
+                    </div>
+
+                    {/* Section: Energy */}
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5 block">{t("tasks.sectionEnergy")}</label>
+                      <div className="flex gap-1.5">
+                        {Object.entries(ENERGY_CONFIG).map(([key, cfg]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setEnergyCost(key)}
+                            className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all text-center ${
+                              energyCost === key
+                                ? cfg.color + " ring-1 ring-current/20"
+                                : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
+                            }`}
+                          >
+                            {t(`tasks.energy.${key}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section: Details (collapsible) */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowDetails(!showDetails)}
+                        className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1.5"
+                      >
+                        {showDetails ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        {t("tasks.sectionDetails")}
+                      </button>
+                      {showDetails && (
+                        <div className="space-y-3 animate-fade-in">
+                          {/* Hard deadline */}
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                            <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.hardDeadline")}</span>
+                            <input
+                              type="date"
+                              value={deadline}
+                              onChange={(e) => setDeadline(e.target.value)}
+                              className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                            />
+                          </div>
+                          {/* Duration */}
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                            <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.estimatedDuration")}</span>
+                            <input
+                              type="number"
+                              min={5}
+                              max={480}
+                              step={5}
+                              value={minutes}
+                              onChange={(e) => setMinutes(Number(e.target.value))}
+                              className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-center text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                            />
+                            <span className="text-xs text-muted-light dark:text-muted-dark">{t("common.min")}</span>
+                          </div>
+                          {/* Category */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                            {categories.map((cat) => (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => setCategory(category === cat.id ? "" : cat.id)}
+                                className={`px-2.5 py-1 rounded-lg text-xs transition-all ${category === cat.id ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
+                              >
+                                {cat.name || cat.emoji}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Tags */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                            {tags.map((tag) => (
+                              <span key={tag} className={`badge text-[10px] ${getTagColor(tag)} flex items-center gap-1`}>
+                                {tag}
+                                <button type="button" onClick={() => setTags(tags.filter((x) => x !== tag))}>
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              type="text"
+                              value={tagInput}
+                              onChange={(e) => setTagInput(e.target.value)}
+                              onKeyDown={handleTagKeyDown}
+                              placeholder={t("tasks.addTag")}
+                              className="flex-1 min-w-[80px] text-xs px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Submit */}
+                    <button type="submit" className="btn-primary text-sm w-full">
+                      {t("tasks.createTask")}
+                    </button>
+                  </form>
                 </div>
-                <form onSubmit={handleAdd} className="space-y-3">
-                  <input
-                    type="text"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder={t("tasks.addPlaceholder")}
-                    autoFocus
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm placeholder:text-muted-light dark:placeholder:text-muted-dark focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all"
-                  />
-                  {/* Row 1: Priority */}
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                    {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setPriority(key)}
-                        className={`px-2.5 py-1 rounded-lg transition-all ${
-                          priority === key
-                            ? cfg.color + " ring-1 ring-current/20"
-                            : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"
-                        }`}
-                      >
-                        {t(`tasks.priority.${key}`)}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Row 2: Dates & Times */}
-                  <div className="flex items-center gap-3 text-xs flex-wrap">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark" />
-                      <input
-                        type="date"
-                        value={deadline}
-                        onChange={(e) => setDeadline(e.target.value)}
-                        title={t("tasks.deadline")}
-                        className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark" />
-                      <input
-                        type="date"
-                        value={scheduledDate}
-                        onChange={(e) => setScheduledDate(e.target.value)}
-                        title={t("tasks.scheduledDate")}
-                        className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark" />
-                      <input
-                        type="time"
-                        value={scheduledTime}
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        title={t("tasks.scheduledTime")}
-                        className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5 ml-auto">
-                      <input
-                        type="number"
-                        min={5}
-                        max={480}
-                        step={5}
-                        value={minutes}
-                        onChange={(e) => setMinutes(Number(e.target.value))}
-                        className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-center text-xs focus:outline-none focus:ring-2 focus:ring-accent/30"
-                      />
-                      <span className="text-muted-light dark:text-muted-dark">{t("common.min")}</span>
-                    </div>
-                  </div>
-                  {/* Row 3: Category */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setCategory(category === cat.id ? "" : cat.id)}
-                        className={`px-2 py-1 rounded-lg text-xs transition-all ${category === cat.id ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20" : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"}`}
-                      >
-                        {cat.emoji}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Row 4: Tags */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                    {tags.map((tag) => (
-                      <span key={tag} className={`badge text-[10px] ${getTagColor(tag)} flex items-center gap-1`}>
-                        {tag}
-                        <button type="button" onClick={() => setTags(tags.filter((x) => x !== tag))}>
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      </span>
-                    ))}
-                    <input
-                      type="text"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={handleTagKeyDown}
-                      placeholder={t("tasks.addTag")}
-                      className="flex-1 min-w-[100px] text-xs px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
-                    />
-                  </div>
-                  {/* Submit */}
-                  <button type="submit" className="btn-primary text-sm w-full">
-                    {t("tasks.add")}
-                  </button>
-                </form>
               </div>
             )}
 

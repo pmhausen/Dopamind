@@ -39,24 +39,106 @@ function AbsenceStatusWidget({ t }) {
 
 function QuickAddTask({ t, onAdd }) {
   const [text, setText] = useState("");
+  const [step, setStep] = useState(0); // 0=text, 1=when, 2=importance, 3=energy
+  const [meta, setMeta] = useState({ priority: "medium", energyCost: "medium", scheduledDate: null, timeOfDay: null });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    onAdd(text.trim());
-    setText("");
+    setStep(1);
   };
 
+  const resolveWhen = (key) => {
+    const today = new Date();
+    const fmt = (d) => d.toISOString().slice(0, 10);
+    if (key === "today") return fmt(today);
+    if (key === "tomorrow") { const d = new Date(today); d.setDate(d.getDate() + 1); return fmt(d); }
+    if (key === "dayAfter") { const d = new Date(today); d.setDate(d.getDate() + 2); return fmt(d); }
+    if (key === "nextWeek") { const d = new Date(today); d.setDate(d.getDate() + (8 - d.getDay())); return fmt(d); }
+    return null;
+  };
+
+  const selectWhen = (key) => {
+    setMeta((m) => ({ ...m, scheduledDate: resolveWhen(key) }));
+    setStep(2);
+  };
+
+  const selectPriority = (p) => {
+    setMeta((m) => ({ ...m, priority: p }));
+    setStep(3);
+  };
+
+  const selectEnergy = (e) => {
+    const final = { ...meta, energyCost: e };
+    onAdd(text.trim(), final);
+    setText("");
+    setStep(0);
+    setMeta({ priority: "medium", energyCost: "medium", scheduledDate: null, timeOfDay: null });
+  };
+
+  const skip = () => {
+    if (step === 1) setStep(2);
+    else if (step === 2) setStep(3);
+    else {
+      onAdd(text.trim(), meta);
+      setText("");
+      setStep(0);
+      setMeta({ priority: "medium", energyCost: "medium", scheduledDate: null, timeOfDay: null });
+    }
+  };
+
+  if (step === 0) {
+    return (
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("home.quickAdd")} className="flex-1 px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all" />
+        <button type="submit" className="btn-primary p-2"><Plus className="w-4 h-4" /></button>
+      </form>
+    );
+  }
+
+  const WHEN_KEYS = ["today", "tomorrow", "dayAfter", "nextWeek"];
+  const PRIORITY_KEYS = ["high", "medium", "low"];
+  const ENERGY_KEYS = ["low", "medium", "high"];
+  const PRIORITY_COLORS = { high: "bg-danger/10 text-danger", medium: "bg-warn/10 text-amber-700", low: "bg-emerald-50 text-emerald-700" };
+  const ENERGY_COLORS = { low: "bg-emerald-50 text-emerald-700", medium: "bg-warn/10 text-amber-700", high: "bg-danger/10 text-danger" };
+
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={t("home.quickAdd")}
-        className="flex-1 px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
-      />
-      <button type="submit" className="btn-primary p-2"><Plus className="w-4 h-4" /></button>
-    </form>
+    <div className="space-y-2 animate-fade-in">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium truncate flex-1">{text}</span>
+        <button onClick={skip} className="text-[10px] text-muted-light dark:text-muted-dark hover:text-current">{t("tasks.quickAddSkip")}</button>
+      </div>
+      {step === 1 && (
+        <div>
+          <span className="text-[10px] text-muted-light dark:text-muted-dark block mb-1">{t("tasks.quickAddWhen")}</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {WHEN_KEYS.map((k) => (
+              <button key={k} type="button" onClick={() => selectWhen(k)} className="px-3 py-1.5 rounded-lg text-xs bg-accent/10 text-accent hover:bg-accent/20 transition-all">{t(`tasks.whenOptions.${k}`)}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {step === 2 && (
+        <div>
+          <span className="text-[10px] text-muted-light dark:text-muted-dark block mb-1">{t("tasks.quickAddImportance")}</span>
+          <div className="flex gap-1.5">
+            {PRIORITY_KEYS.map((k) => (
+              <button key={k} type="button" onClick={() => selectPriority(k)} className={`px-3 py-1.5 rounded-lg text-xs ${PRIORITY_COLORS[k]} hover:opacity-80 transition-all`}>{t(`tasks.priority.${k}`)}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {step === 3 && (
+        <div>
+          <span className="text-[10px] text-muted-light dark:text-muted-dark block mb-1">{t("tasks.quickAddEnergy")}</span>
+          <div className="flex gap-1.5">
+            {ENERGY_KEYS.map((k) => (
+              <button key={k} type="button" onClick={() => selectEnergy(k)} className={`px-3 py-1.5 rounded-lg text-xs ${ENERGY_COLORS[k]} hover:opacity-80 transition-all`}>{t(`tasks.energy.${k}`)}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -162,14 +244,13 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
     const m = totalMin % 60;
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
-  // Energy cost indicator: priority maps to energy requirement
-  const PRIORITY_ENERGY = { high: "high", medium: "normal", low: "low" };
-  const ENERGY_EMOJI = { high: "⚡", normal: "🔵", low: "🔋" };
-  const getEnergyMatch = (priority) => {
-    const cost = PRIORITY_ENERGY[priority] || "normal";
-    if (!energyLevel) return { emoji: ENERGY_EMOJI[cost], matched: false };
+  // Energy cost indicator: uses task.energyCost directly (not derived from priority)
+  const ENERGY_LABELS = { high: t("tasks.energy.high"), medium: t("tasks.energy.medium"), low: t("tasks.energy.low") };
+  const getEnergyMatch = (task) => {
+    const cost = task?.energyCost || "medium";
+    if (!energyLevel) return { label: ENERGY_LABELS[cost] || ENERGY_LABELS.medium, matched: false, cost };
     const matched = cost === energyLevel;
-    return { emoji: ENERGY_EMOJI[cost], matched };
+    return { label: ENERGY_LABELS[cost] || ENERGY_LABELS.medium, matched, cost };
   };
   const isTimeOnly = (s) => /^\d{1,2}:\d{2}$/.test(s);
   const nowTotal = toMin(nowH, nowM);
@@ -256,9 +337,16 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
     }
   }
 
-  // 3. Tasks
+  // 3. Tasks — resolve timeOfDay to time blocks
+  const resolveTimeOfDayStart = (tod) => {
+    if (tod === "morning") return workStart;
+    if (tod === "afternoon") return Math.max(12 * 60, workStart);
+    if (tod === "evening") return Math.max(17 * 60, workStart);
+    return workStart;
+  };
   const scheduledTasks = tasks.filter((tk) => tk.scheduledTime);
-  const unscheduledTasks = tasks.filter((tk) => !tk.scheduledTime);
+  const timeOfDayTasks = tasks.filter((tk) => !tk.scheduledTime && tk.timeOfDay && tk.timeOfDay !== "exact");
+  const unscheduledTasks = tasks.filter((tk) => !tk.scheduledTime && (!tk.timeOfDay || tk.timeOfDay === "exact"));
   const findFreeStart = (desiredStart, dur) => {
     let s = Math.max(workStart, desiredStart);
     while (s + dur <= workEnd) { if (isRangeFree(s, s + dur)) return s; s += STEP; }
@@ -304,6 +392,12 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
   for (const task of scheduledTasks) {
     const [th, tm] = task.scheduledTime.split(":").map(Number);
     placeTask(task, toMin(th, tm || 0));
+  }
+  // Place timeOfDay tasks at their block start
+  for (const task of timeOfDayTasks) {
+    const blockStart = resolveTimeOfDayStart(task.timeOfDay);
+    const minStart = getTaskMinStart(task);
+    placeTask(task, Math.max(blockStart, minStart));
   }
   let nextFree = workStart;
   for (const task of unscheduledTasks) {
@@ -887,12 +981,12 @@ function UnifiedDayTimeline({ t, events, tasks, settings, onCompleteTask, onTogg
                 )}
 
                 {/* Energy resource indicator */}
-                {(isTask || isSubtask) && entry.priority && !isEditing && energyLevel && (
+                {(isTask || isSubtask) && !isEditing && energyLevel && entry.task && (
                   <span
-                    className={`text-[9px] flex-shrink-0 mt-0.5 transition-opacity ${getEnergyMatch(entry.priority).matched ? "opacity-100" : "opacity-30"}`}
-                    title={`${t("home.energyCost")}: ${t(`home.energy.${PRIORITY_ENERGY[entry.priority] || "normal"}`)}`}
+                    className={`text-[9px] flex-shrink-0 mt-0.5 px-1 rounded transition-opacity ${getEnergyMatch(entry.task).matched ? "opacity-100 bg-accent/10" : "opacity-40"}`}
+                    title={`${t("home.energyCost")}: ${getEnergyMatch(entry.task).label}`}
                   >
-                    {getEnergyMatch(entry.priority).emoji}
+                    {getEnergyMatch(entry.task).label}
                   </span>
                 )}
 
@@ -1101,15 +1195,14 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
   };
 
   // Energy cost indicator (mirrors day view logic):
-  // Priority "high" requires high energy, "medium" requires normal energy, "low" requires low energy.
-  const WEEK_PRIORITY_ENERGY = { high: "high", medium: "normal", low: "low" };
-  const WEEK_ENERGY_EMOJI = { high: "⚡", normal: "🔵", low: "🔋" };
+  // Energy matching uses task.energyCost directly
+  const WEEK_ENERGY_LABELS = { high: "⚡", medium: "🔵", low: "🔋" };
   // Minimum chip height in px required before showing hover action buttons
   const MIN_HEIGHT_FOR_ACTIONS = 20;
-  const getWeekEnergyMatch = (priority) => {
-    const cost = WEEK_PRIORITY_ENERGY[priority] || "normal";
-    if (!energyLevel) return { emoji: WEEK_ENERGY_EMOJI[cost], matched: false };
-    return { emoji: WEEK_ENERGY_EMOJI[cost], matched: cost === energyLevel };
+  const getWeekEnergyMatch = (task) => {
+    const cost = task?.energyCost || "medium";
+    if (!energyLevel) return { emoji: WEEK_ENERGY_LABELS[cost] || "🔵", matched: false };
+    return { emoji: WEEK_ENERGY_LABELS[cost] || "🔵", matched: cost === energyLevel };
   };
 
   const nowTotal = currentTime.getHours() * 60 + currentTime.getMinutes();
@@ -1135,25 +1228,23 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
     const dayTasks = getTasksForDay(date);
     const items = [];
     for (const task of dayTasks) {
+      const resolvedTime = task.scheduledTime || (task.timeOfDay === "morning" ? `${String(Math.floor(workStart/60)).padStart(2,"0")}:${String(workStart%60).padStart(2,"0")}` : task.timeOfDay === "afternoon" ? "12:00" : task.timeOfDay === "evening" ? "17:00" : null);
       if (task.completed) {
-        // Show completed tasks as simple items (no subtask expansion needed)
-        items.push({ type: "task", id: task.id, parentId: null, text: task.text, estimatedMinutes: task.estimatedMinutes || 30, scheduledTime: task.scheduledTime, priority: task.priority, completed: true, createdAt: task.createdAt });
+        items.push({ type: "task", id: task.id, parentId: null, text: task.text, estimatedMinutes: task.estimatedMinutes || 30, scheduledTime: resolvedTime, priority: task.priority, energyCost: task.energyCost, completed: true, createdAt: task.createdAt });
         continue;
       }
       const incompleteSubs = (task.subtasks || []).filter((s) => !s.completed);
       if (hideParentWithSubtasks && incompleteSubs.length > 0) {
         for (const sub of incompleteSubs) {
           if (!sub.scheduledDate || sub.scheduledDate === date) {
-            items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || task.estimatedMinutes || 30, scheduledTime: sub.scheduledTime || task.scheduledTime, priority: task.priority, createdAt: task.createdAt });
+            items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || task.estimatedMinutes || 30, scheduledTime: sub.scheduledTime || resolvedTime, priority: task.priority, energyCost: sub.energyCost || task.energyCost, createdAt: task.createdAt });
           }
         }
       } else {
-        items.push({ type: "task", id: task.id, parentId: null, text: task.text, estimatedMinutes: task.estimatedMinutes || 30, scheduledTime: task.scheduledTime, priority: task.priority, createdAt: task.createdAt });
+        items.push({ type: "task", id: task.id, parentId: null, text: task.text, estimatedMinutes: task.estimatedMinutes || 30, scheduledTime: resolvedTime, priority: task.priority, energyCost: task.energyCost, createdAt: task.createdAt });
         for (const sub of incompleteSubs) {
-          // Show subtask if it belongs to this day (no explicit scheduledDate or scheduled for this date)
-          // Inherit parent's scheduledTime as fallback (consistent with hideParentWithSubtasks=true branch)
           if (!sub.scheduledDate || sub.scheduledDate === date) {
-            items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || 30, scheduledTime: sub.scheduledTime || task.scheduledTime, priority: task.priority, createdAt: task.createdAt });
+            items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || 30, scheduledTime: sub.scheduledTime || resolvedTime, priority: task.priority, energyCost: sub.energyCost || task.energyCost, createdAt: task.createdAt });
           }
         }
       }
@@ -1163,7 +1254,7 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
       if (task.completed) continue;
       if (dayTasks.some((dt) => dt.id === task.id)) continue;
       for (const sub of (task.subtasks || []).filter((s) => !s.completed && s.scheduledDate === date)) {
-        items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || 30, scheduledTime: sub.scheduledTime, priority: task.priority, createdAt: task.createdAt });
+        items.push({ type: "subtask", id: sub.id, parentId: task.id, text: sub.text, estimatedMinutes: sub.estimatedMinutes || 30, scheduledTime: sub.scheduledTime, priority: task.priority, energyCost: sub.energyCost || task.energyCost, createdAt: task.createdAt });
       }
     }
     return items;
@@ -1423,9 +1514,9 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
                         {isCompleted && <span className="text-success text-[8px] flex-shrink-0">✓</span>}
                         <span className="flex-1 truncate leading-tight font-medium min-w-0">{item.text}</span>
                         {/* Energy indicator */}
-                        {energyLevel && item.priority && !isCompleted && (
-                          <span className={`text-[7px] flex-shrink-0 transition-opacity ${getWeekEnergyMatch(item.priority).matched ? "opacity-100" : "opacity-25"}`}>
-                            {getWeekEnergyMatch(item.priority).emoji}
+                        {energyLevel && !isCompleted && (
+                          <span className={`text-[7px] flex-shrink-0 transition-opacity ${getWeekEnergyMatch(item).matched ? "opacity-100" : "opacity-25"}`}>
+                            {getWeekEnergyMatch(item).emoji}
                           </span>
                         )}
                         {/* Action buttons (visible on hover when height permits) */}
@@ -1626,8 +1717,15 @@ export default function HomePage() {
   const hiddenTaskCount = Math.max(0, topTasks.length - MAX_TIMELINE_TASKS);
   const topTasksSliced = topTasks.slice(0, MAX_TIMELINE_TASKS);
 
-  const handleQuickAdd = (text) => {
-    dispatch({ type: "ADD_TASK", payload: { text, priority: "medium", estimatedMinutes: 25 } });
+  const handleQuickAdd = (text, meta = {}) => {
+    dispatch({ type: "ADD_TASK", payload: {
+      text,
+      priority: meta.priority || "medium",
+      energyCost: meta.energyCost || "medium",
+      estimatedMinutes: 25,
+      scheduledDate: meta.scheduledDate || null,
+      timeOfDay: meta.timeOfDay || null,
+    }});
   };
 
   const shiftDate = (dateStr, delta) => {

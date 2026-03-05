@@ -23,25 +23,25 @@
     "emptyHint": "Starte mit einer kleinen Aufgabe!",
     "completed": "erledigt",
     "priority": {
-      "high": "Hoch",
-      "medium": "Mittel",
-      "low": "Niedrig"
+      "high": "Muss sein",
+      "medium": "Wichtig",
+      "low": "Wäre schön"
     },
     "filter": {
       "all": "Alle",
       "open": "Offen",
       "done": "Erledigt"
     },
-    "deadline": "Deadline",
-    "deadlinePlaceholder": "Erledigen bis...",
+    "deadline": "Endgültige Frist",
+    "deadlinePlaceholder": "Letztmöglicher Termin...",
     "overdue": "Überfällig",
     "subtasks": "Unteraufgaben",
     "addSubtask": "Unteraufgabe hinzufügen...",
     "addTag": "Tag hinzufügen...",
     "sortBy": "Sortieren",
     "sort": {
-      "priority": "Priorität",
-      "deadline": "Deadline",
+      "priority": "Wichtigkeit",
+      "deadline": "Frist",
       "created": "Erstellt"
     },
     "clearFilter": "Filter löschen",
@@ -49,21 +49,21 @@
     "mailFrom": "Von: {from}",
     "reopen": "Wieder öffnen",
     "complete": "Erledigen",
-    "scheduledTime": "Geplant",
-    "scheduledTimePlaceholder": "Uhrzeit...",
-    "scheduledDate": "Geplantes Datum",
-    "scheduledDatePlaceholder": "Ab wann...",
+    "scheduledTime": "Tageszeit",
+    "scheduledTimePlaceholder": "Wann am Tag?",
+    "scheduledDate": "Geplant für",
+    "scheduledDatePlaceholder": "Wann?",
     "scheduledDateConflict": "⚠ Terminkonflikt: {task} kollidiert mit Termin um {time}",
     "category": "Kategorie",
     "categories": {
-      "work": "💼 Arbeit",
-      "personal": "👤 Privat",
-      "health": "💪 Gesundheit",
-      "finance": "💰 Finanzen",
-      "learning": "📚 Lernen",
-      "home": "🏠 Haushalt",
-      "errand": "🏃 Besorgung",
-      "creative": "🎨 Kreativ"
+      "work": "Arbeit",
+      "personal": "Privat",
+      "health": "Gesundheit",
+      "finance": "Finanzen",
+      "learning": "Lernen",
+      "home": "Haushalt",
+      "errand": "Besorgung",
+      "creative": "Kreativ"
     },
     "subtaskMinutes": "min",
     "noCategory": "Ohne",
@@ -80,7 +80,41 @@
     "subtaskScheduledTime": "Uhrzeit",
     "subtaskScheduledDate": "Datum",
     "startNow": "Jetzt starten ▶",
-    "start": "Starten"
+    "start": "Starten",
+    "energyCost": "Energiebedarf",
+    "energy": {
+      "low": "Wenig Energie",
+      "medium": "Mittel",
+      "high": "Viel Energie"
+    },
+    "timeOfDay": "Tageszeit",
+    "timeOfDayOptions": {
+      "morning": "Vormittags",
+      "afternoon": "Nachmittags",
+      "evening": "Abends",
+      "exact": "Exakte Uhrzeit"
+    },
+    "whenOptions": {
+      "today": "Heute",
+      "tomorrow": "Morgen",
+      "dayAfter": "Übermorgen",
+      "nextWeek": "Nächste Woche",
+      "pickDate": "Datum wählen",
+      "later": "Später"
+    },
+    "hardDeadline": "Endgültige Frist",
+    "hardDeadlineHint": "Die absolute letzte Frist",
+    "estimatedDuration": "Geschätzte Dauer",
+    "quickAddWhen": "Wann?",
+    "quickAddImportance": "Wie wichtig?",
+    "quickAddEnergy": "Wie viel Energie?",
+    "quickAddSkip": "Später",
+    "createTask": "Aufgabe anlegen",
+    "sectionWhat": "Was?",
+    "sectionWhen": "Wann?",
+    "sectionImportance": "Wie wichtig?",
+    "sectionEnergy": "Energiebedarf",
+    "sectionDetails": "Details"
   },
   "focus": {
     "title": "Fokus-Block",
@@ -491,7 +525,7 @@
     "compassionActive": "Kompassion aktiv",
     "pushDown": "Verschieben",
     "pushConfirmQuestion": "Bereits erledigt?",
-    "deadlineWarning": "Aufgabe überschreitet heutigen Deadline-Termin",
+    "deadlineWarning": "Aufgabe überschreitet die endgültige Frist",
     "toggleFullDay": "Ganzer Tag",
     "workHoursOnly": "Nur Assistenzfenster",
     "energyEdit": "Energie bearbeiten",

@@ -319,10 +319,12 @@ function reducer(state, action) {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         text: action.payload.text,
         priority: action.payload.priority || "medium",
+        energyCost: action.payload.energyCost || "medium",
         estimatedMinutes: action.payload.estimatedMinutes || 25,
         completed: false,
         createdAt: Date.now(),
         deadline: action.payload.deadline || null,
+        timeOfDay: action.payload.timeOfDay || null,
         scheduledTime: action.payload.scheduledTime || null,
         scheduledDate: action.payload.scheduledDate || null,
         category: action.payload.category || null,
@@ -360,12 +362,12 @@ function reducer(state, action) {
     }
 
     case "ADD_SUBTASK": {
-      const { taskId, text, estimatedMinutes: subMin, scheduledTime: subSchedTime, scheduledDate: subSchedDate } = action.payload;
+      const { taskId, text, estimatedMinutes: subMin, scheduledTime: subSchedTime, scheduledDate: subSchedDate, energyCost: subEnergy, timeOfDay: subTimeOfDay } = action.payload;
       return {
         ...state,
         tasks: state.tasks.map((t) => {
           if (t.id !== taskId) return t;
-          const newSub = { id: Date.now().toString(36), text, completed: false, estimatedMinutes: subMin || 0, scheduledTime: subSchedTime || null, scheduledDate: subSchedDate || null };
+          const newSub = { id: Date.now().toString(36), text, completed: false, estimatedMinutes: subMin || 0, scheduledTime: subSchedTime || null, scheduledDate: subSchedDate || null, energyCost: subEnergy || t.energyCost || "medium", timeOfDay: subTimeOfDay || null };
           const subs = [...(t.subtasks || []), newSub];
           const subTotal = subs.reduce((sum, s) => sum + (s.estimatedMinutes || 0), 0);
           return { ...t, subtasks: subs, estimatedMinutes: subTotal > 0 ? subTotal : t.estimatedMinutes };
@@ -888,6 +890,25 @@ export function AppProvider({ children }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Migrate existing tasks: add energyCost + timeOfDay if missing
+        if (parsed.tasks) {
+          parsed.tasks = parsed.tasks.map((t) => {
+            const migrated = { ...t };
+            if (!migrated.energyCost) migrated.energyCost = "medium";
+            if (migrated.scheduledTime && !migrated.timeOfDay) {
+              // Infer timeOfDay from existing scheduledTime
+              const h = parseInt(migrated.scheduledTime.split(":")[0], 10);
+              migrated.timeOfDay = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
+            }
+            if (migrated.subtasks) {
+              migrated.subtasks = migrated.subtasks.map((s) => ({
+                ...s,
+                energyCost: s.energyCost || migrated.energyCost,
+              }));
+            }
+            return migrated;
+          });
+        }
         return { ...init, ...parsed };
       }
     } catch {}
