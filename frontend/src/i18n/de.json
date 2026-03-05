@@ -783,6 +783,17 @@
     "almostDone": "Geschätzte Zeit fast erreicht!",
     "overrun": "Aufgabe dauert {min} Min. länger als geschätzt"
   },
+  "quickBubble": {
+    "hint": "Enter drücken für neue Aufgabe",
+    "stepName": "Was willst du erledigen?",
+    "stepPriority": "Wie wichtig?",
+    "stepWhen": "Wann?",
+    "stepEnergy": "Wie viel Energie brauchst du?",
+    "stepDuration": "Wie lange dauert das?",
+    "next": "Weiter",
+    "done": "Aufgabe anlegen",
+    "created": "Aufgabe angelegt!"
+  },
   "countdown": {
     "title": "Mach dich bereit...",
     "go": "LOS!"

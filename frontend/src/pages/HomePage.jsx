@@ -38,111 +38,6 @@ function AbsenceStatusWidget({ t }) {
   );
 }
 
-function QuickAddTask({ t, onAdd }) {
-  const [text, setText] = useState("");
-  const [step, setStep] = useState(0); // 0=text, 1=when, 2=importance, 3=energy
-  const [meta, setMeta] = useState({ priority: "medium", energyCost: "medium", scheduledDate: null, timeOfDay: null });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!text.trim()) return;
-    setStep(1);
-  };
-
-  const resolveWhen = (key) => {
-    const today = new Date();
-    const fmt = (d) => d.toISOString().slice(0, 10);
-    if (key === "today") return fmt(today);
-    if (key === "tomorrow") { const d = new Date(today); d.setDate(d.getDate() + 1); return fmt(d); }
-    if (key === "dayAfter") { const d = new Date(today); d.setDate(d.getDate() + 2); return fmt(d); }
-    if (key === "nextWeek") { const d = new Date(today); d.setDate(d.getDate() + (8 - d.getDay())); return fmt(d); }
-    return null;
-  };
-
-  const selectWhen = (key) => {
-    setMeta((m) => ({ ...m, scheduledDate: resolveWhen(key) }));
-    setStep(2);
-  };
-
-  const selectPriority = (p) => {
-    setMeta((m) => ({ ...m, priority: p }));
-    setStep(3);
-  };
-
-  const selectEnergy = (e) => {
-    const final = { ...meta, energyCost: e };
-    onAdd(text.trim(), final);
-    setText("");
-    setStep(0);
-    setMeta({ priority: "medium", energyCost: "medium", scheduledDate: null, timeOfDay: null });
-  };
-
-  const skip = () => {
-    if (step === 1) setStep(2);
-    else if (step === 2) setStep(3);
-    else {
-      onAdd(text.trim(), meta);
-      setText("");
-      setStep(0);
-      setMeta({ priority: "medium", energyCost: "medium", scheduledDate: null, timeOfDay: null });
-    }
-  };
-
-  if (step === 0) {
-    return (
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("home.quickAdd")} className="flex-1 px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all" />
-        <button type="submit" className="btn-primary p-2"><Plus className="w-4 h-4" /></button>
-      </form>
-    );
-  }
-
-  const WHEN_KEYS = ["today", "tomorrow", "dayAfter", "nextWeek"];
-  const PRIORITY_KEYS = ["high", "medium", "low"];
-  const ENERGY_KEYS = ["low", "medium", "high"];
-  const PRIORITY_COLORS = { high: "bg-danger/10 text-danger", medium: "bg-warn/10 text-amber-700", low: "bg-emerald-50 text-emerald-700" };
-  const ENERGY_COLORS = { low: "bg-emerald-50 text-emerald-700", medium: "bg-warn/10 text-amber-700", high: "bg-danger/10 text-danger" };
-
-  return (
-    <div className="space-y-2 animate-fade-in">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium truncate flex-1">{text}</span>
-        <button onClick={skip} className="text-[10px] text-muted-light dark:text-muted-dark hover:text-current">{t("tasks.quickAddSkip")}</button>
-      </div>
-      {step === 1 && (
-        <div>
-          <span className="text-[10px] text-muted-light dark:text-muted-dark block mb-1">{t("tasks.quickAddWhen")}</span>
-          <div className="flex gap-1.5 flex-wrap">
-            {WHEN_KEYS.map((k) => (
-              <button key={k} type="button" onClick={() => selectWhen(k)} className="px-3 py-1.5 rounded-lg text-xs bg-accent/10 text-accent hover:bg-accent/20 transition-all">{t(`tasks.whenOptions.${k}`)}</button>
-            ))}
-          </div>
-        </div>
-      )}
-      {step === 2 && (
-        <div>
-          <span className="text-[10px] text-muted-light dark:text-muted-dark block mb-1">{t("tasks.quickAddImportance")}</span>
-          <div className="flex gap-1.5">
-            {PRIORITY_KEYS.map((k) => (
-              <button key={k} type="button" onClick={() => selectPriority(k)} className={`px-3 py-1.5 rounded-lg text-xs ${PRIORITY_COLORS[k]} hover:opacity-80 transition-all`}>{t(`tasks.priority.${k}`)}</button>
-            ))}
-          </div>
-        </div>
-      )}
-      {step === 3 && (
-        <div>
-          <span className="text-[10px] text-muted-light dark:text-muted-dark block mb-1">{t("tasks.quickAddEnergy")}</span>
-          <div className="flex gap-1.5">
-            {ENERGY_KEYS.map((k) => (
-              <button key={k} type="button" onClick={() => selectEnergy(k)} className={`px-3 py-1.5 rounded-lg text-xs ${ENERGY_COLORS[k]} hover:opacity-80 transition-all`}>{t(`tasks.energy.${k}`)}</button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 const DEFAULT_CUSTOM_TIME_START = "06:00";
 const DEFAULT_CUSTOM_TIME_END = "22:00";
 
@@ -2185,19 +2080,6 @@ export default function HomePage() {
   const hiddenTaskCount = Math.max(0, topTasks.length - MAX_TIMELINE_TASKS);
   const topTasksSliced = topTasks.slice(0, MAX_TIMELINE_TASKS);
 
-  const handleQuickAdd = (text, meta = {}) => {
-    const sm = settings.estimation?.sizeMappings || { quick: 10, short: 25, medium: 45, long: 90 };
-    dispatch({ type: "ADD_TASK", payload: {
-      text,
-      priority: meta.priority || "medium",
-      energyCost: meta.energyCost || "medium",
-      estimatedMinutes: sm[meta.sizeCategory || "medium"] || 25,
-      sizeCategory: meta.sizeCategory || "medium",
-      scheduledDate: meta.scheduledDate || null,
-      timeOfDay: meta.timeOfDay || null,
-    }});
-  };
-
   const shiftDate = (dateStr, delta) => {
     const [y, m, d] = dateStr.split("-").map(Number);
     return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10);
@@ -2526,11 +2408,6 @@ export default function HomePage() {
 
         {planView === "block" && (
           <>
-            {isToday && (
-              <div className="mb-3">
-                <QuickAddTask t={t} onAdd={handleQuickAdd} />
-              </div>
-            )}
             <BlockDayView
               t={t}
               tasks={topTasks}
@@ -2559,12 +2436,6 @@ export default function HomePage() {
 
         {planView === "timeline" && (
           <>
-            {isToday && (
-              <div className="mb-3">
-                <QuickAddTask t={t} onAdd={handleQuickAdd} />
-              </div>
-            )}
-
             <UnifiedDayTimeline
               t={t}
               events={viewEvents}

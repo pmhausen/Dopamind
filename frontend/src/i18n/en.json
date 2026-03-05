@@ -783,6 +783,17 @@
     "almostDone": "Almost at estimated time!",
     "overrun": "Task running {min} min over estimate"
   },
+  "quickBubble": {
+    "hint": "Press Enter for new task",
+    "stepName": "What do you want to do?",
+    "stepPriority": "How important?",
+    "stepWhen": "When?",
+    "stepEnergy": "How much energy do you need?",
+    "stepDuration": "How long will this take?",
+    "next": "Next",
+    "done": "Create task",
+    "created": "Task created!"
+  },
   "countdown": {
     "title": "Get ready...",
     "go": "GO!"
