@@ -1541,7 +1541,7 @@ function WeekTimelineView({ t, tasks, getEventsForDate, weekStart, onSelectDay, 
     gridSlots.push(min);
   }
 
-  const HEADER_H = 44;
+  const HEADER_H = 28;
 
   return (
     <div className="flex overflow-x-auto select-none">
