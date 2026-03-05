@@ -1252,7 +1252,7 @@ export function AppProvider({ children }) {
         dispatch(action);
         break;
     }
-  }, [state.tasks]);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.tasks]); // eslint-disable-line
 
   // Sync stats after any state change that might affect them
   useEffect(() => {
@@ -1260,7 +1260,7 @@ export function AppProvider({ children }) {
     if (!token) return;
     syncStats(state);
   }, [state.xp, state.level, state.currentStreakDays, state.completedToday,
-    state.completedThisWeek, state.completedThisMonth, state.completedThisYear]); // eslint-disable-line react-hooks/exhaustive-deps
+    state.completedThisWeek, state.completedThisMonth, state.completedThisYear]); // eslint-disable-line
 
   return (
     <AppContext.Provider value={{ state, dispatch: apiDispatch, xpForLevel, xpForNextLevel }}>
