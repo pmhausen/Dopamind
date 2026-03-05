@@ -86,6 +86,17 @@ router.patch("/", async (req, res) => {
       [req.user.id]
     );
 
+    // Optional optimistic locking: if client sends updatedAt, only update if it matches
+    if (req.body.updatedAt !== undefined) {
+      const optimisticValues = [...values, req.body.updatedAt];
+      const { rows, rowCount } = await pool.query(
+        `UPDATE user_stats SET ${setClauses.join(", ")} WHERE user_id = $${idx} AND updated_at = $${idx + 1} RETURNING *`,
+        optimisticValues
+      );
+      if (rowCount === 0) return res.status(409).json({ error: "Conflict: stats were modified by another session" });
+      return res.json(statsRow(rows[0]));
+    }
+
     const { rows } = await pool.query(
       `UPDATE user_stats SET ${setClauses.join(", ")} WHERE user_id = $${idx} RETURNING *`,
       values

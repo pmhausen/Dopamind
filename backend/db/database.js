@@ -275,6 +275,12 @@ async function migrateAppState() {
       );
 
       console.log(`Migrated app_state for user ${userId}: ${tasks.length} tasks, ${unlocked.length} achievements`);
+
+      // Clean up the migrated app_state entry so this migration doesn't re-run on next startup
+      await client.query(
+        "DELETE FROM user_data WHERE user_id = $1 AND data_type = 'app_state'",
+        [userId]
+      );
     }
   } catch (err) {
     console.error("app_state migration error (non-fatal):", err.message);

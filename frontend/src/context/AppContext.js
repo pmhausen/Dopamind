@@ -387,7 +387,7 @@ function reducer(state, action) {
         ...state,
         tasks: state.tasks.map((t) => {
           if (t.id !== taskId) return t;
-          const newSub = { id: Date.now().toString(36), text, completed: false, estimatedMinutes: subMin || 0, scheduledTime: subSchedTime || null, scheduledDate: subSchedDate || null, energyCost: subEnergy || t.energyCost || "medium", timeOfDay: subTimeOfDay || null, priority: subPrio || t.priority || "medium", deadline: subDeadline || null, category: t.category || null, tags: subTags || [], sizeCategory: subSize || null };
+          const newSub = { id: action.payload.id || Date.now().toString(36), text, completed: false, estimatedMinutes: subMin || 0, scheduledTime: subSchedTime || null, scheduledDate: subSchedDate || null, energyCost: subEnergy || t.energyCost || "medium", timeOfDay: subTimeOfDay || null, priority: subPrio || t.priority || "medium", deadline: subDeadline || null, category: t.category || null, tags: subTags || [], sizeCategory: subSize || null };
           const subs = [...(t.subtasks || []), newSub];
           const subTotal = subs.reduce((sum, s) => sum + (s.estimatedMinutes || 0), 0);
           return { ...t, subtasks: subs, estimatedMinutes: subTotal > 0 ? subTotal : t.estimatedMinutes };
@@ -1196,14 +1196,17 @@ export function AppProvider({ children }) {
         return;
       }
       case "ADD_SUBTASK": {
-        dispatch(action);
+        // Pre-generate ID so reducer and API use the same one
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const enhancedAction = { ...action, payload: { ...action.payload, id } };
+        dispatch(enhancedAction);
         if (token) {
           const { taskId, text, estimatedMinutes, scheduledTime, scheduledDate,
             energyCost, timeOfDay, priority, deadline, category, tags, sizeCategory } = action.payload;
           apiFetch(`/tasks/${taskId}/subtasks`, {
             method: "POST",
             body: JSON.stringify({
-              text, estimatedMinutes, scheduledTime, scheduledDate,
+              id, text, estimatedMinutes, scheduledTime, scheduledDate,
               energyCost, timeOfDay, priority, deadline, category, tags: tags || [], sizeCategory,
             }),
           }).catch(() => {});
