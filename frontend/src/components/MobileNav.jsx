@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { to: "/", icon: Home, key: "home" },
   { to: "/tasks", icon: CheckSquare, key: "tasks" },
   { to: "/time", icon: Clock, key: "time" },
-  { to: "/calendar", icon: Calendar, key: "calendar" },
+  { to: "/planner", icon: Calendar, key: "planner" },
   { to: "/mail", icon: Mail, key: "mail" },
 ];
 
@@ -18,7 +18,7 @@ export default function MobileNav() {
 
   const visibleNavItems = NAV_ITEMS.filter(({ key }) => {
     if (key === "mail" && !features.mailEnabled) return false;
-    if (key === "calendar" && !features.calendarEnabled) return false;
+    if (key === "planner" && !features.calendarEnabled) return false;
     if (key === "time" && !features.resourceMonitorEnabled) return false;
     return true;
   });

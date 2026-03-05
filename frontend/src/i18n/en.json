@@ -13,7 +13,8 @@
     "time": "Time",
     "settings": "Settings",
     "achievements": "Statistics",
-    "admin": "Administration"
+    "admin": "Administration",
+    "planner": "Planner"
   },
   "home": {
     "greeting": "One step at a time.",

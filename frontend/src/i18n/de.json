@@ -13,7 +13,8 @@
     "time": "Zeit",
     "settings": "Einstellungen",
     "achievements": "Statistiken",
-    "admin": "Administration"
+    "admin": "Administration",
+    "planner": "Planer"
   },
   "tasks": {
     "title": "Aufgaben",

@@ -22,7 +22,7 @@ import XpBar from "./XpBar";
 const NAV_ITEMS = [
   { to: "/", icon: Home, key: "home" },
   { to: "/tasks", icon: CheckSquare, key: "tasks" },
-  { to: "/calendar", icon: Calendar, key: "calendar" },
+  { to: "/planner", icon: Calendar, key: "planner" },
   { to: "/mail", icon: Mail, key: "mail" },
   { to: "/time", icon: Clock, key: "time" },
   { to: "/achievements", icon: Trophy, key: "achievements" },
@@ -43,7 +43,7 @@ export default function Sidebar() {
   const features = settings.features || {};
   const visibleNavItems = NAV_ITEMS.filter(({ key }) => {
     if (key === "mail" && !features.mailEnabled) return false;
-    if (key === "calendar" && !features.calendarEnabled) return false;
+    if (key === "planner" && !features.calendarEnabled) return false;
     if (key === "time" && !features.resourceMonitorEnabled) return false;
     if (key === "achievements" && !features.gamificationEnabled) return false;
     return true;

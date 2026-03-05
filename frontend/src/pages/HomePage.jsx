@@ -2011,14 +2011,6 @@ export default function HomePage() {
   const monthStart = viewDate.slice(0, 7) + "-01";
 
   const formatViewDate = () => {
-    if (planView === "week") {
-      const weekEnd = shiftDateBy(weekStart, 6);
-      return `${weekStart.slice(8)}.${weekStart.slice(5,7)} – ${weekEnd.slice(8)}.${weekEnd.slice(5,7)}.${weekEnd.slice(0,4)}`;
-    }
-    if (planView === "month") {
-      const [y, m] = viewDate.split("-").map(Number);
-      return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    }
     if (isToday) return t("common.today");
     if (viewDate === shiftDate(todayStr, +1)) return t("common.tomorrow");
     if (viewDate === shiftDate(todayStr, -1)) return t("common.yesterday");
@@ -2174,7 +2166,7 @@ export default function HomePage() {
           <div className="flex items-center gap-1 flex-wrap justify-end">
             {/* View mode switcher */}
             <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-white/5 rounded-lg p-0.5">
-              {["block", "timeline", "week", "month"].map((v) => (
+              {["block", "timeline"].map((v) => (
                 <button
                   key={v}
                   onClick={() => setPlanView(v)}
@@ -2190,7 +2182,7 @@ export default function HomePage() {
             </div>
             {/* Navigation */}
             <button
-              onClick={planView === "week" ? prevWeek : planView === "month" ? prevMonth : prevDay}
+              onClick={prevDay}
               className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center transition-colors"
               aria-label={t("home.previousDay")}
             >
@@ -2198,7 +2190,7 @@ export default function HomePage() {
             </button>
             <span className="text-sm font-medium min-w-[90px] text-center">{formatViewDate()}</span>
             <button
-              onClick={planView === "week" ? nextWeek : planView === "month" ? nextMonth : nextDay}
+              onClick={nextDay}
               className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center transition-colors"
               aria-label={t("home.nextDay")}
             >
@@ -2241,30 +2233,6 @@ export default function HomePage() {
             )}
           </div>
         </div>
-
-        {planView === "week" && (
-          <WeekSummaryView
-            t={t}
-            tasks={state.tasks}
-            getEventsForDate={getEventsForDate}
-            weekStart={weekStart}
-            onSelectDay={(date) => { setViewDate(date); setPlanView("block"); }}
-            todayStr={todayStr}
-            settings={settings}
-            energyLevel={state.energyLevel}
-          />
-        )}
-
-        {planView === "month" && (
-          <MonthPlanView
-            t={t}
-            tasks={state.tasks}
-            getEventsForDate={getEventsForDate}
-            monthStart={monthStart}
-            onSelectDay={(date) => { setViewDate(date); setPlanView("block"); }}
-            todayStr={todayStr}
-          />
-        )}
 
         {planView === "block" && (
           <>
