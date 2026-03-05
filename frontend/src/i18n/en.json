@@ -813,6 +813,15 @@
     "oneTimeWarning": "⚠ The setup wizard can only be run once. It will not be available after completion.",
     "back": "Back",
     "next": "Next",
-    "finish": "Complete Setup"
+    "finish": "Complete Setup",
+    "healthCheck": "System Check",
+    "backendOffline": "Backend is not reachable",
+    "backendOnline": "Backend is connected",
+    "securityKeysOk": "Security keys configured",
+    "securityKeysMissing": "Security keys are missing",
+    "envVarHint": "The backend is not reachable. Please ensure that JWT_SECRET and ENCRYPTION_KEY are set as environment variables (e.g. in your .env file or docker-compose.yml) before starting the container.",
+    "retry": "Retry",
+    "databaseOk": "Database connected",
+    "databaseError": "Database connection failed"
   }
 }

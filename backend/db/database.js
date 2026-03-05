@@ -191,96 +191,106 @@ async function migrateAppState() {
       );
       if (existing.length > 0) continue;
 
-      // Migrate tasks + subtasks
-      const tasks = Array.isArray(blob.tasks) ? blob.tasks : [];
-      for (const task of tasks) {
-        if (!task.id || !task.text) continue;
-        // Store frontend-specific fields in metadata
-        const metadata = {};
-        for (const key of ["timeOfDay", "scheduledDate", "category", "mailRef", "tags",
-          "sizeCategory", "blockSortIndex"]) {
-          if (task[key] !== undefined) metadata[key] = task[key];
+      // Wrap each user's migration in a transaction so it is atomic:
+      // either all data migrates and app_state is deleted, or nothing changes.
+      try {
+        await client.query("BEGIN");
+
+        // Migrate tasks + subtasks
+        const tasks = Array.isArray(blob.tasks) ? blob.tasks : [];
+        for (const task of tasks) {
+          if (!task.id || !task.text) continue;
+          // Store frontend-specific fields in metadata
+          const metadata = {};
+          for (const key of ["timeOfDay", "scheduledDate", "category", "mailRef", "tags",
+            "sizeCategory", "blockSortIndex"]) {
+            if (task[key] !== undefined) metadata[key] = task[key];
+          }
+          await client.query(
+            `INSERT INTO tasks
+              (id, user_id, text, priority, completed, completed_at, deadline,
+               scheduled_time, estimated_minutes, energy_cost, sort_order, metadata, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+               COALESCE(to_timestamp($13::double precision / 1000), NOW()),
+               NOW())
+             ON CONFLICT (id) DO NOTHING`,
+            [
+              task.id,
+              userId,
+              task.text,
+              task.priority || "medium",
+              task.completed || false,
+              task.completedAt || null,
+              task.deadline || null,
+              task.scheduledTime || null,
+              task.estimatedMinutes || 0,
+              task.energyCost || "medium",
+              0,
+              JSON.stringify(metadata),
+              task.createdAt || null,
+            ]
+          );
+
+          const subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+          for (const sub of subtasks) {
+            if (!sub.id || !sub.text) continue;
+            const subMeta = {};
+            for (const key of ["scheduledTime", "scheduledDate", "energyCost", "timeOfDay",
+              "priority", "deadline", "category", "tags", "sizeCategory", "completedAt"]) {
+              if (sub[key] !== undefined) subMeta[key] = sub[key];
+            }
+            await client.query(
+              `INSERT INTO subtasks (id, task_id, text, completed, estimated_minutes, sort_order, metadata)
+               VALUES ($1,$2,$3,$4,$5,$6,$7)
+               ON CONFLICT (id) DO NOTHING`,
+              [sub.id, task.id, sub.text, sub.completed || false, sub.estimatedMinutes || 0, 0, JSON.stringify(subMeta)]
+            );
+          }
         }
+
+        // Migrate achievements
+        const unlocked = Array.isArray(blob.unlockedAchievements) ? blob.unlockedAchievements : [];
+        for (const achId of unlocked) {
+          await client.query(
+            `INSERT INTO achievements (id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+            [achId, userId]
+          );
+        }
+
+        // Migrate stats
         await client.query(
-          `INSERT INTO tasks
-            (id, user_id, text, priority, completed, completed_at, deadline,
-             scheduled_time, estimated_minutes, energy_cost, sort_order, metadata, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-             COALESCE(to_timestamp($13::double precision / 1000), NOW()),
-             NOW())
-           ON CONFLICT (id) DO NOTHING`,
+          `INSERT INTO user_stats
+            (user_id, xp, level, current_streak_days, longest_streak,
+             completed_today, completed_this_week, completed_this_month, completed_this_year,
+             last_completed_date, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+           ON CONFLICT (user_id) DO NOTHING`,
           [
-            task.id,
             userId,
-            task.text,
-            task.priority || "medium",
-            task.completed || false,
-            task.completedAt || null,
-            task.deadline || null,
-            task.scheduledTime || null,
-            task.estimatedMinutes || 0,
-            task.energyCost || "medium",
-            0,
-            JSON.stringify(metadata),
-            task.createdAt || null,
+            blob.xp || 0,
+            blob.level || 1,
+            blob.currentStreakDays || 0,
+            blob.longestStreakDays || 0,
+            blob.completedToday || 0,
+            blob.completedThisWeek || 0,
+            blob.completedThisMonth || 0,
+            blob.completedThisYear || 0,
+            blob.lastActiveDate || null,
           ]
         );
 
-        const subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
-        for (const sub of subtasks) {
-          if (!sub.id || !sub.text) continue;
-          const subMeta = {};
-          for (const key of ["scheduledTime", "scheduledDate", "energyCost", "timeOfDay",
-            "priority", "deadline", "category", "tags", "sizeCategory", "completedAt"]) {
-            if (sub[key] !== undefined) subMeta[key] = sub[key];
-          }
-          await client.query(
-            `INSERT INTO subtasks (id, task_id, text, completed, estimated_minutes, sort_order, metadata)
-             VALUES ($1,$2,$3,$4,$5,$6,$7)
-             ON CONFLICT (id) DO NOTHING`,
-            [sub.id, task.id, sub.text, sub.completed || false, sub.estimatedMinutes || 0, 0, JSON.stringify(subMeta)]
-          );
-        }
-      }
-
-      // Migrate achievements
-      const unlocked = Array.isArray(blob.unlockedAchievements) ? blob.unlockedAchievements : [];
-      for (const achId of unlocked) {
+        // Clean up the migrated app_state entry so this migration doesn't re-run on next startup
         await client.query(
-          `INSERT INTO achievements (id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
-          [achId, userId]
+          "DELETE FROM user_data WHERE user_id = $1 AND data_type = 'app_state'",
+          [userId]
         );
+
+        await client.query("COMMIT");
+        console.log(`Migrated app_state for user ${userId}: ${tasks.length} tasks, ${unlocked.length} achievements`);
+      } catch (userErr) {
+        await client.query("ROLLBACK");
+        console.error(`app_state migration failed for user ${userId} (rolled back):`, userErr.message);
       }
-
-      // Migrate stats
-      await client.query(
-        `INSERT INTO user_stats
-          (user_id, xp, level, current_streak_days, longest_streak,
-           completed_today, completed_this_week, completed_this_month, completed_this_year,
-           last_completed_date, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-         ON CONFLICT (user_id) DO NOTHING`,
-        [
-          userId,
-          blob.xp || 0,
-          blob.level || 1,
-          blob.currentStreakDays || 0,
-          blob.longestStreakDays || 0,
-          blob.completedToday || 0,
-          blob.completedThisWeek || 0,
-          blob.completedThisMonth || 0,
-          blob.completedThisYear || 0,
-          blob.lastActiveDate || null,
-        ]
-      );
-
-      console.log(`Migrated app_state for user ${userId}: ${tasks.length} tasks, ${unlocked.length} achievements`);
-
-      // Clean up the migrated app_state entry so this migration doesn't re-run on next startup
-      await client.query(
-        "DELETE FROM user_data WHERE user_id = $1 AND data_type = 'app_state'",
-        [userId]
-      );
     }
   } catch (err) {
     console.error("app_state migration error (non-fatal):", err.message);

@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const { initDb } = require("./db/database");
+const { initDb, getPool } = require("./db/database");
 const { authenticate } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
@@ -72,7 +72,24 @@ app.use("/api/stats", authenticate, statsRoutes);
 app.use("/api/achievements", authenticate, achievementRoutes);
 app.use("/api/focus-blocks", authenticate, focusBlockRoutes);
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/api/health", async (_req, res) => {
+  const status = {
+    status: "ok",
+    security: {
+      jwtSecret: !!process.env.JWT_SECRET,
+      encryptionKey: !!process.env.ENCRYPTION_KEY,
+    },
+  };
+  try {
+    const pool = getPool();
+    await pool.query("SELECT 1");
+    status.database = true;
+  } catch {
+    status.database = false;
+    status.status = "degraded";
+  }
+  res.json(status);
+});
 
 // Error handler
 app.use((err, _req, res, _next) => {

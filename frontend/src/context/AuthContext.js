@@ -18,9 +18,22 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [setupNeeded, setSetupNeeded] = useState(null); // null = unknown, true/false = resolved
   const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  const [backendOffline, setBackendOffline] = useState(false);
   const didVerify = useRef(false);
 
   const API_BASE = process.env.REACT_APP_API_URL || "/api";
+
+  const parseJsonResponse = async (res) => {
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw new Error("Server returned an unexpected response. Please check your connection and try again.");
+    }
+    try {
+      return await res.json();
+    } catch {
+      throw new Error("Server returned an unexpected response. Please check your connection and try again.");
+    }
+  };
 
   const saveAuth = useCallback((newToken, newUser) => {
     localStorage.setItem(TOKEN_KEY, newToken);
@@ -51,6 +64,7 @@ export function AuthProvider({ children }) {
         setRegistrationEnabled(data.registrationEnabled !== false);
       })
       .catch(() => {
+        setBackendOffline(true);
         setSetupNeeded(false);
       });
 
@@ -83,7 +97,7 @@ export function AuthProvider({ children }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || "Login failed");
       saveAuth(data.token, data.user);
       return data;
@@ -98,7 +112,7 @@ export function AuthProvider({ children }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name, password }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || "Registration failed");
       saveAuth(data.token, data.user);
       return data;
@@ -113,7 +127,7 @@ export function AuthProvider({ children }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name, password }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || "Setup failed");
       setSetupNeeded(false);
       saveAuth(data.token, data.user);
@@ -184,7 +198,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, setupNeeded, registrationEnabled, login, register, completeSetup, logout, deleteAccount, changePassword, updateProfile, isAdmin }}
+      value={{ user, token, loading, setupNeeded, registrationEnabled, backendOffline, login, register, completeSetup, logout, deleteAccount, changePassword, updateProfile, isAdmin }}
     >
       {children}
     </AuthContext.Provider>

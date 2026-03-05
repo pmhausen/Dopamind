@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -11,9 +11,16 @@ import {
   ChevronRight,
   ChevronLeft,
   Rocket,
+  Wifi,
+  WifiOff,
+  Database,
+  KeyRound,
+  RefreshCw,
 } from "lucide-react";
 
-const STEPS = ["welcome", "account", "confirm"];
+const STEPS = ["health", "welcome", "account", "confirm"];
+
+const API_BASE = process.env.REACT_APP_API_URL || "/api";
 
 export default function SetupPage() {
   const { completeSetup } = useAuth();
@@ -31,6 +38,29 @@ export default function SetupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Health check state
+  const [healthStatus, setHealthStatus] = useState(null); // null | { reachable, security, database }
+  const [healthLoading, setHealthLoading] = useState(false);
+
+  const checkHealth = useCallback(async () => {
+    setHealthLoading(true);
+    setHealthStatus(null);
+    try {
+      const res = await fetch(`${API_BASE}/health`);
+      if (!res.ok) throw new Error("Non-OK response");
+      const data = await res.json();
+      setHealthStatus({ reachable: true, ...data });
+    } catch {
+      setHealthStatus({ reachable: false });
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkHealth();
+  }, [checkHealth]);
+
   const updateField = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -47,8 +77,9 @@ export default function SetupPage() {
     form.confirmPassword.length > 0;
 
   const canProceed = () => {
-    if (step === 0) return true;
-    if (step === 1) {
+    if (step === 0) return healthStatus?.reachable === true;
+    if (step === 1) return true;
+    if (step === 2) {
       return (
         form.email.trim().length > 0 &&
         form.name.trim().length > 0 &&
@@ -124,8 +155,85 @@ export default function SetupPage() {
             </div>
           )}
 
-          {/* Step 0: Welcome */}
+          {/* Step 0: Health Check */}
           {step === 0 && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="flex items-center gap-2 mb-2">
+                <Wifi size={20} className="text-accent" />
+                <h2 className="text-lg font-semibold">{t("setup.healthCheck")}</h2>
+              </div>
+
+              {healthLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-light dark:text-muted-dark py-4 justify-center">
+                  <RefreshCw size={16} className="animate-spin" />
+                  {t("common.loading")}
+                </div>
+              )}
+
+              {!healthLoading && healthStatus && (
+                <div className="space-y-3">
+                  {/* Backend reachability */}
+                  <div className={`flex items-center gap-3 p-3 rounded-xl text-sm ${
+                    healthStatus.reachable
+                      ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                      : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+                  }`}>
+                    {healthStatus.reachable
+                      ? <CheckCircle2 size={18} className="flex-shrink-0" />
+                      : <WifiOff size={18} className="flex-shrink-0" />}
+                    <span>{healthStatus.reachable ? t("setup.backendOnline") : t("setup.backendOffline")}</span>
+                  </div>
+
+                  {/* Security keys */}
+                  {healthStatus.reachable && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl text-sm ${
+                      healthStatus.security?.jwtSecret && healthStatus.security?.encryptionKey
+                        ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                        : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+                    }`}>
+                      <KeyRound size={18} className="flex-shrink-0" />
+                      <span>
+                        {healthStatus.security?.jwtSecret && healthStatus.security?.encryptionKey
+                          ? t("setup.securityKeysOk")
+                          : t("setup.securityKeysMissing")}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Database */}
+                  {healthStatus.reachable && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl text-sm ${
+                      healthStatus.database
+                        ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                        : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300"
+                    }`}>
+                      <Database size={18} className="flex-shrink-0" />
+                      <span>{healthStatus.database ? t("setup.databaseOk") : t("setup.databaseError")}</span>
+                    </div>
+                  )}
+
+                  {/* Offline explanation */}
+                  {!healthStatus.reachable && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-xl p-3 text-xs leading-relaxed">
+                      {t("setup.envVarHint")}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!healthLoading && (
+                <button
+                  onClick={checkHealth}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                >
+                  <RefreshCw size={14} /> {t("setup.retry")}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Step 1: Welcome */}
+          {step === 1 && (
             <div className="text-center space-y-4 animate-fade-in">
               <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto">
                 <Rocket size={32} className="text-accent" />
@@ -137,8 +245,8 @@ export default function SetupPage() {
             </div>
           )}
 
-          {/* Step 1: Admin Account Form */}
-          {step === 1 && (
+          {/* Step 2: Admin Account Form */}
+          {step === 2 && (
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center gap-2 mb-2">
                 <Shield size={20} className="text-accent" />
@@ -245,8 +353,8 @@ export default function SetupPage() {
             </div>
           )}
 
-          {/* Step 2: Confirm */}
-          {step === 2 && (
+          {/* Step 3: Confirm */}
+          {step === 3 && (
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle2 size={20} className="text-success" />

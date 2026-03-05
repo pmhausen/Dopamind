@@ -813,6 +813,15 @@
     "oneTimeWarning": "⚠ Der Setup-Assistent kann nur einmal ausgeführt werden. Nach Abschluss ist er nicht mehr verfügbar.",
     "back": "Zurück",
     "next": "Weiter",
-    "finish": "Setup abschließen"
+    "finish": "Setup abschließen",
+    "healthCheck": "Systemprüfung",
+    "backendOffline": "Backend nicht erreichbar",
+    "backendOnline": "Backend verbunden",
+    "securityKeysOk": "Sicherheitsschlüssel konfiguriert",
+    "securityKeysMissing": "Sicherheitsschlüssel fehlen",
+    "envVarHint": "Das Backend ist nicht erreichbar. Bitte stelle sicher, dass JWT_SECRET und ENCRYPTION_KEY als Umgebungsvariablen gesetzt sind (z.B. in der .env-Datei oder docker-compose.yml), bevor du den Container startest.",
+    "retry": "Erneut prüfen",
+    "databaseOk": "Datenbank verbunden",
+    "databaseError": "Datenbankverbindung fehlgeschlagen"
   }
 }

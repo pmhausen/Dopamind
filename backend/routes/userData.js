@@ -23,7 +23,9 @@ function validateData(type, data) {
     const keys = Object.keys(data);
     for (const key of keys) {
       if (!allowed.includes(key)) {
-        return `Unknown settings key: ${key}`;
+        // Log unknown keys but do not reject – new frontend features may add keys
+        // before the backend allowlist is updated.
+        console.warn(`Unknown settings key received (ignoring): ${key}`);
       }
     }
     // Validate nested password fields are strings if present
