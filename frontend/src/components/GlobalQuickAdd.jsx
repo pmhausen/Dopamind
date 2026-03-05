@@ -3,7 +3,7 @@ import { useApp } from "../context/AppContext";
 import { useSettings } from "../context/SettingsContext";
 import { useI18n } from "../i18n/I18nContext";
 import { useQuickAdd } from "../context/QuickAddContext";
-import { X, Check, ChevronRight, ChevronDown, AlertCircle, Folder, Tag } from "lucide-react";
+import { X, Check, ChevronRight, ChevronDown, AlertCircle, Folder, Tag, Zap } from "lucide-react";
 
 const PRIORITY_COLORS = {
   high: "bg-danger/10 text-danger dark:bg-danger/20",
@@ -87,6 +87,8 @@ export default function GlobalQuickAdd() {
 
   const inputRef = useRef(null);
   const bubbleRef = useRef(null);
+  const scrollableRef = useRef(null);
+  const stepRefs = useRef([]);
 
   const sizeMappings = settings.estimation?.sizeMappings || { quick: 10, short: 25, medium: 45, long: 90 };
   const categories = contextCategories || (state.categories || []);
@@ -174,6 +176,32 @@ export default function GlobalQuickAdd() {
     }
   }, [step, text, handleSubmit]);
 
+  // Ultra-Quick: submit immediately with all defaults
+  const handleUltraQuick = useCallback(() => {
+    if (!text.trim()) return;
+    const effectiveMinutes = sizeMappings["medium"] || 45;
+    const payload = {
+      text: text.trim(),
+      priority: "medium",
+      energyCost: "medium",
+      estimatedMinutes: effectiveMinutes,
+      sizeCategory: "medium",
+      scheduledDate: resolveWhen(smartWhenDefault),
+      timeOfDay: null,
+      scheduledTime: null,
+      deadline: null,
+      category: mode === "subtask" ? (inheritedCategory || null) : null,
+      tags: [],
+    };
+    if (mode === "subtask" && parentTaskId) {
+      dispatch({ type: "ADD_SUBTASK", payload: { taskId: parentTaskId, ...payload } });
+    } else {
+      dispatch({ type: "ADD_TASK", payload });
+    }
+    setFlash(true);
+    setTimeout(() => { closeQuickAdd(); reset(); }, 600);
+  }, [text, sizeMappings, smartWhenDefault, mode, inheritedCategory, parentTaskId, dispatch, closeQuickAdd, reset]);
+
   const handleTagKeyDown = (e) => {
     if ((e.key === "Enter" || e.key === ",") && detailTagInput.trim()) {
       e.preventDefault();
@@ -195,12 +223,29 @@ export default function GlobalQuickAdd() {
     }
   }, [open, step]);
 
+  // Auto-scroll to active step when step changes
+  // 80 ms gives React time to render the new step DOM node before we scroll to it
+  const SCROLL_DELAY_MS = 80;
+  useEffect(() => {
+    if (!open) return;
+    const el = stepRefs.current[step];
+    if (el && scrollableRef.current) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "nearest" }), SCROLL_DELAY_MS);
+    }
+  }, [open, step]);
+
   // Keyboard navigation inside bubble
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
       if (e.key === "Escape") { handleClose(); return; }
       if (e.key === "Enter") {
+        // Cmd/Ctrl+Enter on step 0 → ultra-quick submit
+        if (step === 0 && (e.metaKey || e.ctrlKey) && text.trim()) {
+          e.preventDefault();
+          handleUltraQuick();
+          return;
+        }
         if (step === 5) {
           // On finish step, Enter submits (primary action)
           e.preventDefault();
@@ -220,7 +265,7 @@ export default function GlobalQuickAdd() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open, step, advance, handleClose, handleSubmit, showDetails]);
+  }, [open, step, text, advance, handleClose, handleSubmit, handleUltraQuick, showDetails]);
 
   // Click outside to close
   useEffect(() => {
@@ -246,31 +291,38 @@ export default function GlobalQuickAdd() {
     t("quickBubble.stepFinish"),
   ];
 
-  const renderStepIndicator = () => (
-    <div className="flex gap-1 justify-center mb-3">
-      {STEPS.map((_, i) => (
-        <div key={i} className={`h-1 rounded-full transition-all ${i <= step ? "bg-accent w-6" : "bg-gray-200 dark:bg-white/10 w-3"}`} />
-      ))}
-    </div>
-  );
-
   const btnClass = (active) =>
     `px-3 py-2 rounded-xl text-xs font-medium transition-all ${active ? "ring-2 ring-accent shadow-sm scale-105" : "hover:scale-102"}`;
 
+  // Summary value for completed step badges
+  const getSummaryValue = (i) => {
+    if (i === 0) return text.trim() || "—";
+    if (i === 1) return t(`tasks.priority.${priority}`);
+    if (i === 2) return t(`tasks.whenOptions.${when}`);
+    if (i === 3) return t(`tasks.energy.${energy}`);
+    if (i === 4) return `${t(`tasks.size.${size}`)} ~${sizeMappings[size]}${t("common.min")}`;
+    return "";
+  };
+
+  const getSummaryBadgeClass = (i) => {
+    if (i === 1) return PRIORITY_COLORS[priority];
+    if (i === 3) return ENERGY_COLORS[energy];
+    if (i === 4) return SIZE_COLORS[size];
+    return "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300";
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/40 animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/40 animate-fade-in overflow-y-auto">
       <div ref={bubbleRef} className={`glass-card p-5 w-full max-w-sm mx-4 my-4 shadow-2xl border border-accent/20 ${flash ? "ring-2 ring-success animate-pulse" : ""}`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider font-semibold">
-            {stepLabels[step]}
+            {isSubtask ? t("quickBubble.createSubtask") : t("quickBubble.createTask")}
           </span>
           <button onClick={handleClose} className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
-
-        {renderStepIndicator()}
 
         {/* Success flash */}
         {flash && (
@@ -280,260 +332,367 @@ export default function GlobalQuickAdd() {
           </div>
         )}
 
-        {/* Step content */}
+        {/* Vertical accordion steps */}
         {!flash && (
-          <div className="animate-fade-in">
-            {step === 0 && (
-              <div>
-                <input
-                  ref={inputRef}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder={t("quickBubble.stepName")}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
-                  autoFocus
-                />
-              </div>
-            )}
+          <div ref={scrollableRef} className="space-y-1 max-h-[70vh] overflow-y-auto -mx-1 px-1">
+            {STEPS.map((_, i) => {
+              if (i > step) return null;
+              const isDone = i < step;
+              const isActive = i === step;
 
-            {step === 1 && (
-              <div className="flex gap-2">
-                {PRIORITY_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => { setPriority(key); setStep(2); }}
-                    className={`${btnClass(priority === key)} flex-1 ${PRIORITY_COLORS[key]}`}
-                  >
-                    {t(`tasks.priority.${key}`)}
-                  </button>
-                ))}
-              </div>
-            )}
+              return (
+                <div key={i} ref={(el) => { stepRefs.current[i] = el; }} className="flex gap-2.5">
+                  {/* Vertical stepper column */}
+                  <div className="flex flex-col items-center" style={{ width: "18px", flexShrink: 0 }}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                      isDone
+                        ? "bg-accent"
+                        : "ring-2 ring-accent bg-white dark:bg-gray-800"
+                    }`}>
+                      {isDone
+                        ? <Check className="w-2.5 h-2.5 text-white" />
+                        : <div className="w-1.5 h-1.5 bg-accent rounded-full" />
+                      }
+                    </div>
+                    {/* Connecting line to next step */}
+                    {i < step && (
+                      <div className="w-px bg-accent/25 flex-1 mt-1" style={{ minHeight: "10px" }} />
+                    )}
+                  </div>
 
-            {step === 2 && (
-              <div className="flex gap-2 flex-wrap">
-                {WHEN_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => { setWhen(key); setStep(3); }}
-                    className={`${btnClass(when === key)} flex-1 min-w-[70px] ${when === key ? "bg-accent/10 text-accent" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark"}`}
-                  >
-                    {t(`tasks.whenOptions.${key}`)}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="flex gap-2">
-                {ENERGY_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => { setEnergy(key); setStep(4); }}
-                    className={`${btnClass(energy === key)} flex-1 ${ENERGY_COLORS[key]}`}
-                  >
-                    {t(`tasks.energy.${key}`)}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {step === 4 && (
-              <div className="flex gap-2">
-                {SIZE_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => { setSize(key); setStep(5); }}
-                    className={`${btnClass(size === key)} flex-1 text-center ${SIZE_COLORS[key]}`}
-                  >
-                    <span className="block">{t(`tasks.size.${key}`)}</span>
-                    <span className="block text-[9px] opacity-60 mt-0.5">~{sizeMappings[key]}{t("common.min")}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Step 5: Finish */}
-            {step === 5 && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSubmit(false)}
-                    className="flex-1 btn-primary text-xs py-2 flex items-center justify-center gap-1.5"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    {createLabel}
-                  </button>
-                  <button
-                    onClick={() => setShowDetails((v) => !v)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1.5 border ${
-                      showDetails
-                        ? "bg-accent/10 text-accent border-accent/20"
-                        : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    {showDetails ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                    {t("quickBubble.addDetails")}
-                  </button>
-                </div>
-
-                {/* Inline details form */}
-                {showDetails && (
-                  <div className="space-y-3 pt-2 border-t border-gray-200/50 dark:border-white/10 animate-fade-in">
-                    {/* Time of day */}
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1 block">
-                        {t("tasks.sectionWhen")}
-                      </label>
-                      <div className="flex gap-1 flex-wrap">
-                        {TIME_OF_DAY_OPTIONS.map((opt) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setDetailTimeOfDay(detailTimeOfDay === opt ? "" : opt)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                              detailTimeOfDay === opt
-                                ? "bg-accent/10 text-accent ring-1 ring-accent/20"
-                                : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
-                            }`}
-                          >
-                            {t(`tasks.timeOfDayOptions.${opt}`)}
-                          </button>
-                        ))}
-                      </div>
-                      {detailTimeOfDay === "exact" && (
-                        <input
-                          type="time"
-                          value={detailScheduledTime}
-                          onChange={(e) => setDetailScheduledTime(e.target.value)}
-                          className="mt-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                        />
-                      )}
+                  {/* Step content */}
+                  <div className="flex-1 min-w-0 pb-2">
+                    {/* Step label */}
+                    <div className="text-[9px] text-muted-light dark:text-muted-dark uppercase tracking-wider font-semibold mb-1">
+                      {stepLabels[i]}
                     </div>
 
-                    {/* Deadline */}
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                      <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.hardDeadline")}</span>
-                      <input
-                        type="date"
-                        value={detailDeadline}
-                        onChange={(e) => setDetailDeadline(e.target.value)}
-                        className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                      />
-                    </div>
-
-                    {/* Category — inherited for subtasks */}
-                    {isSubtask && inheritedCategory ? (
-                      <div className="flex items-center gap-2">
-                        <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                        <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.subtaskCategoryInherited")}</span>
-                        <span className="px-2.5 py-1 rounded-lg text-xs bg-gray-100 dark:bg-white/10">
-                          {categories.find((c) => c.id === inheritedCategory)?.name || inheritedCategory}
+                    {/* Completed step: compact clickable summary */}
+                    {isDone && (
+                      <button
+                        onClick={() => setStep(i)}
+                        className="flex items-center gap-1.5 hover:opacity-75 transition-opacity text-left"
+                      >
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getSummaryBadgeClass(i)}`}>
+                          {getSummaryValue(i)}
                         </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                        {categories.map((cat) => (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => setDetailCategory(detailCategory === cat.id ? "" : cat.id)}
-                            className={`px-2.5 py-1 rounded-lg text-xs transition-all ${
-                              detailCategory === cat.id
-                                ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20"
-                                : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"
-                            }`}
-                          >
-                            {cat.name || cat.emoji}
-                          </button>
-                        ))}
-                      </div>
+                      </button>
                     )}
 
-                    {/* Tags */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
-                      {detailTags.map((tag) => (
-                        <span key={tag} className={`badge text-[10px] ${getTagColor(tag)} flex items-center gap-1`}>
-                          {tag}
-                          <button type="button" onClick={() => setDetailTags(detailTags.filter((x) => x !== tag))}>
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </span>
-                      ))}
-                      <input
-                        type="text"
-                        value={detailTagInput}
-                        onChange={(e) => setDetailTagInput(e.target.value)}
-                        onKeyDown={handleTagKeyDown}
-                        placeholder={t("tasks.addTag")}
-                        className="flex-1 min-w-[80px] text-xs px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
-                      />
-                    </div>
+                    {/* Active step: full interaction */}
+                    {isActive && (
+                      <div className="mt-1 animate-fade-in">
 
-                    {/* Custom minutes */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => { setDetailShowCustom(!detailShowCustom); if (!detailCustomMinutes) setDetailCustomMinutes(sizeMappings[size] || 25); }}
-                        className={`text-[10px] transition-colors ${detailShowCustom ? "text-accent font-medium" : "text-muted-light dark:text-muted-dark hover:text-accent"}`}
-                      >
-                        {detailShowCustom ? t("tasks.sizeUsePreset") : t("tasks.sizeCustom")}
-                      </button>
-                      {detailShowCustom && (
-                        <div className="flex items-center gap-2 mt-1.5 animate-fade-in">
-                          <input
-                            type="range"
-                            min={5}
-                            max={240}
-                            step={5}
-                            value={detailCustomMinutes || 25}
-                            onChange={(e) => setDetailCustomMinutes(Number(e.target.value))}
-                            className="flex-1 accent-accent"
-                          />
-                          <span className="text-xs font-mono text-accent w-12 text-right">{detailCustomMinutes || 25}{t("common.min")}</span>
-                        </div>
-                      )}
-                    </div>
+                        {/* Step 0: Name input */}
+                        {i === 0 && (
+                          <>
+                            <input
+                              ref={inputRef}
+                              value={text}
+                              onChange={(e) => setText(e.target.value)}
+                              placeholder={t("quickBubble.stepName")}
+                              className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                              autoFocus
+                            />
+                            {/* Ultra-quick + next buttons (only when text entered) */}
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={handleUltraQuick}
+                                disabled={!text.trim()}
+                                className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1.5 border ${
+                                  !text.trim()
+                                    ? "border-gray-200 dark:border-white/10 text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-white/5"
+                                    : "border-accent/30 text-accent hover:bg-accent/5 bg-white dark:bg-white/5"
+                                }`}
+                              >
+                                <Zap className="w-3.5 h-3.5" />
+                                ⚡ Sofort
+                              </button>
+                              <button
+                                onClick={advance}
+                                disabled={!text.trim()}
+                                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                                  !text.trim()
+                                    ? "bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed"
+                                    : "btn-primary"
+                                }`}
+                              >
+                                {t("quickBubble.next")}
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
 
-                    {/* Submit with details */}
-                    <button
-                      onClick={() => handleSubmit(true)}
-                      className="w-full btn-primary text-xs py-2 flex items-center justify-center gap-1.5"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      {createLabel}
-                    </button>
+                        {/* Step 1: Priority */}
+                        {i === 1 && (
+                          <>
+                            <div className="flex gap-2">
+                              {PRIORITY_KEYS.map((key) => (
+                                <button
+                                  key={key}
+                                  onClick={() => { setPriority(key); setStep(2); }}
+                                  className={`${btnClass(priority === key)} flex-1 ${PRIORITY_COLORS[key]}`}
+                                >
+                                  {t(`tasks.priority.${key}`)}
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              onClick={advance}
+                              className="mt-2 w-full py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 btn-primary"
+                            >
+                              {t("quickBubble.next")}
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Step 2: When */}
+                        {i === 2 && (
+                          <>
+                            <div className="flex gap-2 flex-wrap">
+                              {WHEN_KEYS.map((key) => (
+                                <button
+                                  key={key}
+                                  onClick={() => { setWhen(key); setStep(3); }}
+                                  className={`${btnClass(when === key)} flex-1 min-w-[70px] ${when === key ? "bg-accent/10 text-accent" : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark"}`}
+                                >
+                                  {t(`tasks.whenOptions.${key}`)}
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              onClick={advance}
+                              className="mt-2 w-full py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 btn-primary"
+                            >
+                              {t("quickBubble.next")}
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Step 3: Energy */}
+                        {i === 3 && (
+                          <>
+                            <div className="flex gap-2">
+                              {ENERGY_KEYS.map((key) => (
+                                <button
+                                  key={key}
+                                  onClick={() => { setEnergy(key); setStep(4); }}
+                                  className={`${btnClass(energy === key)} flex-1 ${ENERGY_COLORS[key]}`}
+                                >
+                                  {t(`tasks.energy.${key}`)}
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              onClick={advance}
+                              className="mt-2 w-full py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 btn-primary"
+                            >
+                              {t("quickBubble.next")}
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Step 4: Duration */}
+                        {i === 4 && (
+                          <>
+                            <div className="flex gap-2">
+                              {SIZE_KEYS.map((key) => (
+                                <button
+                                  key={key}
+                                  onClick={() => { setSize(key); setStep(5); }}
+                                  className={`${btnClass(size === key)} flex-1 text-center ${SIZE_COLORS[key]}`}
+                                >
+                                  <span className="block">{t(`tasks.size.${key}`)}</span>
+                                  <span className="block text-[9px] opacity-60 mt-0.5">~{sizeMappings[key]}{t("common.min")}</span>
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              onClick={advance}
+                              className="mt-2 w-full py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 btn-primary"
+                            >
+                              {t("quickBubble.next")}
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Step 5: Finish */}
+                        {i === 5 && (
+                          <div className="space-y-3">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSubmit(false)}
+                                className="flex-1 btn-primary text-xs py-2 flex items-center justify-center gap-1.5"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                {createLabel}
+                              </button>
+                              <button
+                                onClick={() => setShowDetails((v) => !v)}
+                                className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1.5 border ${
+                                  showDetails
+                                    ? "bg-accent/10 text-accent border-accent/20"
+                                    : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10"
+                                }`}
+                              >
+                                {showDetails ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                {t("quickBubble.addDetails")}
+                              </button>
+                            </div>
+
+                            {/* Inline details form */}
+                            {showDetails && (
+                              <div className="space-y-3 pt-2 border-t border-gray-200/50 dark:border-white/10 animate-fade-in">
+                                {/* Time of day */}
+                                <div>
+                                  <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1 block">
+                                    {t("tasks.sectionWhen")}
+                                  </label>
+                                  <div className="flex gap-1 flex-wrap">
+                                    {TIME_OF_DAY_OPTIONS.map((opt) => (
+                                      <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => setDetailTimeOfDay(detailTimeOfDay === opt ? "" : opt)}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                                          detailTimeOfDay === opt
+                                            ? "bg-accent/10 text-accent ring-1 ring-accent/20"
+                                            : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
+                                        }`}
+                                      >
+                                        {t(`tasks.timeOfDayOptions.${opt}`)}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  {detailTimeOfDay === "exact" && (
+                                    <input
+                                      type="time"
+                                      value={detailScheduledTime}
+                                      onChange={(e) => setDetailScheduledTime(e.target.value)}
+                                      className="mt-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Deadline */}
+                                <div className="flex items-center gap-2">
+                                  <AlertCircle className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                                  <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.hardDeadline")}</span>
+                                  <input
+                                    type="date"
+                                    value={detailDeadline}
+                                    onChange={(e) => setDetailDeadline(e.target.value)}
+                                    className="px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                                  />
+                                </div>
+
+                                {/* Category — inherited for subtasks */}
+                                {isSubtask && inheritedCategory ? (
+                                  <div className="flex items-center gap-2">
+                                    <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                                    <span className="text-xs text-muted-light dark:text-muted-dark">{t("tasks.subtaskCategoryInherited")}</span>
+                                    <span className="px-2.5 py-1 rounded-lg text-xs bg-gray-100 dark:bg-white/10">
+                                      {categories.find((c) => c.id === inheritedCategory)?.name || inheritedCategory}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <Folder className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                                    {categories.map((cat) => (
+                                      <button
+                                        key={cat.id}
+                                        type="button"
+                                        onClick={() => setDetailCategory(detailCategory === cat.id ? "" : cat.id)}
+                                        className={`px-2.5 py-1 rounded-lg text-xs transition-all ${
+                                          detailCategory === cat.id
+                                            ? (cat.color || "bg-gray-100 text-gray-700") + " ring-1 ring-current/20"
+                                            : "text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5"
+                                        }`}
+                                      >
+                                        {cat.name || cat.emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Tags */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <Tag className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
+                                  {detailTags.map((tag) => (
+                                    <span key={tag} className={`badge text-[10px] ${getTagColor(tag)} flex items-center gap-1`}>
+                                      {tag}
+                                      <button type="button" onClick={() => setDetailTags(detailTags.filter((x) => x !== tag))}>
+                                        <X className="w-2.5 h-2.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                  <input
+                                    type="text"
+                                    value={detailTagInput}
+                                    onChange={(e) => setDetailTagInput(e.target.value)}
+                                    onKeyDown={handleTagKeyDown}
+                                    placeholder={t("tasks.addTag")}
+                                    className="flex-1 min-w-[80px] text-xs px-2 py-1 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-accent/30"
+                                  />
+                                </div>
+
+                                {/* Custom minutes */}
+                                <div>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setDetailShowCustom(!detailShowCustom); if (!detailCustomMinutes) setDetailCustomMinutes(sizeMappings[size] || 25); }}
+                                    className={`text-[10px] transition-colors ${detailShowCustom ? "text-accent font-medium" : "text-muted-light dark:text-muted-dark hover:text-accent"}`}
+                                  >
+                                    {detailShowCustom ? t("tasks.sizeUsePreset") : t("tasks.sizeCustom")}
+                                  </button>
+                                  {detailShowCustom && (
+                                    <div className="flex items-center gap-2 mt-1.5 animate-fade-in">
+                                      <input
+                                        type="range"
+                                        min={5}
+                                        max={240}
+                                        step={5}
+                                        value={detailCustomMinutes || 25}
+                                        onChange={(e) => setDetailCustomMinutes(Number(e.target.value))}
+                                        className="flex-1 accent-accent"
+                                      />
+                                      <span className="text-xs font-mono text-accent w-12 text-right">{detailCustomMinutes || 25}{t("common.min")}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Submit with details */}
+                                <button
+                                  onClick={() => handleSubmit(true)}
+                                  className="w-full btn-primary text-xs py-2 flex items-center justify-center gap-1.5"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  {createLabel}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Next/Done button (steps 0-4) */}
-            {step < 5 && (
-              <button
-                onClick={advance}
-                disabled={step === 0 && !text.trim()}
-                className={`mt-3 w-full py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                  step === 0 && !text.trim()
-                    ? "bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed"
-                    : "btn-primary"
-                }`}
-              >
-                <>
-                  {t("quickBubble.next")}
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </>
-              </button>
-            )}
-
-            {/* Enter hint */}
-            <p className="text-center text-[9px] text-muted-light dark:text-muted-dark mt-1.5 opacity-60">
-              Enter ↵
-            </p>
+                </div>
+              );
+            })}
           </div>
+        )}
+
+        {/* Enter hint */}
+        {!flash && (
+          <p className="text-center text-[9px] text-muted-light dark:text-muted-dark mt-2 opacity-60">
+            Enter ↵{step === 0 && text.trim() ? " · ⌘↵ Sofort" : ""}
+          </p>
         )}
       </div>
     </div>
