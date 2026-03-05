@@ -12,8 +12,11 @@ const initialState = {
   // Task-specific timer state
   activeTaskId: null,   // id of task being timed
   activeTaskText: null,  // text for display
+  activeTaskEstimated: null, // estimated minutes for cascade warnings
+  activeTaskSize: null,  // sizeCategory for time logging
   taskElapsed: 0,       // seconds elapsed on the active task
   taskRunning: false,    // whether the task timer is running
+  taskStartedAt: null,   // ISO timestamp when timer started
 };
 
 function reducer(state, action) {
@@ -34,13 +37,13 @@ function reducer(state, action) {
       return { ...state, flowDetected: action.payload };
     // Task timer actions
     case "START_TASK_TIMER":
-      return { ...state, activeTaskId: action.payload.id, activeTaskText: action.payload.text, taskElapsed: 0, taskRunning: true };
+      return { ...state, activeTaskId: action.payload.id, activeTaskText: action.payload.text, activeTaskEstimated: action.payload.estimatedMinutes || null, activeTaskSize: action.payload.sizeCategory || null, taskElapsed: 0, taskRunning: true, taskStartedAt: new Date().toISOString() };
     case "PAUSE_TASK_TIMER":
       return { ...state, taskRunning: false };
     case "RESUME_TASK_TIMER":
       return { ...state, taskRunning: true };
     case "STOP_TASK_TIMER":
-      return { ...state, activeTaskId: null, activeTaskText: null, taskElapsed: 0, taskRunning: false };
+      return { ...state, activeTaskId: null, activeTaskText: null, activeTaskEstimated: null, activeTaskSize: null, taskElapsed: 0, taskRunning: false, taskStartedAt: null };
     case "TICK_TASK":
       return { ...state, taskElapsed: state.taskElapsed + 1 };
     default:

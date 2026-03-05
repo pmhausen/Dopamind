@@ -14,6 +14,9 @@ import MobileNav from "./components/MobileNav";
 import RewardToast from "./components/RewardToast";
 import MicroConfettiManager from "./components/MicroConfettiManager";
 import TaskTimerWidget from "./components/TaskTimerWidget";
+import GlobalQuickAdd from "./components/GlobalQuickAdd";
+import TriageModal from "./components/TriageModal";
+import ActivityBridge from "./components/ActivityBridge";
 import HomePage from "./pages/HomePage";
 import TasksPage from "./pages/TasksPage";
 import CalendarPage from "./pages/CalendarPage";
@@ -113,6 +116,9 @@ function AppLayout() {
                   <RewardToast />
                   <MicroConfettiManager />
                   <TaskTimerWidget />
+                  <GlobalQuickAdd />
+                  <TriageModal />
+                  <ActivityBridge />
                 </div>
               </FocusTimerProvider>
             </CalendarProvider>

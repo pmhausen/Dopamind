@@ -55,12 +55,22 @@ async function initSchema() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS user_data (
         user_id TEXT NOT NULL,
-        data_type TEXT NOT NULL CHECK(data_type IN ('settings', 'app_state', 'time_tracking')),
+        data_type TEXT NOT NULL CHECK(data_type IN ('settings', 'app_state', 'time_tracking', 'resource_monitor')),
         data JSONB NOT NULL DEFAULT '{}',
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (user_id, data_type),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
+    `);
+
+    // Migrate: add 'resource_monitor' to CHECK constraint if table already exists
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE user_data DROP CONSTRAINT IF EXISTS user_data_data_type_check;
+        ALTER TABLE user_data ADD CONSTRAINT user_data_data_type_check
+          CHECK(data_type IN ('settings', 'app_state', 'time_tracking', 'resource_monitor'));
+      EXCEPTION WHEN others THEN NULL;
+      END $$;
     `);
 
     await client.query(`

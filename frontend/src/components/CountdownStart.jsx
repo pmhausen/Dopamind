@@ -3,7 +3,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { useApp } from "../context/AppContext";
 import { useFocusTimer } from "../context/FocusTimerContext";
 
-export default function CountdownStart({ taskId, taskText, estimatedMinutes = 25, onClose }) {
+export default function CountdownStart({ taskId, taskText, estimatedMinutes = 25, sizeCategory, onClose }) {
   const [count, setCount] = useState(5);
   const [started, setStarted] = useState(false);
   const { dispatch: appDispatch } = useApp();
@@ -18,7 +18,7 @@ export default function CountdownStart({ taskId, taskText, estimatedMinutes = 25
           clearInterval(intervalRef.current);
           setStarted(true);
           appDispatch({ type: "START_FOCUS", payload: { minutes: estimatedMinutes } });
-          timerDispatch({ type: "START_TASK_TIMER", payload: { id: taskId, text: taskText } });
+          timerDispatch({ type: "START_TASK_TIMER", payload: { id: taskId, text: taskText, estimatedMinutes, sizeCategory } });
           setTimeout(onClose, 500);
           return 0;
         }
@@ -26,15 +26,15 @@ export default function CountdownStart({ taskId, taskText, estimatedMinutes = 25
       });
     }, 1000);
     return () => clearInterval(intervalRef.current);
-  }, [appDispatch, timerDispatch, taskId, taskText, estimatedMinutes, onClose]);
+  }, [appDispatch, timerDispatch, taskId, taskText, estimatedMinutes, sizeCategory, onClose]);
 
   const radius = 40;
   const circ = 2 * Math.PI * radius;
   const offset = circ - ((5 - count) / 5) * circ;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="glass-card p-8 flex flex-col items-center gap-4 min-w-[12rem]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="modal-card p-8 flex flex-col items-center gap-4 min-w-[12rem]">
         <p className="text-sm font-medium text-muted-light dark:text-muted-dark">
           {t("countdown.title")}
         </p>

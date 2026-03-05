@@ -19,7 +19,7 @@ export default function MobileNav() {
   const visibleNavItems = NAV_ITEMS.filter(({ key }) => {
     if (key === "mail" && !features.mailEnabled) return false;
     if (key === "calendar" && !features.calendarEnabled) return false;
-    if (key === "time" && !features.timeTrackingEnabled) return false;
+    if (key === "time" && !features.resourceMonitorEnabled) return false;
     return true;
   });
 

@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useTheme } from "../context/ThemeContext";
 import { useSettings } from "../context/SettingsContext";
 import { useAuth } from "../context/AuthContext";
+import { useApp, computeCalibratedMappings } from "../context/AppContext";
 import { discoverCalendars } from "../services/calendarService";
 import { Check, Sun, Moon, Globe, Filter, Search, Loader2, SlidersHorizontal, Briefcase, Mail, Calendar, Gamepad2, User, AlertTriangle } from "lucide-react";
 
@@ -295,6 +296,8 @@ export default function SettingsPage() {
   const { t, lang, switchLang, availableLanguages } = useI18n();
   const { dark, toggle } = useTheme();
   const { settings, updateSettings } = useSettings();
+  const { state: appState } = useApp();
+  const calibrated = useMemo(() => computeCalibratedMappings(appState.timeLog, settings.estimation?.sizeMappings), [appState.timeLog, settings.estimation?.sizeMappings]);
   const [activeTab, setActiveTab] = useState("general");
 
   const TABS = [
@@ -376,6 +379,19 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </Field>
+
+              <Field label={t("settings.timezone")}>
+                <select
+                  value={settings.timezone || "auto"}
+                  onChange={(e) => updateSettings("timezone", e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-sm bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-accent/30 outline-none"
+                >
+                  <option value="auto">{t("settings.timezoneAuto")} ({Intl.DateTimeFormat().resolvedOptions().timeZone})</option>
+                  {["Europe/Berlin", "Europe/Vienna", "Europe/Zurich", "Europe/London", "Europe/Paris", "Europe/Amsterdam", "Europe/Rome", "Europe/Madrid", "Europe/Warsaw", "Europe/Istanbul", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Sao_Paulo", "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Asia/Dubai", "Australia/Sydney", "Pacific/Auckland"].map((tz) => (
+                    <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+                  ))}
+                </select>
+              </Field>
             </Section>
 
             <Section title={t("settings.features")}>
@@ -390,8 +406,8 @@ export default function SettingsPage() {
                 label={t("settings.featureCalendar")}
               />
               <Toggle
-                checked={settings.features.timeTrackingEnabled}
-                onChange={(v) => updateSettings("features", { timeTrackingEnabled: v })}
+                checked={settings.features.resourceMonitorEnabled}
+                onChange={(v) => updateSettings("features", { resourceMonitorEnabled: v })}
                 label={t("settings.featureTimeTracking")}
               />
               <Toggle
@@ -403,7 +419,7 @@ export default function SettingsPage() {
             </>
           )}
 
-          {/* Work Time tab */}
+          {/* Assistance tab */}
           {activeTab === "worktime" && (
             <>
             <Section title={t("settings.workSchedule")}>
@@ -411,41 +427,31 @@ export default function SettingsPage() {
                 <Field label={t("settings.workStart")}>
                   <Input
                     type="time"
-                    value={settings.workSchedule.start}
-                    onChange={(v) => updateSettings("workSchedule", { start: v })}
+                    value={settings.assistanceWindow.start}
+                    onChange={(v) => updateSettings("assistanceWindow", { start: v })}
                   />
                 </Field>
                 <Field label={t("settings.workEnd")}>
                   <Input
                     type="time"
-                    value={settings.workSchedule.end}
-                    onChange={(v) => updateSettings("workSchedule", { end: v })}
+                    value={settings.assistanceWindow.end}
+                    onChange={(v) => updateSettings("assistanceWindow", { end: v })}
                   />
                 </Field>
               </div>
-              <Field label={t("settings.breakDuration")}>
-                <Input
-                  type="number"
-                  min={0}
-                  max={120}
-                  step={5}
-                  value={settings.workSchedule.breakMinutes}
-                  onChange={(v) => updateSettings("workSchedule", { breakMinutes: Number(v) })}
-                />
-              </Field>
               <Field label={t("settings.workDays")}>
                 <div className="flex gap-1.5">
                   {t("settings.weekdaysShort").map((day, i) => {
                     const dayNum = i + 1;
-                    const active = settings.workSchedule.workDays.includes(dayNum);
+                    const active = settings.assistanceWindow.activeDays.includes(dayNum);
                     return (
                       <button
                         key={dayNum}
                         onClick={() => {
                           const days = active
-                            ? settings.workSchedule.workDays.filter((d) => d !== dayNum)
-                            : [...settings.workSchedule.workDays, dayNum].sort();
-                          updateSettings("workSchedule", { workDays: days });
+                            ? settings.assistanceWindow.activeDays.filter((d) => d !== dayNum)
+                            : [...settings.assistanceWindow.activeDays, dayNum].sort();
+                          updateSettings("assistanceWindow", { activeDays: days });
                         }}
                         className={`w-9 h-9 rounded-lg text-xs font-medium transition-all ${
                           active
@@ -459,6 +465,60 @@ export default function SettingsPage() {
                   })}
                 </div>
               </Field>
+            </Section>
+            <Section title={t("settings.breakPattern")}>
+              <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.breakPatternDesc")}</p>
+              <Field label={t("settings.breakStyle")}>
+                <div className="grid grid-cols-2 gap-2">
+                  {["fewLong", "manyShort", "balanced", "custom"].map((style) => (
+                    <button
+                      key={style}
+                      onClick={() => {
+                        if (style === "custom") {
+                          updateSettings("breakPattern", { style });
+                        } else {
+                          const presets = { fewLong: { intervalMinutes: 120, durationMinutes: 30 }, manyShort: { intervalMinutes: 45, durationMinutes: 10 }, balanced: { intervalMinutes: 90, durationMinutes: 15 } };
+                          updateSettings("breakPattern", { style, ...presets[style] });
+                        }
+                      }}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                        settings.breakPattern.style === style
+                          ? "bg-accent text-white"
+                          : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {t(`settings.breakStyle${style.charAt(0).toUpperCase() + style.slice(1)}`)}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {settings.breakPattern.style === "custom" && (
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <Field label={t("settings.breakInterval")}>
+                    <Input
+                      type="number"
+                      min={15}
+                      max={180}
+                      step={5}
+                      value={settings.breakPattern.intervalMinutes}
+                      onChange={(v) => updateSettings("breakPattern", { intervalMinutes: Number(v) })}
+                    />
+                  </Field>
+                  <Field label={t("settings.breakDurationPattern")}>
+                    <Input
+                      type="number"
+                      min={5}
+                      max={45}
+                      step={5}
+                      value={settings.breakPattern.durationMinutes}
+                      onChange={(v) => updateSettings("breakPattern", { durationMinutes: Number(v) })}
+                    />
+                  </Field>
+                </div>
+              )}
+              <p className="text-xs text-accent mt-2 font-medium">
+                {t("settings.breakPreview").replace("{interval}", settings.breakPattern.intervalMinutes).replace("{duration}", settings.breakPattern.durationMinutes)}
+              </p>
             </Section>
             <Section title={t("settings.timeWarnings")}>
               <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.timeWarningsDesc")}</p>
@@ -607,6 +667,46 @@ export default function SettingsPage() {
                 onChange={(v) => updateSettings("timeline", { hideParentWithSubtasks: v })}
                 label={t("settings.hideParentWithSubtasks")}
               />
+            </Section>
+            <Section title={t("settings.estimation")}>
+              <p className="text-xs text-muted-light dark:text-muted-dark mb-3">{t("settings.estimationDesc")}</p>
+              <div className="grid grid-cols-2 gap-3">
+                {["quick", "short", "medium", "long"].map((key) => {
+                  const isAutopilot = settings.estimation?.autopilot === true;
+                  const dataCount = calibrated.stats?.[key]?.length || 0;
+                  const calibratedVal = calibrated.mappings[key];
+                  const manualVal = settings.estimation?.sizeMappings?.[key] ?? { quick: 10, short: 25, medium: 45, long: 90 }[key];
+                  return (
+                    <Field key={key} label={t(`tasks.size.${key}`)}>
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={480}
+                          step={5}
+                          value={isAutopilot ? calibratedVal : manualVal}
+                          onChange={(v) => updateSettings("estimation", { sizeMappings: { ...(settings.estimation?.sizeMappings || {}), [key]: Number(v) } })}
+                          disabled={isAutopilot}
+                        />
+                        <span className="text-xs text-muted-light dark:text-muted-dark">{t("common.min")}</span>
+                      </div>
+                      {isAutopilot && (
+                        <p className="text-[9px] text-muted-light dark:text-muted-dark mt-0.5">
+                          {dataCount >= 5 ? `${dataCount} ${t("settings.estimationDataPoints")}` : `${dataCount}/5 ${t("settings.estimationDataPoints")} — ${t("settings.estimationUsingDefault")}`}
+                        </p>
+                      )}
+                    </Field>
+                  );
+                })}
+              </div>
+              <div className="mt-3">
+                <Toggle
+                  checked={settings.estimation?.autopilot === true}
+                  onChange={(v) => updateSettings("estimation", { autopilot: v })}
+                  label={t("settings.estimationAutopilot")}
+                />
+                <p className="text-[10px] text-muted-light dark:text-muted-dark mt-1">{t("settings.estimationAutopilotDesc")}</p>
+              </div>
             </Section>
             </>
           )}

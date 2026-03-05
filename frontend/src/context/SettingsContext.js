@@ -8,11 +8,15 @@ const defaultSettings = {
   imap: { host: "", port: 993, user: "", password: "", tls: true },
   smtp: { host: "", port: 587, user: "", password: "", tls: true },
   caldav: { url: "", user: "", password: "", calendarUrl: "" },
-  workSchedule: {
+  assistanceWindow: {
     start: "08:00",
     end: "17:00",
-    breakMinutes: 60,
-    workDays: [1, 2, 3, 4, 5],
+    activeDays: [1, 2, 3, 4, 5],
+  },
+  breakPattern: {
+    style: "balanced", // "fewLong" | "manyShort" | "balanced" | "custom"
+    intervalMinutes: 90,
+    durationMinutes: 15,
   },
   gamification: {
     xpEnabled: true,
@@ -32,7 +36,7 @@ const defaultSettings = {
   features: {
     mailEnabled: true,
     calendarEnabled: true,
-    timeTrackingEnabled: true,
+    resourceMonitorEnabled: true,
     gamificationEnabled: true,
   },
   timeWarnings: {
@@ -51,7 +55,56 @@ const defaultSettings = {
     customTimeStart: "06:00",
     customTimeEnd: "22:00",
   },
+  estimation: {
+    sizeMappings: { quick: 10, short: 25, medium: 45, long: 90 },
+    autopilot: false,
+  },
+  timezone: "auto",
 };
+
+// Break pattern presets
+export const BREAK_PRESETS = {
+  fewLong:   { intervalMinutes: 120, durationMinutes: 30 },
+  manyShort: { intervalMinutes: 45,  durationMinutes: 10 },
+  balanced:  { intervalMinutes: 90,  durationMinutes: 15 },
+};
+
+// Migrate old workSchedule → assistanceWindow + breakPattern
+function migrateSettings(s) {
+  if (s.workSchedule && !s.assistanceWindow) {
+    s.assistanceWindow = {
+      start: s.workSchedule.start || defaultSettings.assistanceWindow.start,
+      end: s.workSchedule.end || defaultSettings.assistanceWindow.end,
+      activeDays: s.workSchedule.workDays || defaultSettings.assistanceWindow.activeDays,
+    };
+  }
+  if (s.workSchedule && !s.breakPattern) {
+    s.breakPattern = { ...defaultSettings.breakPattern };
+  }
+  // Migrate old feature toggle
+  if (s.features && s.features.timeTrackingEnabled !== undefined && s.features.resourceMonitorEnabled === undefined) {
+    s.features.resourceMonitorEnabled = s.features.timeTrackingEnabled;
+  }
+  // Backward-compat: keep workSchedule as computed alias so existing consumers don't break during transition
+  if (s.assistanceWindow && !s.workSchedule) {
+    s.workSchedule = {
+      start: s.assistanceWindow.start,
+      end: s.assistanceWindow.end,
+      breakMinutes: s.breakPattern?.durationMinutes || 15,
+      workDays: s.assistanceWindow.activeDays,
+    };
+  } else if (s.assistanceWindow && s.workSchedule) {
+    s.workSchedule.start = s.assistanceWindow.start;
+    s.workSchedule.end = s.assistanceWindow.end;
+    s.workSchedule.workDays = s.assistanceWindow.activeDays;
+    s.workSchedule.breakMinutes = s.breakPattern?.durationMinutes || 15;
+  }
+  // Backward-compat: keep timeTrackingEnabled alias
+  if (s.features) {
+    s.features.timeTrackingEnabled = s.features.resourceMonitorEnabled;
+  }
+  return s;
+}
 
 function deepMerge(target, source) {
   const result = { ...target };
@@ -69,9 +122,9 @@ export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return deepMerge(defaultSettings, JSON.parse(saved));
+      if (saved) return migrateSettings(deepMerge(defaultSettings, JSON.parse(saved)));
     } catch {}
-    return defaultSettings;
+    return migrateSettings({ ...defaultSettings });
   });
   const saveTimer = useRef(null);
   const didLoad = useRef(false);
@@ -85,7 +138,7 @@ export function SettingsProvider({ children }) {
     apiFetch("/user-data/settings")
       .then((res) => {
         if (res.data && Object.keys(res.data).length > 0) {
-          const merged = deepMerge(defaultSettings, res.data);
+          const merged = migrateSettings(deepMerge(defaultSettings, res.data));
           setSettings(merged);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         }
@@ -107,10 +160,13 @@ export function SettingsProvider({ children }) {
 
   const updateSettings = useCallback((section, values) => {
     setSettings((prev) => {
-      const next = { ...prev, [section]: { ...prev[section], ...values } };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      persistToBackend(next);
-      return next;
+      const next = typeof values === "object" && values !== null
+        ? { ...prev, [section]: { ...prev[section], ...values } }
+        : { ...prev, [section]: values };
+      const migrated = migrateSettings(next);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      persistToBackend(migrated);
+      return migrated;
     });
   }, [persistToBackend]);
 

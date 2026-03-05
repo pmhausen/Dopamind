@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
 import { useApp, getLevelTitle, DAILY_CHALLENGES } from "../context/AppContext";
-import { useTimeTracking } from "../context/TimeTrackingContext";
+import { useResourceMonitor } from "../context/ResourceMonitorContext";
 import { useSettings } from "../context/SettingsContext";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -32,7 +32,7 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const { t } = useI18n();
   const { state } = useApp();
-  const { state: ttState } = useTimeTracking();
+  const { isAbsent, isSick, isOnVacation } = useResourceMonitor();
   const { settings } = useSettings();
   const { isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
@@ -44,7 +44,7 @@ export default function Sidebar() {
   const visibleNavItems = NAV_ITEMS.filter(({ key }) => {
     if (key === "mail" && !features.mailEnabled) return false;
     if (key === "calendar" && !features.calendarEnabled) return false;
-    if (key === "time" && !features.timeTrackingEnabled) return false;
+    if (key === "time" && !features.resourceMonitorEnabled) return false;
     if (key === "achievements" && !features.gamificationEnabled) return false;
     return true;
   });
@@ -104,11 +104,13 @@ export default function Sidebar() {
 
       {/* Status footer */}
       <div className="px-3 pb-3 space-y-3">
-        {/* Active clock indicator */}
-        {features.timeTrackingEnabled !== false && ttState.currentSession && (
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-success/10 text-success text-xs font-medium">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
-            {!collapsed && <span>{t("timeTracking.clockIn")}</span>}
+        {/* Absence mode indicator */}
+        {features.resourceMonitorEnabled !== false && isAbsent && (
+          <div className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-medium ${
+            isSick ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent"
+          }`}>
+            <span>{isSick ? "🤒" : "🏖️"}</span>
+            {!collapsed && <span>{isSick ? t("absence.sickMode") : t("absence.vacationMode")}</span>}
           </div>
         )}
 

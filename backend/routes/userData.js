@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.use(authenticate);
 
-const VALID_TYPES = ["settings", "app_state", "time_tracking"];
+const VALID_TYPES = ["settings", "app_state", "time_tracking", "resource_monitor"];
 
 // GET /api/user-data/:type
 router.get("/:type", async (req, res) => {
