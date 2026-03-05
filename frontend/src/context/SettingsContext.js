@@ -13,11 +13,6 @@ const defaultSettings = {
     end: "17:00",
     activeDays: [1, 2, 3, 4, 5],
   },
-  breakPattern: {
-    style: "balanced", // "fewLong" | "manyShort" | "balanced" | "custom"
-    intervalMinutes: 90,
-    durationMinutes: 15,
-  },
   gamification: {
     xpEnabled: true,
     soundEnabled: false,
@@ -62,14 +57,7 @@ const defaultSettings = {
   timezone: "auto",
 };
 
-// Break pattern presets
-export const BREAK_PRESETS = {
-  fewLong:   { intervalMinutes: 120, durationMinutes: 30 },
-  manyShort: { intervalMinutes: 45,  durationMinutes: 10 },
-  balanced:  { intervalMinutes: 90,  durationMinutes: 15 },
-};
-
-// Migrate old workSchedule → assistanceWindow + breakPattern
+// Migrate old workSchedule → assistanceWindow
 function migrateSettings(s) {
   if (s.workSchedule && !s.assistanceWindow) {
     s.assistanceWindow = {
@@ -78,8 +66,9 @@ function migrateSettings(s) {
       activeDays: s.workSchedule.workDays || defaultSettings.assistanceWindow.activeDays,
     };
   }
-  if (s.workSchedule && !s.breakPattern) {
-    s.breakPattern = { ...defaultSettings.breakPattern };
+  // Clean up legacy breakPattern if it exists in stored settings
+  if (s.breakPattern) {
+    delete s.breakPattern;
   }
   // Migrate old feature toggle
   if (s.features && s.features.timeTrackingEnabled !== undefined && s.features.resourceMonitorEnabled === undefined) {
@@ -90,14 +79,14 @@ function migrateSettings(s) {
     s.workSchedule = {
       start: s.assistanceWindow.start,
       end: s.assistanceWindow.end,
-      breakMinutes: s.breakPattern?.durationMinutes || 15,
+      breakMinutes: 0,
       workDays: s.assistanceWindow.activeDays,
     };
   } else if (s.assistanceWindow && s.workSchedule) {
     s.workSchedule.start = s.assistanceWindow.start;
     s.workSchedule.end = s.assistanceWindow.end;
     s.workSchedule.workDays = s.assistanceWindow.activeDays;
-    s.workSchedule.breakMinutes = s.breakPattern?.durationMinutes || 15;
+    s.workSchedule.breakMinutes = 0;
   }
   // Backward-compat: keep timeTrackingEnabled alias
   if (s.features) {

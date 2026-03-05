@@ -43,9 +43,6 @@
     "grid30": "30min",
     "grid60": "60min",
     "listMode": "List view",
-    "removeBreak": "Remove break for today",
-    "restoreBreak": "Restore break",
-    "breakMatched": "Matched with activity log",
     "energyCost": "Energy demand",
     "energyCheckin": "How is your energy today?",
     "energy": {
@@ -561,18 +558,7 @@
     "timeRangeMode_fullDay": "24 Hours",
     "timeRangeMode_custom": "Custom",
     "customTimeStart": "Time Window Start",
-    "customTimeEnd": "Time Window End",
-    "breakPattern": "Break Pattern",
-    "breakPatternDesc": "How would you like to schedule your breaks?",
-    "breakStyle": "Break Style",
-    "breakStyleFewLong": "Few long breaks",
-    "breakStyleManyShort": "Many short breaks",
-    "breakStyleBalanced": "Balanced",
-    "breakStyleCustom": "Custom",
-    "breakInterval": "Work block (min)",
-    "breakIntervalDesc": "How long do you work before a break is scheduled?",
-    "breakDurationPattern": "Break length (min)",
-    "breakPreview": "Every {interval}min a {duration}min break"
+    "customTimeEnd": "Time Window End"
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",
@@ -794,7 +780,11 @@
     "stepDuration": "How long will this take?",
     "next": "Next",
     "done": "Create task",
-    "created": "Task created!"
+    "created": "Task created!",
+    "addDetails": "Add details",
+    "createTask": "Create task",
+    "createSubtask": "Create subtask",
+    "stepFinish": "Finish"
   },
   "countdown": {
     "title": "Get ready...",

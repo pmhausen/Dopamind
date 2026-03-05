@@ -484,18 +484,7 @@
     "timeRangeMode_fullDay": "24 Stunden",
     "timeRangeMode_custom": "Benutzerdefiniert",
     "customTimeStart": "Zeitfenster Start",
-    "customTimeEnd": "Zeitfenster Ende",
-    "breakPattern": "Pausenrhythmus",
-    "breakPatternDesc": "Wie möchtest du deine Pausen einteilen?",
-    "breakStyle": "Pausenstil",
-    "breakStyleFewLong": "Wenige lange Pausen",
-    "breakStyleManyShort": "Viele kurze Pausen",
-    "breakStyleBalanced": "Ausgewogen",
-    "breakStyleCustom": "Individuell",
-    "breakInterval": "Arbeitsblock (min)",
-    "breakIntervalDesc": "Wie lange arbeitest du am Stück, bevor eine Pause eingeplant wird?",
-    "breakDurationPattern": "Pausenlänge (min)",
-    "breakPreview": "Alle {interval}min eine {duration}min Pause"
+    "customTimeEnd": "Zeitfenster Ende"
   },
   "home": {
     "greeting": "Ein Schritt nach dem anderen.",
@@ -525,9 +514,6 @@
     "grid30": "30min",
     "grid60": "60min",
     "listMode": "Listenansicht",
-    "removeBreak": "Pause für heute entfernen",
-    "restoreBreak": "Pause wiederherstellen",
-    "breakMatched": "Abgeglichen mit Aktivitätsprotokoll",
     "energyCost": "Energiebedarf",
     "energyCheckin": "Wie ist deine Energie heute?",
     "energy": {
@@ -794,7 +780,11 @@
     "stepDuration": "Wie lange dauert das?",
     "next": "Weiter",
     "done": "Aufgabe anlegen",
-    "created": "Aufgabe angelegt!"
+    "created": "Aufgabe angelegt!",
+    "addDetails": "Details ergänzen",
+    "createTask": "Aufgabe anlegen",
+    "createSubtask": "Unteraufgabe anlegen",
+    "stepFinish": "Fertig"
   },
   "countdown": {
     "title": "Mach dich bereit...",
