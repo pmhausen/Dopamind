@@ -121,11 +121,35 @@ function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onComp
     ...(tk.subtasks || []).flatMap((s) => s.tags || []),
   ]).filter((v, i, a) => a.indexOf(v) === i).sort(), [tasks]);
 
-  // Block boundaries clipped to assistance window
+  // Scan all scheduled task times to expand blocks when tasks fall outside the assistance window
+  let taskMinStart = workStart;
+  let taskMaxEnd = workEnd;
+  const parseScheduledMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
+  for (const task of tasks) {
+    if (task.completed) continue;
+    if (task.scheduledTime) {
+      const min = parseScheduledMin(task.scheduledTime);
+      if (min < taskMinStart) taskMinStart = min;
+      if (min + 1 > taskMaxEnd) taskMaxEnd = min + 1;
+    }
+    for (const sub of (task.subtasks || [])) {
+      if (sub.completed) continue;
+      if (sub.scheduledTime) {
+        const min = parseScheduledMin(sub.scheduledTime);
+        if (min < taskMinStart) taskMinStart = min;
+        if (min + 1 > taskMaxEnd) taskMaxEnd = min + 1;
+      }
+    }
+  }
+  // Effective window covers both the assistance window and any task scheduled outside it
+  const effectiveStart = taskMinStart;
+  const effectiveEnd = taskMaxEnd;
+
+  // Block boundaries expanded to cover all task scheduled times
   const blocks = [
-    { id: "morning", start: Math.max(workStart, 0), end: Math.min(12 * 60, workEnd) },
-    { id: "afternoon", start: Math.max(12 * 60, workStart), end: Math.min(17 * 60, workEnd) },
-    { id: "evening", start: Math.max(17 * 60, workStart), end: workEnd },
+    { id: "morning", start: Math.max(effectiveStart, 0), end: Math.min(12 * 60, effectiveEnd) },
+    { id: "afternoon", start: Math.max(12 * 60, effectiveStart), end: Math.min(17 * 60, effectiveEnd) },
+    { id: "evening", start: Math.max(17 * 60, effectiveStart), end: effectiveEnd },
   ].filter((b) => b.start < b.end);
 
   const now = new Date();
