@@ -177,7 +177,7 @@ export default function PlannerPage() {
                 <button
                   key={v}
                   onClick={() => setPlanView(v)}
-                  className={`px-2 py-0.5 rounded text-[10px] transition-all ${
+                  className={`px-2 py-0.5 rounded text-[10px] lg:text-xs transition-all ${
                     planView === v
                       ? "bg-white dark:bg-white/15 text-accent font-bold shadow-sm"
                       : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
@@ -196,7 +196,7 @@ export default function PlannerPage() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-sm font-medium min-w-[100px] text-center">{formatPeriodLabel()}</span>
+            <span className="text-sm lg:text-base font-medium min-w-[100px] text-center">{formatPeriodLabel()}</span>
             <button
               onClick={nextPeriod}
               className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center transition-colors"
@@ -255,9 +255,9 @@ export default function PlannerPage() {
                     aria-label={t("tasks.complete")}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{task.text}</p>
+                    <p className="text-sm lg:text-base font-medium truncate">{task.text}</p>
                     {task.estimatedMinutes && (
-                      <p className="text-[10px] text-muted-light dark:text-muted-dark">~{task.estimatedMinutes}{t("common.min")}</p>
+                      <p className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark">~{task.estimatedMinutes}{t("common.min")}</p>
                     )}
                     {task.subtasks && task.subtasks.filter((s) => !s.completed).length > 0 && (
                       <div className="mt-1 space-y-0.5">
@@ -268,7 +268,7 @@ export default function PlannerPage() {
                               className="w-3 h-3 rounded border border-gray-300 dark:border-white/20 flex-shrink-0 hover:border-success hover:bg-success/10 transition-colors"
                               aria-label={t("tasks.complete")}
                             />
-                            <span className="text-[10px] text-muted-light dark:text-muted-dark truncate">{sub.text}</span>
+                            <span className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark truncate">{sub.text}</span>
                           </div>
                         ))}
                       </div>
@@ -321,10 +321,10 @@ export default function PlannerPage() {
                   className="group flex items-center gap-3 px-3 py-2 rounded-xl bg-accent/10 dark:bg-accent/20 hover:bg-accent/15 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-accent truncate">{event.title}</p>
-                    <p className="text-[10px] text-accent/70 font-medium">{t("calendar.allDay")}</p>
+                    <p className="text-sm lg:text-base font-medium text-accent truncate">{event.title}</p>
+                    <p className="text-[10px] lg:text-xs text-accent/70 font-medium">{t("calendar.allDay")}</p>
                     {event.location && (
-                      <p className="text-[10px] text-accent/60 flex items-center gap-0.5 mt-0.5 truncate"><MapPin className="w-2.5 h-2.5 flex-shrink-0" />{event.location}</p>
+                      <p className="text-[10px] lg:text-xs text-accent/60 flex items-center gap-0.5 mt-0.5 truncate"><MapPin className="w-2.5 h-2.5 flex-shrink-0" />{event.location}</p>
                     )}
                   </div>
                   <button
@@ -349,17 +349,17 @@ export default function PlannerPage() {
                 >
                   <div className="w-1 h-full min-h-[2rem] rounded-full bg-accent flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{event.title}</p>
+                    <p className="text-sm lg:text-base font-medium">{event.title}</p>
                     {event.start && (
-                      <p className="text-[10px] text-muted-light dark:text-muted-dark font-mono mt-0.5">
+                      <p className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark font-mono mt-0.5">
                         {event.start} – {event.end}
                       </p>
                     )}
                     {event.location && (
-                      <p className="text-[10px] text-muted-light dark:text-muted-dark flex items-center gap-0.5 mt-0.5 truncate"><MapPin className="w-2.5 h-2.5 flex-shrink-0" />{event.location}</p>
+                      <p className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark flex items-center gap-0.5 mt-0.5 truncate"><MapPin className="w-2.5 h-2.5 flex-shrink-0" />{event.location}</p>
                     )}
                     {event.description && (
-                      <p className="text-xs text-muted-light dark:text-muted-dark mt-1 truncate">{event.description}</p>
+                      <p className="text-xs lg:text-sm text-muted-light dark:text-muted-dark mt-1 truncate">{event.description}</p>
                     )}
                   </div>
                   <button

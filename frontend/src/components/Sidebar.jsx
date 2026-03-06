@@ -49,35 +49,35 @@ export default function Sidebar() {
   return (
     <aside
       className={`hidden lg:flex flex-col h-full overflow-y-auto z-40 transition-all duration-200 bg-card-light/90 dark:bg-card-dark/90 backdrop-blur-md border-r border-gray-200/50 dark:border-white/5 ${
-        collapsed ? "w-16 xl:w-20" : "w-56 xl:w-72"
+        collapsed ? "w-16" : "w-56"
       }`}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 xl:px-5 py-4 xl:py-5 border-b border-gray-200/50 dark:border-white/5">
-        <div className="w-8 h-8 xl:w-10 xl:h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm xl:text-base">D</span>
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-200/50 dark:border-white/5">
+        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+          <span className="text-white font-bold text-sm">D</span>
         </div>
         {!collapsed && (
-          <span className="text-lg xl:text-xl font-semibold tracking-tight">Dopamind</span>
+          <span className="text-lg font-semibold tracking-tight">Dopamind</span>
         )}
       </div>
 
       {/* Nav Links */}
-      <nav className="flex-1 py-3 px-2 xl:px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
         {visibleNavItems.map(({ to, icon: Icon, key }) => (
           <NavLink
             key={to}
             to={to}
             end={to === "/"}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 xl:px-4 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-medium transition-all ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? "bg-accent/10 text-accent dark:bg-accent/20"
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
               }`
             }
           >
-            <Icon className="w-5 h-5 xl:w-6 xl:h-6 flex-shrink-0" />
+            <Icon className="w-5 h-5 flex-shrink-0" />
             {!collapsed && <span>{t(`nav.${key}`)}</span>}
           </NavLink>
         ))}
@@ -86,14 +86,14 @@ export default function Sidebar() {
           <NavLink
             to="/admin"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 xl:px-4 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-medium transition-all ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? "bg-accent/10 text-accent dark:bg-accent/20"
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
               }`
             }
           >
-            <Shield className="w-5 h-5 xl:w-6 xl:h-6 flex-shrink-0" />
+            <Shield className="w-5 h-5 flex-shrink-0" />
             {!collapsed && <span>{t("nav.admin")}</span>}
           </NavLink>
         )}

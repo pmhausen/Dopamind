@@ -318,17 +318,17 @@ function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onComp
       {/* Nächster Schritt — always surfaces subtasks when available */}
       {isToday && (
         <div className="rounded-xl bg-accent/5 border border-accent/20 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-2">{t("home.nextStep")}</p>
+          <p className="text-[10px] lg:text-xs font-semibold uppercase tracking-wider text-accent mb-2">{t("home.nextStep")}</p>
           {nextStep ? (
             <div className="flex items-center gap-3">
               <button onClick={handleNextStepComplete} className="w-6 h-6 rounded-full border-2 border-accent/40 hover:bg-accent/10 flex-shrink-0 transition-colors" />
               <div className="flex-1 min-w-0">
-                {nextStep.isSubtask && <p className="text-[10px] text-muted-light dark:text-muted-dark truncate">{nextStep.parentText}</p>}
-                <p className="text-sm font-medium truncate">{nextStep.text}</p>
+                {nextStep.isSubtask && <p className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark truncate">{nextStep.parentText}</p>}
+                <p className="text-sm lg:text-base font-medium truncate">{nextStep.text}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  {nextStep.energyCost && <span className={`text-[10px] px-1.5 py-0.5 rounded ${ENERGY_BADGE[nextStep.energyCost]}`}>{t(`tasks.energy.${nextStep.energyCost}`)}</span>}
-                  <DurationBadge item={nextStep} t={t} className="text-[10px]" />
-                  {nextStep.deadline && <span className={`text-[10px] ${isOverdue(nextStep) ? "text-danger font-medium" : "text-muted-light dark:text-muted-dark"}`}>{t("tasks.hardDeadline")}: {new Date(nextStep.deadline + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}</span>}
+                  {nextStep.energyCost && <span className={`text-[10px] lg:text-xs px-1.5 py-0.5 rounded ${ENERGY_BADGE[nextStep.energyCost]}`}>{t(`tasks.energy.${nextStep.energyCost}`)}</span>}
+                  <DurationBadge item={nextStep} t={t} className="text-[10px] lg:text-xs" />
+                  {nextStep.deadline && <span className={`text-[10px] lg:text-xs ${isOverdue(nextStep) ? "text-danger font-medium" : "text-muted-light dark:text-muted-dark"}`}>{t("tasks.hardDeadline")}: {new Date(nextStep.deadline + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}</span>}
                 </div>
               </div>
               {countdownStartEnabled && onStartTask && (
@@ -359,18 +359,18 @@ function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onComp
             {...getTouchDropProps(block.id)}
           >
             <div className="flex items-center justify-between mb-2">
-              <h4 className={`text-xs font-bold uppercase tracking-wider ${BLOCK_HEADER[block.id]}`}>
+              <h4 className={`text-xs lg:text-sm font-bold uppercase tracking-wider ${BLOCK_HEADER[block.id]}`}>
                 {t(`home.blockView.${block.id}`)} {isCurrent && <span className="ml-1.5 text-[9px] font-normal text-accent">●</span>}
               </h4>
-              <span className="text-[10px] text-muted-light dark:text-muted-dark">{fmtMin(block.start)} – {fmtMin(block.end)}</span>
+              <span className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark">{fmtMin(block.start)} – {fmtMin(block.end)}</span>
             </div>
 
             {blockEvents.length > 0 && (
               <div className="space-y-1 mb-2">
                 {blockEvents.map((ev, i) => (
-                  <div key={i} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-accent/5 text-xs">
+                  <div key={i} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-accent/5 text-xs lg:text-sm">
                     <Calendar className="w-3 h-3 text-accent flex-shrink-0" />
-                    <span className="font-mono text-accent text-[10px]">{ev.start ? fmtTime(ev.start) : ""}</span>
+                    <span className="font-mono text-accent text-[10px] lg:text-xs">{ev.start ? fmtTime(ev.start) : ""}</span>
                     <span className="truncate">{ev.summary || ev.title}</span>
                   </div>
                 ))}
@@ -378,7 +378,7 @@ function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onComp
             )}
 
             {blockItems.length === 0 && blockEvents.length === 0 && (
-              <p className="text-xs text-muted-light dark:text-muted-dark py-2">{t("home.blockView.noTasks")}</p>
+              <p className="text-xs lg:text-sm text-muted-light dark:text-muted-dark py-2">{t("home.blockView.noTasks")}</p>
             )}
             <div className="space-y-1">
               {blockItems.map((item) => item.type === "subtask" ? (
@@ -386,14 +386,14 @@ function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onComp
                 <div key={item.id} draggable onDragStart={(e) => handleDragStart(e, item.id, "subtask", item.taskId)} onDragEnd={handleDragEnd} {...getTouchDragProps({ itemId: item.id, itemType: "subtask", taskId: item.taskId })} className={`group/item flex items-start gap-2 px-2 py-1.5 rounded-lg bg-white/60 dark:bg-white/5 border-l-2 cursor-grab active:cursor-grabbing ${PRIORITY_BADGE[item.priority] || "border-l-gray-300"} ${dragItemId === item.id ? "opacity-40" : ""}`}>
                   <button onClick={() => onToggleSubtask(item.taskId, item.id)} className="w-4 h-4 mt-0.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-accent/10 flex-shrink-0 transition-colors" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-muted-light dark:text-muted-dark truncate">{item.parentText}</p>
-                    <p className="text-xs font-medium truncate">{item.text}</p>
+                    <p className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark truncate">{item.parentText}</p>
+                    <p className="text-xs lg:text-sm font-medium truncate">{item.text}</p>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      {item.priority && <span className={`text-[9px] px-1 py-0.5 rounded ${PRIORITY_BADGE_BG[item.priority] || ""}`}>{t(`tasks.priority.${item.priority}`)}</span>}
-                      {item.energyCost && <span className={`text-[9px] px-1 py-0.5 rounded ${ENERGY_BADGE[item.energyCost]}`}>{t(`tasks.energy.${item.energyCost}`)}</span>}
-                      <DurationBadge item={item} t={t} className="text-[9px] px-1 py-0.5" />
-                      {item.deadline && <span className={`text-[9px] flex items-center gap-0.5 ${isOverdue(item) ? "text-danger font-medium" : "text-muted-light dark:text-muted-dark"}`}><AlertCircle className="w-2.5 h-2.5" /> {new Date(item.deadline + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}</span>}
-                      {isOverdue(item) && !item.deadline && <span className="text-[9px] text-danger font-medium flex items-center gap-0.5"><AlertCircle className="w-2.5 h-2.5" /> {t("tasks.overdue")}</span>}
+                      {item.priority && <span className={`text-[9px] lg:text-xs px-1 py-0.5 rounded ${PRIORITY_BADGE_BG[item.priority] || ""}`}>{t(`tasks.priority.${item.priority}`)}</span>}
+                      {item.energyCost && <span className={`text-[9px] lg:text-xs px-1 py-0.5 rounded ${ENERGY_BADGE[item.energyCost]}`}>{t(`tasks.energy.${item.energyCost}`)}</span>}
+                      <DurationBadge item={item} t={t} className="text-[9px] lg:text-xs px-1 py-0.5" />
+                      {item.deadline && <span className={`text-[9px] lg:text-xs flex items-center gap-0.5 ${isOverdue(item) ? "text-danger font-medium" : "text-muted-light dark:text-muted-dark"}`}><AlertCircle className="w-2.5 h-2.5" /> {new Date(item.deadline + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}</span>}
+                      {isOverdue(item) && !item.deadline && <span className="text-[9px] lg:text-xs text-danger font-medium flex items-center gap-0.5"><AlertCircle className="w-2.5 h-2.5" /> {t("tasks.overdue")}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
@@ -412,21 +412,21 @@ function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onComp
                 <div key={item.id} draggable onDragStart={(e) => handleDragStart(e, item.id, "task", item.taskId)} onDragEnd={handleDragEnd} {...getTouchDragProps({ itemId: item.id, itemType: "task", taskId: item.taskId })} className={`flex items-start gap-2 px-2 py-1.5 rounded-lg bg-white/60 dark:bg-white/5 border-l-2 cursor-grab active:cursor-grabbing ${PRIORITY_BADGE[item.priority] || "border-l-gray-300"} ${item.subtasks?.length > 0 ? "ring-1 ring-accent/10" : ""} ${dragItemId === item.id ? "opacity-40" : ""}`}>
                   <button onClick={() => onCompleteTask(item.id)} className="w-4 h-4 mt-0.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-accent/10 flex-shrink-0 transition-colors" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{item.text}</p>
+                    <p className="text-xs lg:text-sm font-medium truncate">{item.text}</p>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      {item.energyCost && <span className={`text-[9px] px-1 py-0.5 rounded ${ENERGY_BADGE[item.energyCost]}`}>{t(`tasks.energy.${item.energyCost}`)}</span>}
-                      <DurationBadge item={item} t={t} className="text-[9px] px-1 py-0.5" />
-                      {item.scheduledTime && <span className="text-[9px] text-accent font-mono">{item.scheduledTime}</span>}
-                      {isOverdue(item) && <span className="text-[9px] text-danger font-medium flex items-center gap-0.5"><AlertCircle className="w-2.5 h-2.5" /> {t("tasks.overdue")}</span>}
+                      {item.energyCost && <span className={`text-[9px] lg:text-xs px-1 py-0.5 rounded ${ENERGY_BADGE[item.energyCost]}`}>{t(`tasks.energy.${item.energyCost}`)}</span>}
+                      <DurationBadge item={item} t={t} className="text-[9px] lg:text-xs px-1 py-0.5" />
+                      {item.scheduledTime && <span className="text-[9px] lg:text-xs text-accent font-mono">{item.scheduledTime}</span>}
+                      {isOverdue(item) && <span className="text-[9px] lg:text-xs text-danger font-medium flex items-center gap-0.5"><AlertCircle className="w-2.5 h-2.5" /> {t("tasks.overdue")}</span>}
                     </div>
                     {item.subtasks?.length > 0 && (
                       <div className="mt-1 space-y-0.5">
                         {item.subtasks.map((sub) => (
                           <div key={sub.id} className="group/nsub flex items-center gap-1.5 pl-2">
                             <button onClick={() => onToggleSubtask(item.taskId, sub.id)} className="w-3 h-3 rounded border border-gray-300 dark:border-gray-600 flex-shrink-0" />
-                            <span className="text-[10px] text-muted-light dark:text-muted-dark truncate flex-1">{sub.text}</span>
-                            {sub.energyCost && <span className={`text-[8px] px-0.5 py-0 rounded ${ENERGY_BADGE[sub.energyCost]}`}>{t(`tasks.energy.${sub.energyCost}`)}</span>}
-                            {sub.priority && sub.priority !== item.priority && <span className={`text-[8px] px-0.5 py-0 rounded ${PRIORITY_BADGE_BG[sub.priority] || ""}`}>{t(`tasks.priority.${sub.priority}`)}</span>}
+                            <span className="text-[10px] lg:text-xs text-muted-light dark:text-muted-dark truncate flex-1">{sub.text}</span>
+                            {sub.energyCost && <span className={`text-[8px] lg:text-[10px] px-0.5 py-0 rounded ${ENERGY_BADGE[sub.energyCost]}`}>{t(`tasks.energy.${sub.energyCost}`)}</span>}
+                            {sub.priority && sub.priority !== item.priority && <span className={`text-[8px] lg:text-[10px] px-0.5 py-0 rounded ${PRIORITY_BADGE_BG[sub.priority] || ""}`}>{t(`tasks.priority.${sub.priority}`)}</span>}
                             {onEditSubtaskFull && (
                               <button onClick={() => setEditSubtask({ taskId: item.taskId, subtask: sub })} className="opacity-0 group-hover/nsub:opacity-100 w-3 h-3 text-muted-light hover:text-accent transition-all">
                                 <Pencil className="w-2.5 h-2.5" />
@@ -452,7 +452,7 @@ function BlockDayView({ t, tasks, events, settings, isToday, energyLevel, onComp
                   {blockCompleted.map((item) => (
                     <div key={item.id} className="flex items-center gap-2 px-2 py-0.5 opacity-50">
                       <CheckCircle className="w-3 h-3 text-success flex-shrink-0" />
-                      <span className="text-[10px] line-through truncate">{item.text}</span>
+                      <span className="text-[10px] lg:text-xs line-through truncate">{item.text}</span>
                     </div>
                   ))}
                 </div>
@@ -2209,7 +2209,7 @@ export default function HomePage() {
                 <button
                   key={v}
                   onClick={() => setPlanView(v)}
-                  className={`px-2 py-0.5 rounded text-[10px] transition-all ${
+                  className={`px-2 py-0.5 rounded text-[10px] lg:text-xs transition-all ${
                     planView === v
                       ? "bg-white dark:bg-white/15 text-accent font-bold shadow-sm"
                       : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"

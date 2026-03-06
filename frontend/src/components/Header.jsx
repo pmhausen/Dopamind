@@ -33,7 +33,7 @@ export default function Header() {
 
   return (
     <header className="relative z-30 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-gray-200/50 dark:border-white/5 flex-shrink-0">
-      <div className="px-4 xl:px-6 py-3 xl:py-4 flex items-center justify-between gap-4">
+      <div className="px-4 py-3 flex items-center justify-between gap-4">
         {/* Mobile: Logo */}
         <div className="flex items-center gap-3 lg:hidden">
           <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">

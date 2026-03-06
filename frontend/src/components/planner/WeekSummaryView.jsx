@@ -44,15 +44,15 @@ export default function WeekSummaryView({ t, tasks, getEventsForDate, weekStart,
           <button
             key={date}
             onClick={() => onSelectDay(date)}
-            className={`rounded-xl p-2 text-left transition-all hover:ring-1 hover:ring-accent/30 ${
+            className={`rounded-xl p-2 lg:p-3 text-left transition-all hover:ring-1 hover:ring-accent/30 ${
               isToday ? "ring-1 ring-accent/40 bg-accent/5" : isPast ? "opacity-60 bg-gray-50 dark:bg-white/[0.02]" : "bg-gray-50 dark:bg-white/[0.02]"
             }`}
           >
             <div className="flex items-center justify-between mb-1">
-              <span className={`text-[10px] font-bold uppercase ${isToday ? "text-accent" : "text-muted-light dark:text-muted-dark"}`}>
+              <span className={`text-[10px] lg:text-xs font-bold uppercase ${isToday ? "text-accent" : "text-muted-light dark:text-muted-dark"}`}>
                 {dayNames[i]}
               </span>
-              <span className={`text-xs font-mono ${isToday ? "text-accent font-bold" : ""}`}>{dayNum}</span>
+              <span className={`text-xs lg:text-sm font-mono ${isToday ? "text-accent font-bold" : ""}`}>{dayNum}</span>
             </div>
 
             {/* Energy color dots only — no count numbers to avoid confusion with date */}
@@ -61,9 +61,9 @@ export default function WeekSummaryView({ t, tasks, getEventsForDate, weekStart,
                 {Object.entries(energyCounts).filter(([, c]) => c > 0).map(([level, count]) => (
                   <div key={level} className="flex gap-px">
                     {Array.from({ length: Math.min(count, 3) }).map((_, j) => (
-                      <span key={j} className={`w-1.5 h-1.5 rounded-full ${ENERGY_DOT[level]}`} />
+                      <span key={j} className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full ${ENERGY_DOT[level]}`} />
                     ))}
-                    {count > 3 && <span className="text-[8px] text-muted-light dark:text-muted-dark">+{count - 3}</span>}
+                    {count > 3 && <span className="text-[8px] lg:text-[10px] text-muted-light dark:text-muted-dark">+{count - 3}</span>}
                   </div>
                 ))}
               </div>
