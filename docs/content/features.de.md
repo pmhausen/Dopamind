@@ -1,24 +1,27 @@
-## Was Dopamind anders macht
+## Funktionsumfang
 
-Gewöhnliche To-Do-Listen zeigen dir alle Aufgaben auf einmal – und lassen dich allein damit. Dopamind denkt mit.
+Dopamind übernimmt Planungsschritte, die bei großen Aufgabenmengen oder unklaren Prioritäten schwer fallen.
 
-### ⭐ Nächster Schritt – keine Entscheidungslähmung mehr
-Statt einer endlosen Liste bekommst du **genau eine** hervorgehobene Aufgabe: deinen nächsten Schritt. Kein Grübeln, kein Scrollen – einfach anfangen.
+### Priorisierungsassistenz
+Aufgaben werden nach Priorität bewertet. Die Oberfläche hebt stets genau eine Aufgabe als nächsten Schritt hervor. Keine vollständige Listenansicht während der Arbeit – nur der aktuelle Fokus.
 
-### 🗓️ Intelligente Tagesplanung – kein Doppelbuchen
-Dopamind schlägt dir passende Zeitfenster für deine Aufgaben vor – basierend auf deinem konfigurierten Arbeitsrhythmus und deinen Energiezeiten. Optional: CalDAV-Integration für echte Kalender-Synchronisation.
+### Energiebasierte Tagesplanung
+Jede Aufgabe erhält einen Energielevel (niedrig / mittel / hoch). Dopamind plant anspruchsvolle Aufgaben in Hochenergiezeiten und leichtere Aufgaben in Niedrigenergiephasen. Das Energieprofil des Tages ist konfigurierbar.
 
-### ⚡ Energie statt Disziplin
-Jede Aufgabe bekommt einen **Energie-Level** (niedrig / mittel / hoch). Dopamind zeigt morgens anspruchsvolle Aufgaben und abends leichte – passend zu deinem natürlichen Energie-Rhythmus.
+### Automatische Tages- und Terminstrukturierung
+Aufgaben werden automatisch in Morgen-, Mittag- und Abendblöcke eingeplant. Bei aktivierter CalDAV-Anbindung werden Kalendertermine berücksichtigt, um Planungskonflikte zu vermeiden.
 
-### 🎮 Belohnung, die motiviert
-XP, Level, Achievements und Streaks machen Fortschritt **spürbar** – auch an kleinen Tagen. **10 Level-Ränge**, 25+ Achievements, Streak-Multiplikatoren. Kein Verlust bei eingetragenen Abwesenheiten.
+### IMAP-Anbindung (optional)
+E-Mails können über eine IMAP-Verbindung direkt in Aufgaben umgewandelt werden. Die Verbindung ist optional und läuft ausschließlich über den eigenen Server. Zugangsdaten werden verschlüsselt gespeichert.
 
-### 🛡️ Compassion Mode – für schwierige Tage
-Kein Schuldgefühl, wenn mal nichts klappt. Du kannst Abwesenheiten (Urlaub, Krank, Auszeit) eintragen – für diese Zeit werden XP-Strafpunkte für überfällige Aufgaben automatisch ausgesetzt.
+### CalDAV-Anbindung (optional)
+Bestehende Kalender können per CalDAV synchronisiert werden. Dopamind liest Termine aus, um die automatische Aufgabenplanung zu informieren. Schreibzugriff ist nicht erforderlich.
 
-### 📧 E-Mail → Aufgabe (optional)
-Mit IMAP-Anbindung kannst du aus E-Mails direkt Aufgaben erstellen. Mails bleiben auf deinem Server – kein Cloud-Zugriff, volle Datenkontrolle.
+### Gamification
+Abgeschlossene Aufgaben erzeugen XP. Das System umfasst 10 Level-Ränge, über 25 Achievements und einen Streak-Multiplikator. Für eingetragene Abwesenheiten (Urlaub, Krankheit, Auszeit) werden keine Strafpunkte vergeben.
 
-### 🔒 Self-hosted – deine Daten bleiben deine
-Kein Cloud-Abo, keine Datenweitergabe. Dopamind läuft auf deiner eigenen Infrastruktur. Alle Zugangsdaten werden mit **AES-256-GCM** verschlüsselt gespeichert.
+### Compassion Mode
+Tage ohne Produktivität können als Abwesenheit markiert werden. Für diesen Zeitraum werden keine XP-Abzüge für überfällige Aufgaben berechnet.
+
+### Self-hosted, Open Source
+Dopamind läuft auf eigener Infrastruktur (Docker oder manuell). Keine Cloud-Abhängigkeit, kein Abonnement. Der Quellcode ist öffentlich zugänglich.

@@ -21,15 +21,15 @@ const translations = {
     'nav.deployment':  'Deployment',
     'nav.github':      'GitHub',
     'nav.impressum':   'Impressum',
-    'hero.tagline':    'ADHS-freundliches Planungs- & Produktivitätstool mit Gamification.',
-    'hero.subtitle':   'Dopamind hilft Menschen mit ADHS, Entscheidungslähmung zu überwinden – durch priorisierte Aufgaben, strukturierte Tagesblöcke und ein motivierendes Gamification-System.',
+    'hero.tagline':    'Aufgabenplanung mit Tagesstruktur, Prioritäten und Gamification.',
+    'hero.subtitle':   'Dopamind strukturiert den Arbeitstag in priorisierte Zeitblöcke, berücksichtigt den Energiehaushalt bei der Aufgabenplanung und macht Fortschritt über ein Gamification-System nachvollziehbar.',
     'hero.cta.github': 'Auf GitHub ansehen',
     'hero.cta.start':  'Jetzt starten',
-    'vision.label':    'UNSERE MISSION',
-    'features.label':  'WAS UNS UNTERSCHEIDET',
+    'vision.label':    'ÜBER DOPAMIND',
+    'features.label':  'FUNKTIONSUMFANG',
     'screenshots.label': 'EINBLICKE',
     'screenshots.title': 'Dopamind in Aktion',
-    'screenshots.intro': 'Keine endlosen Listen – sondern klare Tagesstruktur, smarte Planung und echte Motivation.',
+    'screenshots.intro': 'Drei Ansichten des Produkts: Tagesplanung, Aufgabenerfassung und Gamification-Dashboard.',
     'screenshots.s1.title': 'Tagesblöcke statt To-Do-Liste',
     'screenshots.s1.desc':  'Morgen, Mittag und Abend als strukturierte Blöcke – mit automatisch eingeplanten Aufgaben und einer klar hervorgehobenen nächsten Aufgabe. Keine Entscheidungslähmung.',
     'screenshots.s2.title': 'Intelligente Aufgaben-Erfassung',
@@ -38,7 +38,7 @@ const translations = {
     'screenshots.s3.desc':  'XP für jede erledigte Aufgabe, 10 Level-Ränge, 25+ Achievements und ein Streak-Multiplikator. Bei Abwesenheiten greift der Strafschutz – kein XP-Verlust für unverschuldete Rückstände.',
     'deployment.label':'SCHNELLSTART',
     'impressum.label': 'RECHTLICHES',
-    'footer.made':     'Made with ❤️ for the ADHD Community',
+    'footer.made':     'Open-Source-Aufgabenplanung. Self-hosted.',
     'footer.impressum':'Impressum',
     'footer.github':   'GitHub',
     'copy.btn':        'Kopieren',
@@ -50,15 +50,15 @@ const translations = {
     'nav.deployment':  'Deployment',
     'nav.github':      'GitHub',
     'nav.impressum':   'Legal',
-    'hero.tagline':    'ADHD-friendly planning & productivity tool with gamification.',
-    'hero.subtitle':   'Dopamind helps people with ADHD overcome decision paralysis — through prioritized tasks, structured daily blocks, and a motivating gamification system.',
+    'hero.tagline':    'Task planning with daily structure, priorities and gamification.',
+    'hero.subtitle':   'Dopamind structures the workday into prioritised time blocks, factors energy levels into task scheduling, and makes progress trackable through a gamification system.',
     'hero.cta.github': 'View on GitHub',
     'hero.cta.start':  'Get Started',
-    'vision.label':    'OUR MISSION',
-    'features.label':  'WHAT SETS US APART',
+    'vision.label':    'ABOUT',
+    'features.label':  'FEATURES',
     'screenshots.label': 'SEE IT IN ACTION',
     'screenshots.title': 'Dopamind in Action',
-    'screenshots.intro': 'No endless lists — instead: clear daily structure, smart planning, and real motivation.',
+    'screenshots.intro': 'Three views of the product: day planning, task capture, and gamification dashboard.',
     'screenshots.s1.title': 'Day Blocks Instead of To-Do Lists',
     'screenshots.s1.desc':  'Morning, afternoon, and evening as structured blocks — with automatically scheduled tasks and one clearly highlighted next step. No decision paralysis.',
     'screenshots.s2.title': 'Intelligent Task Capture',
@@ -67,7 +67,7 @@ const translations = {
     'screenshots.s3.desc':  'XP for every completed task, 10 level ranks, 25+ achievements, and a streak multiplier. Absence protection kicks in during recorded days off — no XP penalty for unavoidable backlogs.',
     'deployment.label':'QUICK START',
     'impressum.label': 'LEGAL',
-    'footer.made':     'Made with ❤️ for the ADHD Community',
+    'footer.made':     'Open-source task planning. Self-hosted.',
     'footer.impressum':'Legal Notice',
     'footer.github':   'GitHub',
     'copy.btn':        'Copy',
@@ -91,7 +91,12 @@ function applyTheme(theme) {
   localStorage.setItem(THEME_KEY, theme);
 
   const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+  if (btn) {
+    btn.innerHTML = theme === 'light'
+      ? '<i data-lucide="moon"></i>'
+      : '<i data-lucide="sun"></i>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 }
 
 function applyLang(lang) {
@@ -287,6 +292,35 @@ function initHeroAnimation() {
   });
 }
 
+// ── Impressum Modal ────────────────────────────────────────
+function initImpressumModal() {
+  const trigger = document.getElementById('impressum-trigger');
+  const modal   = document.getElementById('impressum-modal');
+  const closeBtn = document.getElementById('impressum-close');
+  if (!trigger || !modal) return;
+
+  trigger.addEventListener('click', () => {
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    closeBtn && closeBtn.focus();
+  });
+
+  const closeModal = () => {
+    modal.hidden = true;
+    document.body.style.overflow = '';
+  };
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+}
+
 // ── Event Listeners ────────────────────────────────────────
 function initControls() {
   // Theme toggle
@@ -317,4 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initSmoothScroll();
   initScrollAnimations();
   initHeroAnimation();
+  initImpressumModal();
+
+  // Initialise Lucide icons
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 });

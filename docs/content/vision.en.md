@@ -1,26 +1,19 @@
-## Our Vision
+## About Dopamind
 
-Dopamind was born from a simple realization: **Traditional productivity tools aren't built for ADHD brains.**
-
-Where other tools offer endless to-do lists, Dopamind offers **structure without overwhelm**. Where others rely on discipline, Dopamind relies on **dopamine** — the brain's natural reward system.
+Dopamind is a self-hosted planning tool that helps people structure their workday. The focus is on prioritisation assistance, energy-aware task scheduling, and reducing task overload.
 
 ### Why Dopamind?
 
-People with ADHD don't struggle with laziness. They struggle with:
+Many productivity tools provide an empty list view and leave all structuring to the user. This works well when capacity for self-organisation is high — and less well when it is not: under task overload, unclear priorities, or limited decision capacity.
 
-- **Decision paralysis** — Too many tasks, no starting point
-- **Time blindness** — A missing sense of how time flows
-- **Motivation gaps** — Important ≠ Motivating
-- **Sensory overload** — Too much information at once
+Dopamind makes structural pre-decisions: which task is next? Which time slot fits it, given the available energy level? What can be deferred to tomorrow?
 
-Dopamind addresses each of these problems with thoughtful approaches — inspired by behavioral psychology research on ADHD.
+### Core Principles
 
-### Our Principles
+**Prioritisation over completeness** — The interface focuses on the next concrete step, not the full list.
 
-🎯 **Focus over flooding** — Clear daily structure with intelligent task prioritization
+**Energy level as a scheduling parameter** — Tasks are assigned an energy level and automatically placed into suitable time blocks.
 
-🎮 **Reward over punishment** — XP, achievements, and streaks make progress tangible
+**Making progress visible** — A gamification system (XP, achievements, streaks) makes completed tasks measurable, without penalising backlogs.
 
-🤝 **Understanding over pressure** — Compassion mode and "Not my day" feature for tough days
-
-🔒 **Privacy first** — Self-hosted, no data sharing, sensitive credentials stored with AES-256 encryption
+**Data sovereignty** — Dopamind runs exclusively on your own infrastructure. There is no cloud dependency. Credentials for external services (IMAP, CalDAV) are stored encrypted with AES-256-GCM.

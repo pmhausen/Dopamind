@@ -552,15 +552,96 @@ pre code {
 .copy-btn:hover { background: rgba(108, 99, 255, 0.4); color: #fff; }
 .copy-btn.copied { background: rgba(0, 201, 167, 0.25); border-color: var(--success); color: var(--success); }
 
-/* ---------- Impressum ------------------------------------- */
-#impressum {
-  border-top: 2px solid var(--card-border);
-  background: var(--surface-2);
+/* ---------- Modal / Lightbox ------------------------------ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease both;
 }
 
-#impressum .section { padding-top: 4rem; padding-bottom: 4rem; }
+.modal-overlay[hidden] { display: none; }
 
-.impressum-content h2 { margin-top: 0; }
+.modal-box {
+  position: relative;
+  background: var(--surface-2);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 2.5rem;
+  max-width: 720px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+
+.modal-close:hover {
+  background: rgba(108, 99, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.footer-impressum-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-family: inherit;
+  padding: 0;
+  transition: color var(--transition);
+}
+
+.footer-impressum-btn:hover { color: var(--accent-soft); }
+
+/* ---------- Feature Card Icons ---------------------------- */
+.feature-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: rgba(108, 99, 255, 0.12);
+  color: var(--accent-soft);
+  margin-bottom: 0.75rem;
+  flex-shrink: 0;
+}
+
+.feature-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-icon svg,
+.modal-close svg {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
 
 /* ---------- Footer ---------------------------------------- */
 .footer {

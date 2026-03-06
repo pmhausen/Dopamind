@@ -1,26 +1,19 @@
-## Unsere Vision
+## Über Dopamind
 
-Dopamind wurde aus einer einfachen Erkenntnis geboren: **Herkömmliche Produktivitätstools sind nicht für ADHS-Gehirne gemacht.**
-
-Wo andere Tools endlose To-Do-Listen bieten, bietet Dopamind **Struktur ohne Überforderung**. Wo andere auf Disziplin setzen, setzt Dopamind auf **Dopamin** – das natürliche Belohnungssystem des Gehirns.
+Dopamind ist ein selbst gehostetes Planungswerkzeug, das Menschen bei der Strukturierung ihres Arbeitstags unterstützt. Der Fokus liegt auf Priorisierungsassistenz, energiebewusster Aufgabenplanung und dem Abbau von Aufgabenüberladung.
 
 ### Warum Dopamind?
 
-Menschen mit ADHS kämpfen nicht mit Faulheit. Sie kämpfen mit:
+Viele Produktivitätstools geben eine leere Listenansicht und überlassen die Strukturierung vollständig dem Nutzer. Das funktioniert gut, wenn die Kapazität zur Selbstorganisation hoch ist – und schlechter, wenn sie es nicht ist: bei Aufgabenüberladung, unklaren Prioritäten oder eingeschränkter Entscheidungskapazität.
 
-- **Entscheidungslähmung** — Zu viele Aufgaben, kein Startpunkt
-- **Zeitblindheit** — Das Gefühl für Zeitabläufe fehlt
-- **Motivationslücken** — Wichtig ≠ Motivierend
-- **Reizüberflutung** — Zu viele Informationen auf einmal
+Dopamind trifft strukturelle Vorentscheidungen: Welche Aufgabe steht als nächstes an? In welches Zeitfenster passt sie, gemessen am verfügbaren Energieniveau? Was kann auf morgen verschoben werden?
 
-Dopamind adressiert jedes dieser Probleme mit durchdachten Ansätzen – inspiriert von verhaltenspsychologischen Erkenntnissen über ADHS.
+### Grundprinzipien
 
-### Unsere Prinzipien
+**Priorisierung vor Vollständigkeit** – Die Anzeige konzentriert sich auf den nächsten konkreten Schritt, nicht auf die Gesamtliste.
 
-🎯 **Fokus statt Überflutung** — Klare Tagesstruktur mit intelligenter Aufgabenpriorisierung
+**Energiehaushalt als Planungsparameter** – Aufgaben werden mit einem Energielevel versehen und automatisch in passende Tagesblöcke eingeplant.
 
-🎮 **Belohnung statt Bestrafung** — XP, Achievements und Streaks machen Fortschritt spürbar
+**Fortschritt sichtbar machen** – Ein Gamification-System (XP, Achievements, Streaks) macht abgeschlossene Aufgaben messbar, ohne bei Rückständen zu bestrafen.
 
-🤝 **Verständnis statt Druck** — Compassion Mode und „Not my day"-Funktion für schwierige Tage
-
-🔒 **Privatsphäre zuerst** — Self-hosted, keine Datenweitergabe, sensible Zugangsdaten AES-256-verschlüsselt
+**Datensouveränität** – Dopamind läuft ausschließlich auf eigener Infrastruktur. Es gibt keine Cloud-Abhängigkeit. Zugangsdaten für externe Dienste (IMAP, CalDAV) werden AES-256-GCM-verschlüsselt gespeichert.
