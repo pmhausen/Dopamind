@@ -392,7 +392,14 @@
     "selected": "{n} selected",
     "clearSelection": "Clear selection",
     "toSingleTask": "Single task",
-    "toMultipleTasks": "Multiple tasks"
+    "toMultipleTasks": "Multiple tasks",
+    "search": "Search",
+    "searchPlaceholder": "Search mails...",
+    "perPage": "per page",
+    "noResults": "No results",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "pageInfo": "{from}–{to} of {total}"
   },
   "zeitmanagement": {
     "title": "Time Management",

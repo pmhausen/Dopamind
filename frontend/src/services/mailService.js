@@ -1,7 +1,7 @@
 import { apiFetch } from "./api";
 
-export function fetchMails(folder = "INBOX", masterTag = null) {
-  let url = `/mail?folder=${encodeURIComponent(folder)}`;
+export function fetchMails(folder = "INBOX", masterTag = null, limit = 50) {
+  let url = `/mail?folder=${encodeURIComponent(folder)}&limit=${limit}`;
   if (masterTag) url += `&tag=${encodeURIComponent(masterTag)}`;
   return apiFetch(url);
 }

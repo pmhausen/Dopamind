@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useI18n } from "../i18n/I18nContext";
 import { useMail } from "../context/MailContext";
 import { useApp } from "../context/AppContext";
 import { useSettings } from "../context/SettingsContext";
 import {
-  Mail, Reply, Trash2, Archive, Tag, Send, X, ChevronLeft, Loader,
-  Inbox, FileText, AlertCircle, CheckSquare, Clock, Star, Filter, Link, Square, CheckSquare2, ListPlus,
+  Mail, Reply, Trash2, Archive, Tag, Send, X, ChevronLeft, ChevronRight, Loader,
+  Inbox, FileText, AlertCircle, CheckSquare, Clock, Star, Filter, Link, Square, CheckSquare2, ListPlus, Search,
 } from "lucide-react";
 
 const TAG_COLORS = {
@@ -23,6 +23,8 @@ const FOLDERS = [
   { key: "trash", folder: "Trash", icon: Trash2 },
   { key: "archive", folder: "Archive", icon: Archive },
 ];
+
+const PAGE_SIZE_OPTIONS = [25, 50, 75, 100];
 
 function MailCompose({ mail, onSend, onDiscard, t }) {
   const [to, setTo] = useState(mail?.to || "");
@@ -125,27 +127,62 @@ export default function MailPage() {
   const [activeFolder, setActiveFolder] = useState("INBOX");
   const [selectedUids, setSelectedUids] = useState([]);
   const [showBatchTags, setShowBatchTags] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [pageSize, setPageSize] = useState(50);
+  const [page, setPage] = useState(1);
+  // Ref tracks current pageSize for use in the fetch effect without re-triggering on size changes
+  const pageSizeRef = useRef(50);
 
   const isMultiSelect = selectedUids.length > 0;
+
+  // Filter mails by search query
+  const filteredMails = useMemo(() => {
+    if (!searchQuery.trim()) return state.mails;
+    const q = searchQuery.toLowerCase();
+    return state.mails.filter(
+      (m) =>
+        (m.subject || "").toLowerCase().includes(q) ||
+        (m.from || "").toLowerCase().includes(q) ||
+        (m.fromName || "").toLowerCase().includes(q) ||
+        (m.preview || "").toLowerCase().includes(q)
+    );
+  }, [state.mails, searchQuery]);
+
+  // Pagination on filtered results
+  const totalPages = Math.max(1, Math.ceil(filteredMails.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedMails = filteredMails.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageFrom = filteredMails.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageTo = Math.min(safePage * pageSize, filteredMails.length);
+
+  // Reset to page 1 when search changes
+  const handleSearchChange = (val) => { setSearchQuery(val); setPage(1); };
+
+  // Reset page when folder/pageSize changes
+  const handlePageSizeChange = (size) => {
+    setPageSize(size);
+    pageSizeRef.current = size;
+    setPage(1);
+    const masterTag = settings.mail?.masterTagEnabled ? settings.mail?.masterTag : null;
+    fetchMails(activeFolder, masterTag, size);
+  };
 
   const toggleSelect = useCallback((uid) => {
     setSelectedUids((prev) => prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]);
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    setSelectedUids((prev) => prev.length === state.mails.length ? [] : state.mails.map((m) => m.uid));
-  }, [state.mails]);
+    setSelectedUids((prev) => prev.length === filteredMails.length ? [] : filteredMails.map((m) => m.uid));
+  }, [filteredMails]);
 
   const clearSelection = useCallback(() => { setSelectedUids([]); setShowBatchTags(false); }, []);
 
   const getSelectedMails = useCallback(() => state.mails.filter((m) => selectedUids.includes(m.uid)), [state.mails, selectedUids]);
 
   const handleCreateTask = (mail) => {
-    // Determine priority from mail tags
     const priorityMap = { important: "high", todo: "medium", waiting: "low" };
     const tagPriority = (mail.tags || []).find((tg) => priorityMap[tg]);
     const priority = tagPriority ? priorityMap[tagPriority] : "medium";
-
     appDispatch({
       type: "ADD_TASK",
       payload: {
@@ -155,18 +192,15 @@ export default function MailPage() {
         mailRef: { uid: mail.uid, folder: activeFolder, subject: mail.subject, from: mail.from },
       },
     });
-    // Also tag the mail as "todo" on IMAP
     tagMail(mail.uid, "todo");
   };
 
-  // Batch: create one task per selected mail
   const handleBatchCreateTasks = () => {
     const mails = getSelectedMails();
     for (const mail of mails) handleCreateTask(mail);
     clearSelection();
   };
 
-  // Batch: create a single task combining all selected mails
   const handleBatchCreateSingleTask = useCallback(() => {
     const mails = getSelectedMails();
     if (mails.length === 0) return;
@@ -189,13 +223,11 @@ export default function MailPage() {
     clearSelection();
   }, [getSelectedMails, clearSelection, appDispatch, activeFolder, tagMail]);
 
-  // Batch: tag all selected
   const handleBatchTag = useCallback(async (tag) => {
     await Promise.all(selectedUids.map((uid) => tagMail(uid, tag)));
     setShowBatchTags(false);
   }, [selectedUids, tagMail]);
 
-  // Batch: delete all selected
   const handleBatchDelete = useCallback(async () => {
     await Promise.all(selectedUids.map((uid) => deleteMail(uid)));
     clearSelection();
@@ -204,7 +236,7 @@ export default function MailPage() {
   const masterTag = settings.mail?.masterTagEnabled ? settings.mail?.masterTag : null;
 
   useEffect(() => {
-    if (isMailConfigured) fetchMails(activeFolder, masterTag);
+    if (isMailConfigured) fetchMails(activeFolder, masterTag, pageSizeRef.current);
   }, [isMailConfigured, activeFolder, fetchMails, masterTag]);
 
   if (!isMailConfigured) {
@@ -233,20 +265,52 @@ export default function MailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         <div className="lg:col-span-1"><div className="glass-card p-3 space-y-1">
           {FOLDERS.map(({ key, folder, icon: Icon }) => (
-            <button key={folder} onClick={() => { setActiveFolder(folder); selectMail(null); clearSelection(); }} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${activeFolder === folder ? "bg-accent/10 text-accent dark:bg-accent/20 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"}`}>
+            <button key={folder} onClick={() => { setActiveFolder(folder); selectMail(null); clearSelection(); setSearchQuery(""); setPage(1); }} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${activeFolder === folder ? "bg-accent/10 text-accent dark:bg-accent/20 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"}`}>
               <Icon className="w-4 h-4 flex-shrink-0" /> {t(`mail.folders.${key}`)}
             </button>
           ))}
         </div></div>
         <div className="lg:col-span-3"><div className="glass-card">
+          {/* Search + page-size toolbar */}
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200/50 dark:border-white/5 flex-wrap gap-y-2">
+            <div className="relative flex-1 min-w-[160px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-light dark:text-muted-dark pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={t("mail.searchPlaceholder")}
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
+              />
+              {searchQuery && (
+                <button onClick={() => handleSearchChange("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-light hover:text-accent transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-xs text-muted-light dark:text-muted-dark whitespace-nowrap">{t("mail.perPage")}:</span>
+              <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-white/5 rounded-lg p-0.5">
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => handlePageSizeChange(size)}
+                    className={`px-2 py-0.5 rounded text-xs transition-all ${pageSize === size ? "bg-white dark:bg-white/15 text-accent font-bold shadow-sm" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"}`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Batch action bar */}
           {isMultiSelect && (
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200/50 dark:border-white/5 bg-accent/5 rounded-t-xl flex-wrap">
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200/50 dark:border-white/5 bg-accent/5 flex-wrap">
               <button onClick={clearSelection} className="btn-ghost p-1.5" title={t("mail.clearSelection")}><X className="w-4 h-4" /></button>
               <span className="text-sm font-medium text-accent">{t("mail.selected").replace("{n}", String(selectedUids.length))}</span>
               <div className="flex-1" />
               <div className="flex items-center gap-1.5 flex-wrap">
-                {/* Batch tag */}
                 <div className="relative">
                   <button onClick={() => setShowBatchTags(!showBatchTags)} className="btn-ghost text-xs flex items-center gap-1"><Tag className="w-3.5 h-3.5" /> {t("mail.tag")}</button>
                   {showBatchTags && (
@@ -262,23 +326,21 @@ export default function MailPage() {
                     </div>
                   )}
                 </div>
-                {/* Batch create single task */}
                 <button onClick={handleBatchCreateSingleTask} className="btn-ghost text-xs flex items-center gap-1" title={t("mail.toSingleTask")}>
                   <CheckSquare className="w-3.5 h-3.5" /> {t("mail.toSingleTask")}
                 </button>
-                {/* Batch create multiple tasks */}
                 <button onClick={handleBatchCreateTasks} className="btn-ghost text-xs flex items-center gap-1" title={t("mail.toMultipleTasks")}>
                   <ListPlus className="w-3.5 h-3.5" /> {t("mail.toMultipleTasks")}
                 </button>
-                {/* Batch delete */}
                 <button onClick={handleBatchDelete} className="btn-ghost text-xs flex items-center gap-1 text-danger hover:bg-danger/10" title={t("mail.delete")}>
                   <Trash2 className="w-3.5 h-3.5" /> {t("mail.delete")}
                 </button>
               </div>
             </div>
           )}
+
           {/* Select all header */}
-          {!state.loading && !state.error && state.mails.length > 0 && !isMultiSelect && (
+          {!state.loading && !state.error && pagedMails.length > 0 && !isMultiSelect && (
             <div className="flex items-center gap-2 px-4 py-1.5 border-b border-gray-200/30 dark:border-white/[0.03]">
               <button onClick={toggleSelectAll} className="w-5 h-5 rounded flex items-center justify-center text-muted-light dark:text-muted-dark hover:text-accent transition-colors" title={t("mail.selectAll")}>
                 <Square className="w-3.5 h-3.5" />
@@ -286,19 +348,24 @@ export default function MailPage() {
               <span className="text-[10px] text-muted-light dark:text-muted-dark">{t("mail.selectAll")}</span>
             </div>
           )}
+
           {state.loading && <div className="p-8 text-center text-muted-light dark:text-muted-dark"><p className="text-sm">{t("mail.loading")}</p></div>}
           {state.error && <div className="p-8 text-center text-danger"><p className="text-sm">{state.error}</p></div>}
-          {!state.loading && !state.error && state.mails.length === 0 && <div className="p-8 text-center text-muted-light dark:text-muted-dark"><Mail className="w-8 h-8 mx-auto mb-2 opacity-50" /><p className="text-sm">{t("mail.noMails")}</p></div>}
+          {!state.loading && !state.error && filteredMails.length === 0 && (
+            <div className="p-8 text-center text-muted-light dark:text-muted-dark">
+              <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">{searchQuery ? t("mail.noResults") : t("mail.noMails")}</p>
+            </div>
+          )}
+
           <div className="divide-y divide-gray-200/50 dark:divide-white/5">
-            {state.mails.map((m) => {
+            {pagedMails.map((m) => {
               const isSelected = selectedUids.includes(m.uid);
               return (
                 <div key={m.uid} onClick={(e) => { if (isMultiSelect) { toggleSelect(m.uid); } else { selectMail(m); } }} className={`group flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] ${!m.seen ? "bg-accent/[0.03]" : ""} ${isSelected ? "!bg-accent/10" : ""}`}>
-                  {/* Checkbox */}
                   <button onClick={(e) => { e.stopPropagation(); toggleSelect(m.uid); }} className={`flex-shrink-0 mt-1 w-5 h-5 rounded flex items-center justify-center transition-colors ${isSelected ? "text-accent" : "text-gray-300 dark:text-gray-600 hover:text-accent"}`}>
                     {isSelected ? <CheckSquare2 className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                   </button>
-                  {/* Unread indicator */}
                   <div className="flex-shrink-0 mt-2 w-2">{!m.seen && <div className="w-2 h-2 rounded-full bg-accent" />}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -319,6 +386,34 @@ export default function MailPage() {
               );
             })}
           </div>
+
+          {/* Pagination footer */}
+          {!state.loading && !state.error && filteredMails.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-200/30 dark:border-white/[0.03]">
+              <span className="text-xs text-muted-light dark:text-muted-dark">
+                {t("mail.pageInfo").replace("{from}", String(pageFrom)).replace("{to}", String(pageTo)).replace("{total}", String(filteredMails.length))}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label={t("mail.prevPage")}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-medium min-w-[3rem] text-center">{safePage} / {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label={t("mail.nextPage")}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div></div>
       </div>
     </div>

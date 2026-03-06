@@ -318,7 +318,14 @@
     "selected": "{n} ausgewählt",
     "clearSelection": "Auswahl aufheben",
     "toSingleTask": "Als eine Aufgabe",
-    "toMultipleTasks": "Je eine Aufgabe"
+    "toMultipleTasks": "Je eine Aufgabe",
+    "search": "Suche",
+    "searchPlaceholder": "Mails durchsuchen...",
+    "perPage": "pro Seite",
+    "noResults": "Keine Treffer",
+    "prevPage": "Zurück",
+    "nextPage": "Weiter",
+    "pageInfo": "{from}–{to} von {total}"
   },
   "zeitmanagement": {
     "title": "Zeitmanagement",

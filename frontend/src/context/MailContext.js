@@ -52,11 +52,11 @@ function reducer(state, action) {
 export function MailProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const fetchMails = useCallback(async (folder = "INBOX", masterTag = null) => {
+  const fetchMails = useCallback(async (folder = "INBOX", masterTag = null, limit = 50) => {
     dispatch({ type: "SET_LOADING", payload: true });
     dispatch({ type: "SET_FOLDER", payload: folder });
     try {
-      const mails = await mailService.fetchMails(folder, masterTag);
+      const mails = await mailService.fetchMails(folder, masterTag, limit);
       dispatch({ type: "SET_MAILS", payload: mails });
     } catch (err) {
       dispatch({ type: "SET_ERROR", payload: err.message });

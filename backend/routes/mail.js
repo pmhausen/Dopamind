@@ -102,13 +102,18 @@ router.post("/test", async (req, res) => {
   }
 });
 
-// GET /api/mail?folder=INBOX&tag=...
+// GET /api/mail?folder=INBOX&tag=...&limit=50
+const MAIL_LIMIT_DEFAULT = 50;
+const MAIL_LIMIT_MIN = 1;
+const MAIL_LIMIT_MAX = 200;
+
 router.get("/", async (req, res) => {
   const config = getMailConfig(req);
   if (!config) return res.status(400).json({ error: "Mail not configured" });
 
   const folder = req.query.folder || "INBOX";
   const filterTag = req.query.tag;
+  const limit = Math.min(Math.max(parseInt(req.query.limit || String(MAIL_LIMIT_DEFAULT), 10), MAIL_LIMIT_MIN), MAIL_LIMIT_MAX);
 
   try {
     const messages = await withImap(config, folder, async (client) => {
@@ -116,7 +121,7 @@ router.get("/", async (req, res) => {
       const total = client.mailbox.exists;
       if (total === 0) return result;
 
-      const startSeq = Math.max(1, total - 49);
+      const startSeq = Math.max(1, total - (limit - 1));
       for await (const msg of client.fetch(`${startSeq}:*`, {
         uid: true,
         envelope: true,
