@@ -1,6 +1,7 @@
 import { useApp, getLevelTitle } from "../context/AppContext";
+import { useSettings } from "../context/SettingsContext";
 import { useI18n } from "../i18n/I18nContext";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   TrendingUp, Star, X, Sparkles, Brain, Sunrise, Moon, Zap,
   Rocket, ListChecks, Trophy, Crown, Clock, Shield, Flame,
@@ -48,11 +49,81 @@ const SIZE_CLASSES = {
   penalty: "border border-danger/40 bg-danger/5",
 };
 
+function playRewardSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const isPenalty = type === "overdue-penalty" || type === "inactivity-penalty";
+    const isLevelUp = type === "level-up";
+
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (isLevelUp ? 1.0 : 0.6));
+
+    if (isPenalty) {
+      // Low descending tone for penalties
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(330, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } else if (isLevelUp) {
+      // Rising arpeggio for level-up
+      const notes = [523, 659, 784, 1047];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+        g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.4);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.12);
+        osc.stop(ctx.currentTime + i * 0.12 + 0.4);
+      });
+    } else {
+      // Pleasant two-note chime for regular rewards
+      [659, 880].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+        g.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.1 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.5);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.1);
+        osc.stop(ctx.currentTime + i * 0.1 + 0.5);
+      });
+    }
+    setTimeout(() => ctx.close(), 2000);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
 export default function RewardToast() {
   const { state, dispatch } = useApp();
+  const { settings } = useSettings();
   const { t, lang } = useI18n();
+  const prevCountRef = useRef(0);
 
   const activeRewards = state.rewards.slice(-3);
+
+  // Play sound when a new reward appears
+  useEffect(() => {
+    const count = state.rewards.length;
+    if (settings.gamification?.soundEnabled && count > prevCountRef.current) {
+      const latest = state.rewards[count - 1];
+      if (latest) playRewardSound(latest.type);
+    }
+    prevCountRef.current = count;
+  }, [state.rewards, settings.gamification?.soundEnabled]);
 
   useEffect(() => {
     if (activeRewards.length === 0) return;

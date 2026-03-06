@@ -102,7 +102,7 @@ router.post("/test", async (req, res) => {
   }
 });
 
-// GET /api/mail?folder=INBOX&tag=...&limit=50
+// GET /api/mail?folder=INBOX&tag=...&limit=50&offset=0
 const MAIL_LIMIT_DEFAULT = 50;
 const MAIL_LIMIT_MIN = 1;
 const MAIL_LIMIT_MAX = 200;
@@ -114,15 +114,18 @@ router.get("/", async (req, res) => {
   const folder = req.query.folder || "INBOX";
   const filterTag = req.query.tag;
   const limit = Math.min(Math.max(parseInt(req.query.limit || String(MAIL_LIMIT_DEFAULT), 10), MAIL_LIMIT_MIN), MAIL_LIMIT_MAX);
+  const offset = Math.max(0, parseInt(req.query.offset || "0", 10));
 
   try {
-    const messages = await withImap(config, folder, async (client) => {
+    const { mails: messages, total } = await withImap(config, folder, async (client) => {
       const result = [];
       const total = client.mailbox.exists;
-      if (total === 0) return result;
+      if (total === 0) return { mails: [], total: 0 };
 
-      const startSeq = Math.max(1, total - (limit - 1));
-      for await (const msg of client.fetch(`${startSeq}:*`, {
+      // Fetch messages from newest to oldest, applying the offset
+      const endSeq = Math.max(1, total - offset);
+      const startSeq = Math.max(1, endSeq - (limit - 1));
+      for await (const msg of client.fetch(`${startSeq}:${endSeq}`, {
         uid: true,
         envelope: true,
         flags: true,
@@ -152,9 +155,9 @@ router.get("/", async (req, res) => {
           tags,
         });
       }
-      return result.reverse();
+      return { mails: result.reverse(), total };
     });
-    res.json(messages);
+    res.json({ mails: messages, total });
   } catch (err) {
     console.error("IMAP fetch error:", err.message);
     res.status(500).json({ error: err.message });

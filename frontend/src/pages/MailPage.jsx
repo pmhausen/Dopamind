@@ -135,7 +135,7 @@ export default function MailPage() {
 
   const isMultiSelect = selectedUids.length > 0;
 
-  // Filter mails by search query
+  // Filter mails by search query (within currently loaded page)
   const filteredMails = useMemo(() => {
     if (!searchQuery.trim()) return state.mails;
     const q = searchQuery.toLowerCase();
@@ -148,15 +148,29 @@ export default function MailPage() {
     );
   }, [state.mails, searchQuery]);
 
-  // Pagination on filtered results
-  const totalPages = Math.max(1, Math.ceil(filteredMails.length / pageSize));
+  // When searching: client-side pagination over filtered results.
+  // When not searching: server-side pagination using state.total.
+  const serverTotal = state.total || 0;
+  const totalPages = searchQuery.trim()
+    ? Math.max(1, Math.ceil(filteredMails.length / pageSize))
+    : Math.max(1, Math.ceil(serverTotal / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pagedMails = filteredMails.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const pageFrom = filteredMails.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const pageTo = Math.min(safePage * pageSize, filteredMails.length);
+  const pagedMails = searchQuery.trim()
+    ? filteredMails.slice((safePage - 1) * pageSize, safePage * pageSize)
+    : filteredMails;
+  const displayTotal = searchQuery.trim() ? filteredMails.length : serverTotal;
+  const pageFrom = displayTotal === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageTo = Math.min(safePage * pageSize, displayTotal);
 
   // Reset to page 1 when search changes
   const handleSearchChange = (val) => { setSearchQuery(val); setPage(1); };
+
+  // Fetch a specific page from the server
+  const fetchPage = useCallback((newPage) => {
+    const offset = (newPage - 1) * pageSizeRef.current;
+    const masterTag = settings.mail?.masterTagEnabled ? settings.mail?.masterTag : null;
+    fetchMails(activeFolder, masterTag, pageSizeRef.current, offset);
+  }, [fetchMails, activeFolder, settings.mail]);
 
   // Reset page when folder/pageSize changes
   const handlePageSizeChange = (size) => {
@@ -164,7 +178,21 @@ export default function MailPage() {
     pageSizeRef.current = size;
     setPage(1);
     const masterTag = settings.mail?.masterTagEnabled ? settings.mail?.masterTag : null;
-    fetchMails(activeFolder, masterTag, size);
+    fetchMails(activeFolder, masterTag, size, 0);
+  };
+
+  const handlePrevPage = () => {
+    if (safePage <= 1) return;
+    const newPage = safePage - 1;
+    setPage(newPage);
+    if (!searchQuery.trim()) fetchPage(newPage);
+  };
+
+  const handleNextPage = () => {
+    if (safePage >= totalPages) return;
+    const newPage = safePage + 1;
+    setPage(newPage);
+    if (!searchQuery.trim()) fetchPage(newPage);
   };
 
   const toggleSelect = useCallback((uid) => {
@@ -236,7 +264,7 @@ export default function MailPage() {
   const masterTag = settings.mail?.masterTagEnabled ? settings.mail?.masterTag : null;
 
   useEffect(() => {
-    if (isMailConfigured) fetchMails(activeFolder, masterTag, pageSizeRef.current);
+    if (isMailConfigured) { setPage(1); fetchMails(activeFolder, masterTag, pageSizeRef.current, 0); }
   }, [isMailConfigured, activeFolder, fetchMails, masterTag]);
 
   if (!isMailConfigured) {
@@ -388,15 +416,15 @@ export default function MailPage() {
           </div>
 
           {/* Pagination footer */}
-          {!state.loading && !state.error && filteredMails.length > 0 && (
+          {!state.loading && !state.error && (pagedMails.length > 0 || serverTotal > 0) && (
             <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-200/30 dark:border-white/[0.03]">
               <span className="text-xs text-muted-light dark:text-muted-dark">
-                {t("mail.pageInfo").replace("{from}", String(pageFrom)).replace("{to}", String(pageTo)).replace("{total}", String(filteredMails.length))}
+                {t("mail.pageInfo").replace("{from}", String(pageFrom)).replace("{to}", String(pageTo)).replace("{total}", String(displayTotal))}
               </span>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={safePage <= 1}
+                  onClick={handlePrevPage}
+                  disabled={safePage <= 1 || state.loading}
                   className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   aria-label={t("mail.prevPage")}
                 >
@@ -404,8 +432,8 @@ export default function MailPage() {
                 </button>
                 <span className="text-xs font-medium min-w-[3rem] text-center">{safePage} / {totalPages}</span>
                 <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={safePage >= totalPages}
+                  onClick={handleNextPage}
+                  disabled={safePage >= totalPages || state.loading}
                   className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   aria-label={t("mail.nextPage")}
                 >

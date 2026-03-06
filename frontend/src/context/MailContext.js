@@ -5,6 +5,7 @@ const MailContext = createContext();
 
 const initialState = {
   mails: [],
+  total: 0,
   selectedMail: null,
   folder: "INBOX",
   loading: false,
@@ -19,7 +20,7 @@ function reducer(state, action) {
     case "SET_ERROR":
       return { ...state, loading: false, error: action.payload };
     case "SET_MAILS":
-      return { ...state, mails: action.payload, loading: false };
+      return { ...state, mails: action.payload.mails, total: action.payload.total, loading: false };
     case "SELECT_MAIL":
       return { ...state, selectedMail: action.payload };
     case "SET_FOLDER":
@@ -52,12 +53,12 @@ function reducer(state, action) {
 export function MailProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const fetchMails = useCallback(async (folder = "INBOX", masterTag = null, limit = 50) => {
+  const fetchMails = useCallback(async (folder = "INBOX", masterTag = null, limit = 50, offset = 0) => {
     dispatch({ type: "SET_LOADING", payload: true });
     dispatch({ type: "SET_FOLDER", payload: folder });
     try {
-      const mails = await mailService.fetchMails(folder, masterTag, limit);
-      dispatch({ type: "SET_MAILS", payload: mails });
+      const result = await mailService.fetchMails(folder, masterTag, limit, offset);
+      dispatch({ type: "SET_MAILS", payload: { mails: result.mails, total: result.total } });
     } catch (err) {
       dispatch({ type: "SET_ERROR", payload: err.message });
     }
