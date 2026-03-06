@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nContext";
-import { useApp } from "../context/AppContext";
+import { useApp, ACHIEVEMENTS, getLevelTitle } from "../context/AppContext";
+import { useSettings } from "../context/SettingsContext";
 import { useResourceMonitor } from "../context/ResourceMonitorContext";
-import AchievementsPanel from "../components/AchievementsPanel";
 import { BarChart, TrendIndicator, HeatmapGrid } from "../components/charts";
 import { useFilteredStats } from "../hooks/useFilteredStats";
-import { Download, Trophy, BarChart2, Brain, TrendingUp, Activity, Coffee } from "lucide-react";
+import {
+  Download, Trophy, BarChart2, Brain,
+  Star, Flame, Shield, CheckCircle2, Timer, Sun, Moon, Zap,
+  Rocket, List, Target, Calendar, Layers, Award, TrendingDown, Lock,
+} from "lucide-react";
 
 // Shared helpers
 
@@ -316,26 +320,6 @@ function BrainReportTab({ t, state, resourceMonitorState }) {
         </div>
       )}
 
-      {(state.notMyDayCount || 0) > 0 && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.selfCareScore")}</h3>
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">💙</span>
-            <p className="text-sm leading-relaxed">{t("stats.selfCareLabel", { count: state.notMyDayCount || 0 })}</p>
-          </div>
-        </div>
-      )}
-
-      {state.previousWeekStats && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.previousWeek")}</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <StatCard label={t("stats.completed")} value={state.previousWeekStats.tasks} color="text-success" />
-            <StatCard label={t("stats.focusMin")} value={state.previousWeekStats.focusMinutes} color="text-accent" unit={t("common.min")} />
-            <StatCard label="XP" value={state.previousWeekStats.xp} color="text-yellow-500" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -481,19 +465,16 @@ function XpHistoryTab({ t, state }) {
 
 // AnalysisTab
 
-function AnalysisTab({ t, state }) {
+function AnalysisTab({ t, state, features, rmState, getTodayActivity }) {
   const [period, setPeriod] = useState("week");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const stats = useFilteredStats(state, period, customFrom, customTo);
+  const showActivity = features.resourceMonitorEnabled !== false;
+  const todayActivity = showActivity ? getTodayActivity() : null;
+  const recentSessions = showActivity ? (rmState.activitySessions || []).slice(0, 14) : [];
 
   const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-
-  const activityData = stats.dailyData.slice(-30).map((d) => ({
-    label: new Date(d.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2),
-    value: d.tasks,
-    color: "bg-success",
-  }));
 
   const sizeData = (() => {
     const counts = { quick: 0, short: 0, medium: 0, long: 0 };
@@ -531,13 +512,6 @@ function AnalysisTab({ t, state }) {
   return (
     <div className="space-y-5">
       <PeriodSelector t={t} period={period} setPeriod={setPeriod} customFrom={customFrom} setCustomFrom={setCustomFrom} customTo={customTo} setCustomTo={setCustomTo} />
-
-      {activityData.length > 0 && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.activityOverTime")}</h3>
-          <BarChart data={activityData} height={80} />
-        </div>
-      )}
 
       {stats.activeDays > 0 && (
         <div className="glass-card p-5">
@@ -621,101 +595,66 @@ function AnalysisTab({ t, state }) {
         </div>
       </div>
 
-      {(state.focusLog || []).length > 0 && (
+      {state.previousWeekStats && (
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.focusQuality")}</h3>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-white/5">
-                <p className="text-xl font-bold text-accent">{formatFocusTime(state.totalFocusMinutes || 0)}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.totalFocus")}</p>
-              </div>
-              <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-white/5">
-                <p className="text-xl font-bold text-green-500">{state.focusBlocksToday || 0}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.focusBlocksToday")}</p>
-              </div>
-            </div>
-            {(state.timeLog || []).length > 0 && <EstimationAccuracySection t={t} timeLog={state.timeLog} />}
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.previousWeek")}</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <StatCard label={t("stats.completed")} value={state.previousWeekStats.tasks} color="text-success" />
+            <StatCard label={t("stats.focusMin")} value={state.previousWeekStats.focusMinutes} color="text-accent" unit={t("common.min")} />
+            <StatCard label="XP" value={state.previousWeekStats.xp} color="text-yellow-500" />
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-// Tabs
+      {(state.notMyDayCount || 0) > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.selfCareScore")}</h3>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">💙</span>
+            <p className="text-sm leading-relaxed">{t("stats.selfCareLabel", { count: state.notMyDayCount || 0 })}</p>
+          </div>
+        </div>
+      )}
 
-function formatMinutes(min) {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return `${h}h ${String(m).padStart(2, "0")}min`;
-}
-
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function ActivityTab({ t, state, getTodayActivity }) {
-  const today = getTodayActivity();
-  const recentSessions = (state.activitySessions || []).slice(0, 14);
-
-  return (
-    <div className="space-y-5">
-      {/* Today's activity card */}
-      <div className="glass-card p-6">
-        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
-          {t("resourceMonitor.todayActivity")}
-        </h3>
-        {today ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-sm font-medium">{t("resourceMonitor.activeSince")} {formatTime(today.firstActivity)}</span>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono text-accent">{formatTime(today.firstActivity)}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.firstActivity")}</p>
+      {showActivity && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+            {t("resourceMonitor.todayActivity")}
+          </h3>
+          {todayActivity ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span className="text-sm font-medium">{t("resourceMonitor.activeSince")} {formatTime(todayActivity.firstActivity)}</span>
               </div>
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono">{formatTime(today.lastActivity)}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.lastActivity")}</p>
-              </div>
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono text-accent">{(today.focusBlocks || []).length}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.focusBlocks")}</p>
-              </div>
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono">{today.tasksCompleted || 0}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.tasksCompleted")}</p>
-              </div>
-            </div>
-            {(today.impliedBreaks || []).length > 0 && (
-              <div>
-                <p className="text-xs text-muted-light dark:text-muted-dark uppercase tracking-wider mb-2">{t("resourceMonitor.impliedBreaks")}</p>
-                <div className="flex flex-wrap gap-2">
-                  {today.impliedBreaks.map((b, i) => {
-                    const durMin = Math.round((b.end - b.start) / 60000);
-                    return (
-                      <span key={i} className="badge bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs">
-                        <Coffee className="w-3 h-3 mr-1 inline" />
-                        {formatTime(b.start)} – {formatTime(b.end)} ({durMin}min)
-                      </span>
-                    );
-                  })}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono text-accent">{formatTime(todayActivity.firstActivity)}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.firstActivity")}</p>
+                </div>
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono">{formatTime(todayActivity.lastActivity)}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.lastActivity")}</p>
+                </div>
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono text-accent">{(todayActivity.focusBlocks || []).length}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.focusBlocks")}</p>
+                </div>
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono">{todayActivity.tasksCompleted || 0}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.tasksCompleted")}</p>
                 </div>
               </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-light dark:text-muted-dark text-center py-4">
-            {t("resourceMonitor.noActivityYet")}
-          </p>
-        )}
-      </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-light dark:text-muted-dark text-center py-4">
+              {t("resourceMonitor.noActivityYet")}
+            </p>
+          )}
+        </div>
+      )}
 
-      {/* Recent activity sessions */}
-      {recentSessions.length > 0 && (
+      {showActivity && recentSessions.length > 0 && (
         <div className="glass-card p-5">
           <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
             {t("resourceMonitor.weekPattern")}
@@ -752,25 +691,407 @@ function ActivityTab({ t, state, getTodayActivity }) {
   );
 }
 
+// GamificationTab helpers
+
+function streakMult(days) {
+  if (days >= 14) return 1.5;
+  if (days >= 7) return 1.2;
+  if (days >= 3) return 1.1;
+  return 1.0;
+}
+
+const ACHIEVEMENT_ICONS = {
+  "first-task":     CheckCircle2,
+  "daily-5":        CheckCircle2,
+  "daily-10":       CheckCircle2,
+  "first-focus":    Timer,
+  "focus-hour":     Timer,
+  "focus-duo":      Timer,
+  "focus-marathon": Timer,
+  "streak-3":       Flame,
+  "streak-7":       Flame,
+  "streak-30":      Flame,
+  "streak-100":     Flame,
+  "early-bird":     Sun,
+  "night-owl":      Moon,
+  "hat-trick":      Zap,
+  "quick-starter":  Rocket,
+  "subtask-master": List,
+  "deadline-hero":  Target,
+  "week-warrior":   Calendar,
+  "week-50":        Calendar,
+  "all-sizes":      Layers,
+  "month-100":      Trophy,
+  "year-365":       Trophy,
+  "focus-1000min":  Trophy,
+  "level-10":       Trophy,
+  "level-25":       Trophy,
+  "level-50":       Trophy,
+  "daily-champion": Trophy,
+};
+
+const SIZE_ORDER_ACH = ["small", "medium", "large"];
+
+function GamificationTab({ t, state, lang }) {
+  const [chartPeriod, setChartPeriod] = useState("week");
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // XP calculations
+  const nextLevelXp = state.level * state.level * 50;
+  const currentLevelXp = (state.level - 1) * (state.level - 1) * 50;
+  const progressPct = Math.min(100, Math.round(((state.xp - currentLevelXp) / Math.max(1, nextLevelXp - currentLevelXp)) * 100));
+  const xpToNext = Math.max(0, nextLevelXp - state.xp);
+
+  // Streak
+  const streak = state.currentStreakDays || 0;
+  const mult = streakMult(streak);
+  const multPct = Math.round((mult - 1) * 100);
+
+  // Shield
+  const shieldActive = state.compassionModeDate === todayStr;
+
+  // XP Log
+  const xpLog = state.xpLog || [];
+  const daysToShow = chartPeriod === "week" ? 7 : 30;
+  const cutoff = new Date(Date.now() - daysToShow * 86400000).toISOString().split("T")[0];
+  const xpByDate = {};
+  for (const entry of xpLog.filter((e) => e.date >= cutoff)) {
+    xpByDate[entry.date] = (xpByDate[entry.date] || 0) + entry.amount;
+  }
+  const chartData = Array.from({ length: daysToShow }, (_, i) => {
+    const d = new Date(Date.now() - (daysToShow - 1 - i) * 86400000).toISOString().split("T")[0];
+    const lbl = new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2);
+    return { label: lbl, value: xpByDate[d] || 0, color: "bg-yellow-400" };
+  });
+
+  const xpBySource = {};
+  for (const entry of xpLog) {
+    if (entry.amount > 0) xpBySource[entry.source] = (xpBySource[entry.source] || 0) + entry.amount;
+  }
+  const totalXpLogged = Object.values(xpBySource).reduce((a, b) => a + b, 0);
+  const XP_SOURCES = [
+    { key: "task",        label: t("stats.xpFromTasks"),        color: "bg-success"    },
+    { key: "focus",       label: t("stats.xpFromFocus"),        color: "bg-accent"     },
+    { key: "achievement", label: t("stats.xpFromAchievements"), color: "bg-yellow-400" },
+    { key: "challenge",   label: t("stats.xpFromChallenges"),   color: "bg-orange-400" },
+    { key: "focus_start", label: t("stats.xpFromFocusStart"),   color: "bg-purple-400" },
+    { key: "streak",      label: t("stats.xpFromStreak"),       color: "bg-red-400"    },
+  ];
+
+  // Avg XP/day
+  const avgXpPerDay = (() => {
+    const posLog = xpLog.filter((e) => e.amount > 0);
+    if (posLog.length === 0) return 0;
+    const uniqueDates = [...new Set(posLog.map((e) => e.date))];
+    const total = posLog.reduce((s, e) => s + e.amount, 0);
+    return uniqueDates.length > 0 ? Math.round(total / uniqueDates.length) : 0;
+  })();
+
+  // XP loss entries
+  const xpLossEntries = xpLog.filter((e) => e.amount < 0);
+  const totalXpLoss = xpLossEntries.reduce((s, e) => s + e.amount, 0);
+
+  // Level path
+  const maxLevel = Math.max(state.level + 3, 10);
+  const levelPath = Array.from({ length: maxLevel }, (_, i) => i + 1);
+
+  // Achievements
+  const unlocked = state.unlockedAchievements || [];
+
+  return (
+    <div className="space-y-5">
+      {/* Hero Card */}
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+          {t("stats.gamificationHero")}
+        </h3>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-purple-500 shadow-lg shrink-0">
+            <Star className="w-7 h-7 text-white" />
+            <span className="text-white font-bold text-lg ml-1">{state.level}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-lg leading-tight">{getLevelTitle(state.level, lang)}</p>
+            <p className="text-xs text-muted-light dark:text-muted-dark">{t("stats.level")} {state.level}</p>
+          </div>
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs font-medium">
+              <Flame className="w-3.5 h-3.5" />
+              {streak}d {multPct > 0 ? t("stats.streakMultiplier", { mult: mult.toFixed(1) }) : ""}
+            </span>
+            {(state.longestStreakDays || 0) > 0 && (
+              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-muted-light dark:text-muted-dark text-xs">
+                🏆 {t("stats.longestStreak")}: {state.longestStreakDays}d
+              </span>
+            )}
+            {shieldActive && (
+              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-medium">
+                <Shield className="w-3.5 h-3.5" />
+                {t("stats.shieldActive")}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">{state.xp} / {nextLevelXp} XP</span>
+            <span className="text-xs text-muted-light dark:text-muted-dark">{xpToNext} XP {t("stats.toNextLevel")}</span>
+          </div>
+          <div className="w-full h-3 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-accent to-purple-500 transition-all" style={{ width: `${progressPct}%` }} />
+          </div>
+          <p className="text-xs text-muted-light dark:text-muted-dark text-right">{progressPct}%</p>
+        </div>
+        {shieldActive && (
+          <p className="mt-3 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
+            <Shield className="w-3.5 h-3.5 shrink-0" />
+            {t("stats.shieldDesc")}
+          </p>
+        )}
+      </div>
+
+      {/* Level Path */}
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+          {t("stats.levelPath")}
+        </h3>
+        <div className="flex items-center gap-1 overflow-x-auto pb-2">
+          {levelPath.map((lvl, i) => {
+            const isPast = lvl < state.level;
+            const isCurrent = lvl === state.level;
+            const isFuture = lvl > state.level;
+            return (
+              <div key={lvl} className="flex items-center shrink-0">
+                <div className="flex flex-col items-center gap-1">
+                  <div className={`flex items-center justify-center rounded-full transition-all ${
+                    isCurrent
+                      ? "w-10 h-10 ring-2 ring-accent bg-accent/10"
+                      : isPast
+                      ? "w-7 h-7 bg-success/20"
+                      : "w-7 h-7 bg-gray-100 dark:bg-white/10 opacity-50"
+                  }`}>
+                    {isCurrent
+                      ? <Star className="w-5 h-5 text-accent" />
+                      : isPast
+                      ? <CheckCircle2 className="w-4 h-4 text-success" />
+                      : <span className="text-[10px] font-bold text-muted-light dark:text-muted-dark">{lvl}</span>
+                    }
+                  </div>
+                  {isCurrent && (
+                    <span className="text-[9px] text-accent font-medium whitespace-nowrap">{t("stats.youAreHere")}</span>
+                  )}
+                  {!isCurrent && (
+                    <span className={`text-[9px] ${isPast ? "text-success" : "text-muted-light dark:text-muted-dark opacity-50"}`}>{lvl}</span>
+                  )}
+                </div>
+                {i < levelPath.length - 1 && (
+                  <div className={`w-4 h-0.5 mx-0.5 ${lvl < state.level ? "bg-success/50" : "bg-gray-200 dark:bg-white/10"}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* XP History */}
+      {xpLog.length > 0 && (
+        <div className="glass-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.xpHistory")}</h3>
+            <div className="flex gap-1">
+              {["week", "month"].map((p) => (
+                <button key={p} onClick={() => setChartPeriod(p)}
+                  className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${chartPeriod === p ? "bg-white dark:bg-white/15 text-accent shadow-sm" : "text-gray-500 dark:text-gray-400"}`}
+                >{p === "week" ? t("stats.thisWeek") : "30d"}</button>
+              ))}
+            </div>
+          </div>
+          <BarChart data={chartData} height={80} />
+        </div>
+      )}
+
+      {/* XP Sources */}
+      {totalXpLogged > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.xpSources")}</h3>
+          <div className="space-y-3">
+            {XP_SOURCES.filter((s) => (xpBySource[s.key] || 0) > 0).map((s) => {
+              const val = xpBySource[s.key] || 0;
+              const pct = Math.round((val / totalXpLogged) * 100);
+              return (
+                <div key={s.key} className="text-xs">
+                  <div className="flex justify-between mb-1">
+                    <span className="font-medium">{s.label}</span>
+                    <span className="font-mono text-muted-light dark:text-muted-dark">{val} XP ({pct}%)</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
+                    <div className={`h-full rounded-full ${s.color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {avgXpPerDay > 0 && (
+            <div className="flex justify-between text-sm mt-4 pt-3 border-t border-gray-100 dark:border-white/10">
+              <span className="text-muted-light dark:text-muted-dark">{t("stats.avgXpPerDay")}</span>
+              <span className="font-medium">{avgXpPerDay} XP</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* XP Loss */}
+      {xpLossEntries.length > 0 && (
+        <div className="glass-card p-5 border border-orange-200 dark:border-orange-900/30">
+          <div className="flex items-start gap-3">
+            <TrendingDown className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">{t("stats.xpLossTitle")}</p>
+              <p className="text-xs text-muted-light dark:text-muted-dark mt-0.5">
+                -{Math.abs(totalXpLoss)} XP
+              </p>
+              <p className="text-xs text-muted-light dark:text-muted-dark mt-2 leading-relaxed">
+                {t("stats.xpLossEncouragement")}
+              </p>
+              {shieldActive && (
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5 shrink-0" />
+                  {t("stats.xpLossProtected")}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Milestone Preview */}
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.milestones")}</h3>
+        <div className="space-y-2">
+          {avgXpPerDay > 0 && (
+            <div className="flex justify-between text-sm mb-3">
+              <span className="text-muted-light dark:text-muted-dark">{t("stats.avgXpPerDay")}</span>
+              <span className="font-medium">{avgXpPerDay} XP</span>
+            </div>
+          )}
+          {Array.from({ length: 3 }, (_, i) => {
+            const l = state.level + 1 + i;
+            const needed = Math.max(0, l * l * 50 - state.xp);
+            const daysEst = avgXpPerDay > 0 && needed > 0 ? Math.ceil(needed / avgXpPerDay) : null;
+            const levelXpBase = (l - 1) * (l - 1) * 50;
+            const levelXpTop = l * l * 50;
+            const pct = Math.min(100, Math.round(((state.xp - levelXpBase) / Math.max(1, levelXpTop - levelXpBase)) * 100));
+            return (
+              <div key={l} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-white/5">
+                <span className="text-purple-500 font-bold text-sm w-8 shrink-0">L{l}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-accent to-purple-500" style={{ width: `${Math.max(0, pct)}%` }} />
+                  </div>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark mt-0.5">
+                    {needed > 0 ? `${needed} XP ${t("stats.toNextLevel")}${daysEst ? ` · ~${daysEst}d` : ""}` : "✓"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Achievements */}
+      <div className="space-y-8">
+        {SIZE_ORDER_ACH.map((size) => {
+          const group = ACHIEVEMENTS.filter((a) => a.size === size);
+          const sectionKey = size === "small" ? "achievements.small" : size === "medium" ? "achievements.medium" : "achievements.large";
+          return (
+            <section key={size}>
+              <h2 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-3">
+                {t(sectionKey)}
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {group.map((ach) => {
+                  const isUnlocked = unlocked.includes(ach.id);
+                  const AchIcon = ACHIEVEMENT_ICONS[ach.id] || Award;
+                  return (
+                    <div
+                      key={ach.id}
+                      className={`glass-card p-4 flex flex-col gap-2 transition-all ${
+                        isUnlocked
+                          ? size === "large"
+                            ? "border border-yellow-400/50 shadow-[0_0_12px_1px_rgba(250,204,21,0.2)]"
+                            : size === "medium"
+                            ? "border border-accent/30"
+                            : ""
+                          : "opacity-50 grayscale"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <AchIcon className={`w-4 h-4 shrink-0 ${isUnlocked ? (size === "large" ? "text-yellow-500" : "text-accent") : "text-muted-light dark:text-muted-dark"}`} />
+                          <p className={`text-sm font-semibold leading-tight ${isUnlocked ? "" : "text-muted-light dark:text-muted-dark"}`}>
+                            {t(`achievements.${ach.id}.name`)}
+                          </p>
+                        </div>
+                        {!isUnlocked && <Lock className="w-3.5 h-3.5 flex-shrink-0 text-muted-light dark:text-muted-dark mt-0.5" />}
+                      </div>
+                      <p className="text-[11px] text-muted-light dark:text-muted-dark leading-snug">
+                        {t(`achievements.${ach.id}.desc`)}
+                      </p>
+                      <span className={`self-start text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
+                        isUnlocked
+                          ? "bg-accent/10 text-accent dark:bg-accent/20"
+                          : "bg-gray-100 dark:bg-white/5 text-muted-light dark:text-muted-dark"
+                      }`}>
+                        {t("achievements.xpReward", { xp: ach.xp })}
+                      </span>
+                      {isUnlocked && (
+                        <span className="text-[10px] text-success font-medium">{t("achievements.unlocked")}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Tabs
+
+function formatMinutes(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${h}h ${String(m).padStart(2, "0")}min`;
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 const TABS = [
-  { key: "report",       icon: Brain,      labelKey: "stats.tabReport"       },
-  { key: "achievements", icon: Trophy,     labelKey: "stats.tabAchievements" },
-  { key: "xp",          icon: TrendingUp, labelKey: "stats.tabXP"           },
-  { key: "analysis",    icon: BarChart2,  labelKey: "stats.tabAnalysis"     },
-  { key: "activity",    icon: Activity,   labelKey: "stats.tabActivity"     },
+  { key: "report",       icon: Brain,     labelKey: "stats.tabReport",       gamificationOnly: false },
+  { key: "gamification", icon: Trophy,    labelKey: "stats.tabGamification", gamificationOnly: true  },
+  { key: "analysis",     icon: BarChart2, labelKey: "stats.tabAnalysis",     gamificationOnly: false },
 ];
 
 export default function AchievementsPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { state } = useApp();
+  const { settings } = useSettings();
+  const features = settings.features || {};
   const { state: rmState, getTodayActivity } = useResourceMonitor();
   const [activeTab, setActiveTab] = useState("report");
+
+  const tabs = TABS.filter((tab) => !tab.gamificationOnly || features.gamificationEnabled !== false);
 
   return (
     <div className="space-y-5 animate-fade-in">
       <h1 className="text-xl font-semibold">{t("stats.pageTitle")}</h1>
       <div className="flex gap-1 bg-gray-100 dark:bg-white/5 rounded-xl p-1">
-        {TABS.map(({ key, icon: Icon, labelKey }) => (
+        {tabs.map(({ key, icon: Icon, labelKey }) => (
           <button key={key} onClick={() => setActiveTab(key)}
             className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium transition-all ${
               activeTab === key ? "bg-white dark:bg-white/15 text-accent shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -782,10 +1103,8 @@ export default function AchievementsPage() {
         ))}
       </div>
       {activeTab === "report"       && <BrainReportTab t={t} state={state} resourceMonitorState={rmState} />}
-      {activeTab === "achievements" && <AchievementsPanel />}
-      {activeTab === "xp"           && <XpHistoryTab t={t} state={state} />}
-      {activeTab === "analysis"     && <AnalysisTab t={t} state={state} />}
-      {activeTab === "activity"     && <ActivityTab t={t} state={rmState} getTodayActivity={getTodayActivity} />}
+      {activeTab === "gamification" && features.gamificationEnabled !== false && <GamificationTab t={t} state={state} lang={lang} />}
+      {activeTab === "analysis"     && <AnalysisTab t={t} state={state} features={features} rmState={rmState} getTodayActivity={getTodayActivity} />}
     </div>
   );
 }

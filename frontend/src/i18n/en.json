@@ -298,7 +298,19 @@
     "xpFromFocusStart": "Focus Start",
     "xpFromStreak": "Streak Bonus",
     "avgXpPerDay": "Avg XP/day",
-    "tabActivity": "Activity"
+    "tabActivity": "Activity",
+    "tabGamification": "Gamification",
+    "gamificationHero": "Your Progress",
+    "streakMultiplier": "×{mult} Bonus",
+    "shieldActive": "Penalty Shield Active",
+    "shieldDesc": "No XP loss for overdue tasks",
+    "levelPath": "Level Path",
+    "youAreHere": "You are here",
+    "xpLossTitle": "XP Impact",
+    "xpLossEncouragement": "Every new task is a fresh start. Keep going!",
+    "xpLossProtected": "Shield active – no further deductions today.",
+    "weeklyTasks": "This Week",
+    "totalFocusMin": "Total Focus Minutes"
   },
   "calendar": {
     "title": "Calendar",
