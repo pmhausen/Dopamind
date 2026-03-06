@@ -6,7 +6,7 @@ import { useResourceMonitor } from "../context/ResourceMonitorContext";
 import { BarChart, TrendIndicator, HeatmapGrid } from "../components/charts";
 import { useFilteredStats } from "../hooks/useFilteredStats";
 import {
-  Download, Trophy, BarChart2, Brain, TrendingUp, Activity,
+  Download, Trophy, BarChart2, Brain,
   Star, Flame, Shield, CheckCircle2, Timer, Sun, Moon, Zap,
   Rocket, List, Target, Calendar, Layers, Award, TrendingDown, Lock,
 } from "lucide-react";
@@ -320,26 +320,6 @@ function BrainReportTab({ t, state, resourceMonitorState }) {
         </div>
       )}
 
-      {(state.notMyDayCount || 0) > 0 && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.selfCareScore")}</h3>
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">💙</span>
-            <p className="text-sm leading-relaxed">{t("stats.selfCareLabel", { count: state.notMyDayCount || 0 })}</p>
-          </div>
-        </div>
-      )}
-
-      {state.previousWeekStats && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.previousWeek")}</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <StatCard label={t("stats.completed")} value={state.previousWeekStats.tasks} color="text-success" />
-            <StatCard label={t("stats.focusMin")} value={state.previousWeekStats.focusMinutes} color="text-accent" unit={t("common.min")} />
-            <StatCard label="XP" value={state.previousWeekStats.xp} color="text-yellow-500" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -485,19 +465,16 @@ function XpHistoryTab({ t, state }) {
 
 // AnalysisTab
 
-function AnalysisTab({ t, state }) {
+function AnalysisTab({ t, state, features, rmState, getTodayActivity }) {
   const [period, setPeriod] = useState("week");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const stats = useFilteredStats(state, period, customFrom, customTo);
+  const showActivity = features.resourceMonitorEnabled !== false;
+  const todayActivity = showActivity ? getTodayActivity() : null;
+  const recentSessions = showActivity ? (rmState.activitySessions || []).slice(0, 14) : [];
 
   const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-
-  const activityData = stats.dailyData.slice(-30).map((d) => ({
-    label: new Date(d.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2),
-    value: d.tasks,
-    color: "bg-success",
-  }));
 
   const sizeData = (() => {
     const counts = { quick: 0, short: 0, medium: 0, long: 0 };
@@ -535,13 +512,6 @@ function AnalysisTab({ t, state }) {
   return (
     <div className="space-y-5">
       <PeriodSelector t={t} period={period} setPeriod={setPeriod} customFrom={customFrom} setCustomFrom={setCustomFrom} customTo={customTo} setCustomTo={setCustomTo} />
-
-      {activityData.length > 0 && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.activityOverTime")}</h3>
-          <BarChart data={activityData} height={80} />
-        </div>
-      )}
 
       {stats.activeDays > 0 && (
         <div className="glass-card p-5">
@@ -625,21 +595,95 @@ function AnalysisTab({ t, state }) {
         </div>
       </div>
 
-      {(state.focusLog || []).length > 0 && (
+      {state.previousWeekStats && (
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.focusQuality")}</h3>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-white/5">
-                <p className="text-xl font-bold text-accent">{formatFocusTime(state.totalFocusMinutes || 0)}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.totalFocus")}</p>
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.previousWeek")}</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <StatCard label={t("stats.completed")} value={state.previousWeekStats.tasks} color="text-success" />
+            <StatCard label={t("stats.focusMin")} value={state.previousWeekStats.focusMinutes} color="text-accent" unit={t("common.min")} />
+            <StatCard label="XP" value={state.previousWeekStats.xp} color="text-yellow-500" />
+          </div>
+        </div>
+      )}
+
+      {(state.notMyDayCount || 0) > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.selfCareScore")}</h3>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">💙</span>
+            <p className="text-sm leading-relaxed">{t("stats.selfCareLabel", { count: state.notMyDayCount || 0 })}</p>
+          </div>
+        </div>
+      )}
+
+      {showActivity && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+            {t("resourceMonitor.todayActivity")}
+          </h3>
+          {todayActivity ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span className="text-sm font-medium">{t("resourceMonitor.activeSince")} {formatTime(todayActivity.firstActivity)}</span>
               </div>
-              <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-white/5">
-                <p className="text-xl font-bold text-green-500">{state.focusBlocksToday || 0}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.focusBlocksToday")}</p>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono text-accent">{formatTime(todayActivity.firstActivity)}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.firstActivity")}</p>
+                </div>
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono">{formatTime(todayActivity.lastActivity)}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.lastActivity")}</p>
+                </div>
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono text-accent">{(todayActivity.focusBlocks || []).length}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.focusBlocks")}</p>
+                </div>
+                <div className="glass-card p-3 text-center">
+                  <p className="text-xl font-bold font-mono">{todayActivity.tasksCompleted || 0}</p>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.tasksCompleted")}</p>
+                </div>
               </div>
             </div>
-            {(state.timeLog || []).length > 0 && <EstimationAccuracySection t={t} timeLog={state.timeLog} />}
+          ) : (
+            <p className="text-sm text-muted-light dark:text-muted-dark text-center py-4">
+              {t("resourceMonitor.noActivityYet")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {showActivity && recentSessions.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+            {t("resourceMonitor.weekPattern")}
+          </h3>
+          <div className="space-y-2">
+            {recentSessions.map((session) => {
+              const durMin = session.lastActivity && session.firstActivity
+                ? Math.round((session.lastActivity - session.firstActivity) / 60000)
+                : 0;
+              return (
+                <div key={session.id || session.date} className="flex items-center gap-3 py-2 px-1">
+                  <div className="text-xs font-mono text-muted-light dark:text-muted-dark w-20">
+                    {new Date(session.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "2-digit" })}
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-xs font-mono">{formatTime(session.firstActivity)}</span>
+                    <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
+                      <div className="h-full bg-accent rounded-full" style={{ width: `${Math.min(durMin / 480 * 100, 100)}%` }} />
+                    </div>
+                    <span className="text-xs font-mono">{formatTime(session.lastActivity)}</span>
+                  </div>
+                  <span className="text-xs font-mono font-medium w-16 text-right">{formatMinutes(durMin)}</span>
+                  <div className="flex gap-2 text-[10px] text-muted-light dark:text-muted-dark">
+                    <span>🎯 {session.tasksCompleted || 0}</span>
+                    <span>🧠 {(session.focusBlocks || []).length}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -775,6 +819,11 @@ function GamificationTab({ t, state, lang }) {
               <Flame className="w-3.5 h-3.5" />
               {streak}d {multPct > 0 ? t("stats.streakMultiplier", { mult: mult.toFixed(1) }) : ""}
             </span>
+            {(state.longestStreakDays || 0) > 0 && (
+              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-muted-light dark:text-muted-dark text-xs">
+                🏆 {t("stats.longestStreak")}: {state.longestStreakDays}d
+              </span>
+            )}
             {shieldActive && (
               <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-medium">
                 <Shield className="w-3.5 h-3.5" />
@@ -799,26 +848,6 @@ function GamificationTab({ t, state, lang }) {
             {t("stats.shieldDesc")}
           </p>
         )}
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="glass-card p-4 text-center">
-          <p className="text-2xl font-bold text-success">{state.completedThisYear || 0}</p>
-          <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.completed")}</p>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <p className="text-2xl font-bold text-accent">{state.totalFocusMinutes || 0}</p>
-          <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.totalFocusMin")}</p>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <p className="text-2xl font-bold text-purple-500">{state.completedThisWeek || 0}</p>
-          <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.weeklyTasks")}</p>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <p className="text-2xl font-bold text-orange-500">{state.longestStreakDays || 0}</p>
-          <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase mt-0.5">{t("stats.longestStreak")}</p>
-        </div>
       </div>
 
       {/* Level Path */}
@@ -935,6 +964,40 @@ function GamificationTab({ t, state, lang }) {
         </div>
       )}
 
+      {/* Milestone Preview */}
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">{t("stats.milestones")}</h3>
+        <div className="space-y-2">
+          {avgXpPerDay > 0 && (
+            <div className="flex justify-between text-sm mb-3">
+              <span className="text-muted-light dark:text-muted-dark">{t("stats.avgXpPerDay")}</span>
+              <span className="font-medium">{avgXpPerDay} XP</span>
+            </div>
+          )}
+          {Array.from({ length: 3 }, (_, i) => {
+            const l = state.level + 1 + i;
+            const needed = Math.max(0, l * l * 50 - state.xp);
+            const daysEst = avgXpPerDay > 0 && needed > 0 ? Math.ceil(needed / avgXpPerDay) : null;
+            const levelXpBase = (l - 1) * (l - 1) * 50;
+            const levelXpTop = l * l * 50;
+            const pct = Math.min(100, Math.round(((state.xp - levelXpBase) / Math.max(1, levelXpTop - levelXpBase)) * 100));
+            return (
+              <div key={l} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-white/5">
+                <span className="text-purple-500 font-bold text-sm w-8 shrink-0">L{l}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-accent to-purple-500" style={{ width: `${Math.max(0, pct)}%` }} />
+                  </div>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark mt-0.5">
+                    {needed > 0 ? `${needed} XP ${t("stats.toNextLevel")}${daysEst ? ` · ~${daysEst}d` : ""}` : "✓"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Achievements */}
       <div className="space-y-8">
         {SIZE_ORDER_ACH.map((size) => {
@@ -1008,91 +1071,10 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function ActivityTab({ t, state, getTodayActivity }) {
-  const today = getTodayActivity();
-  const recentSessions = (state.activitySessions || []).slice(0, 14);
-
-  return (
-    <div className="space-y-5">
-      {/* Today's activity card */}
-      <div className="glass-card p-6">
-        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
-          {t("resourceMonitor.todayActivity")}
-        </h3>
-        {today ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-sm font-medium">{t("resourceMonitor.activeSince")} {formatTime(today.firstActivity)}</span>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono text-accent">{formatTime(today.firstActivity)}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.firstActivity")}</p>
-              </div>
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono">{formatTime(today.lastActivity)}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.lastActivity")}</p>
-              </div>
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono text-accent">{(today.focusBlocks || []).length}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.focusBlocks")}</p>
-              </div>
-              <div className="glass-card p-3 text-center">
-                <p className="text-xl font-bold font-mono">{today.tasksCompleted || 0}</p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.tasksCompleted")}</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-light dark:text-muted-dark text-center py-4">
-            {t("resourceMonitor.noActivityYet")}
-          </p>
-        )}
-      </div>
-
-      {/* Recent activity sessions */}
-      {recentSessions.length > 0 && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
-            {t("resourceMonitor.weekPattern")}
-          </h3>
-          <div className="space-y-2">
-            {recentSessions.map((session) => {
-              const durMin = session.lastActivity && session.firstActivity
-                ? Math.round((session.lastActivity - session.firstActivity) / 60000)
-                : 0;
-              return (
-                <div key={session.id || session.date} className="flex items-center gap-3 py-2 px-1">
-                  <div className="text-xs font-mono text-muted-light dark:text-muted-dark w-20">
-                    {new Date(session.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "2-digit" })}
-                  </div>
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="text-xs font-mono">{formatTime(session.firstActivity)}</span>
-                    <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
-                      <div className="h-full bg-accent rounded-full" style={{ width: `${Math.min(durMin / 480 * 100, 100)}%` }} />
-                    </div>
-                    <span className="text-xs font-mono">{formatTime(session.lastActivity)}</span>
-                  </div>
-                  <span className="text-xs font-mono font-medium w-16 text-right">{formatMinutes(durMin)}</span>
-                  <div className="flex gap-2 text-[10px] text-muted-light dark:text-muted-dark">
-                    <span>🎯 {session.tasksCompleted || 0}</span>
-                    <span>🧠 {(session.focusBlocks || []).length}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const TABS_BASE = [
-  { key: "report",   icon: Brain,    labelKey: "stats.tabReport"   },
-  { key: "analysis", icon: BarChart2, labelKey: "stats.tabAnalysis" },
-  { key: "activity", icon: Activity,  labelKey: "stats.tabActivity" },
+const TABS = [
+  { key: "report",       icon: Brain,     labelKey: "stats.tabReport",       gamificationOnly: false },
+  { key: "gamification", icon: Trophy,    labelKey: "stats.tabGamification", gamificationOnly: true  },
+  { key: "analysis",     icon: BarChart2, labelKey: "stats.tabAnalysis",     gamificationOnly: false },
 ];
 
 export default function AchievementsPage() {
@@ -1103,13 +1085,7 @@ export default function AchievementsPage() {
   const { state: rmState, getTodayActivity } = useResourceMonitor();
   const [activeTab, setActiveTab] = useState("report");
 
-  const tabs = features.gamificationEnabled !== false
-    ? [
-        TABS_BASE[0],
-        { key: "gamification", icon: Trophy, labelKey: "stats.tabGamification" },
-        ...TABS_BASE.slice(1),
-      ]
-    : TABS_BASE;
+  const tabs = TABS.filter((tab) => !tab.gamificationOnly || features.gamificationEnabled !== false);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -1126,10 +1102,9 @@ export default function AchievementsPage() {
           </button>
         ))}
       </div>
-      {activeTab === "report"        && <BrainReportTab t={t} state={state} resourceMonitorState={rmState} />}
-      {activeTab === "gamification"  && features.gamificationEnabled !== false && <GamificationTab t={t} state={state} lang={lang} />}
-      {activeTab === "analysis"      && <AnalysisTab t={t} state={state} />}
-      {activeTab === "activity"      && <ActivityTab t={t} state={rmState} getTodayActivity={getTodayActivity} />}
+      {activeTab === "report"       && <BrainReportTab t={t} state={state} resourceMonitorState={rmState} />}
+      {activeTab === "gamification" && features.gamificationEnabled !== false && <GamificationTab t={t} state={state} lang={lang} />}
+      {activeTab === "analysis"     && <AnalysisTab t={t} state={state} features={features} rmState={rmState} getTodayActivity={getTodayActivity} />}
     </div>
   );
 }
