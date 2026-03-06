@@ -363,7 +363,7 @@ export default function GlobalQuickAdd() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/40 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] pb-24 lg:pb-0 bg-black/40 animate-fade-in overflow-y-auto">
       <div ref={bubbleRef} className={`glass-card p-5 w-full max-w-sm mx-4 my-4 shadow-2xl border border-accent/20 ${flash ? "ring-2 ring-success animate-pulse" : ""}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
@@ -385,7 +385,7 @@ export default function GlobalQuickAdd() {
 
         {/* Vertical accordion steps */}
         {!flash && (
-          <div ref={scrollableRef} className="space-y-1 max-h-[calc(80vh_-_var(--mobile-nav-h))] lg:max-h-[70vh] overflow-y-auto -mx-1 px-1">
+          <div ref={scrollableRef} className="space-y-1 max-h-[70vh] overflow-y-auto -mx-1 px-1">
             {STEPS.map((_, i) => {
               if (i > step) return null;
               const isDone = i < step;

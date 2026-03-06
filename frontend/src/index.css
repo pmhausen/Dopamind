@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Height of the mobile bottom nav bar (MobileNav.jsx). Used in modal max-h calc on mobile. */
-  --mobile-nav-h: 4rem;
-}
-
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
