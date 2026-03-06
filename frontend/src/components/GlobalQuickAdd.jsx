@@ -363,7 +363,7 @@ export default function GlobalQuickAdd() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] pb-24 lg:pb-0 bg-black/40 animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/40 animate-fade-in overflow-y-auto">
       <div ref={bubbleRef} className={`glass-card p-5 w-full max-w-sm mx-4 my-4 shadow-2xl border border-accent/20 ${flash ? "ring-2 ring-success animate-pulse" : ""}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
