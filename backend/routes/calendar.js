@@ -3,23 +3,30 @@ const fs = require("fs");
 const path = require("path");
 
 const router = express.Router();
-const DATA_FILE = path.join(__dirname, "..", "data", "events.json");
 
-// --- Persistence layer (file-based fallback) ---
+// --- Persistence layer (file-based fallback, user-isolated) ---
 
-function loadEvents() {
+function getUserDataFile(userId) {
+  // Sanitize userId to prevent path traversal
+  const safeId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "");
+  return path.join(__dirname, "..", "data", `events-${safeId}.json`);
+}
+
+function loadEvents(userId) {
+  const dataFile = getUserDataFile(userId);
   try {
-    fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-    if (fs.existsSync(DATA_FILE)) {
-      return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+    fs.mkdirSync(path.dirname(dataFile), { recursive: true });
+    if (fs.existsSync(dataFile)) {
+      return JSON.parse(fs.readFileSync(dataFile, "utf8"));
     }
   } catch {}
   return [];
 }
 
-function saveEvents(events) {
-  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(events, null, 2));
+function saveEvents(userId, events) {
+  const dataFile = getUserDataFile(userId);
+  fs.mkdirSync(path.dirname(dataFile), { recursive: true });
+  fs.writeFileSync(dataFile, JSON.stringify(events, null, 2));
 }
 
 // --- CalDAV helpers ---
@@ -349,8 +356,8 @@ router.get("/", async (req, res) => {
     }
   }
 
-  // Fallback: local file storage
-  let events = loadEvents();
+  // Fallback: local file storage (user-isolated)
+  let events = loadEvents(req.user.id);
   if (start) events = events.filter((e) => (e.date || "") >= start);
   if (end) events = events.filter((e) => (e.date || "") <= end);
   res.json(events);
@@ -378,9 +385,9 @@ router.post("/", async (req, res) => {
     }
   }
 
-  const events = loadEvents();
+  const events = loadEvents(req.user.id);
   events.push(event);
-  saveEvents(events);
+  saveEvents(req.user.id, events);
   res.status(201).json(event);
 });
 
@@ -402,11 +409,11 @@ router.put("/:id", async (req, res) => {
     }
   }
 
-  const events = loadEvents();
+  const events = loadEvents(req.user.id);
   const idx = events.findIndex((e) => e.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Event not found" });
   events[idx] = { ...events[idx], ...req.body };
-  saveEvents(events);
+  saveEvents(req.user.id, events);
   res.json(events[idx]);
 });
 
@@ -428,9 +435,9 @@ router.delete("/:id", async (req, res) => {
     }
   }
 
-  let events = loadEvents();
+  let events = loadEvents(req.user.id);
   events = events.filter((e) => e.id !== req.params.id);
-  saveEvents(events);
+  saveEvents(req.user.id, events);
   res.json({ success: true });
 });
 

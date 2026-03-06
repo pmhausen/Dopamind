@@ -5,7 +5,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { AppProvider } from "./context/AppContext";
 import { I18nProvider } from "./i18n/I18nContext";
 import { SettingsProvider } from "./context/SettingsContext";
-import { TimeTrackingProvider } from "./context/TimeTrackingContext";
+import { ResourceMonitorProvider } from "./context/ResourceMonitorContext";
 import { MailProvider } from "./context/MailContext";
 import { CalendarProvider } from "./context/CalendarContext";
 import { FocusTimerProvider } from "./context/FocusTimerContext";
@@ -21,7 +21,6 @@ import TriageModal from "./components/TriageModal";
 import ActivityBridge from "./components/ActivityBridge";
 import HomePage from "./pages/HomePage";
 import TasksPage from "./pages/TasksPage";
-import CalendarPage from "./pages/CalendarPage";
 import PlannerPage from "./pages/PlannerPage";
 import MailPage from "./pages/MailPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -98,7 +97,7 @@ function AppLayout() {
   return (
     <SettingsProvider>
       <AppProvider>
-        <TimeTrackingProvider>
+        <ResourceMonitorProvider>
           <MailProvider>
             <CalendarProvider>
               <FocusTimerProvider>
@@ -137,7 +136,7 @@ function AppLayout() {
               </FocusTimerProvider>
             </CalendarProvider>
           </MailProvider>
-        </TimeTrackingProvider>
+        </ResourceMonitorProvider>
       </AppProvider>
     </SettingsProvider>
   );
