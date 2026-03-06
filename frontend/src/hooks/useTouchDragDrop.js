@@ -84,6 +84,19 @@ export function useTouchDragDrop({ onDrop }) {
 
   const getTouchDragProps = useCallback((dragData) => ({
     onTouchStart(e) {
+      // Ignore multi-touch — only allow single-finger drag
+      if (e.touches.length > 1) {
+        // If a drag was pending, cancel it
+        const s = stateRef.current;
+        if (s.longPressTimer) {
+          clearTimeout(s.longPressTimer);
+          s.longPressTimer = null;
+        }
+        if (s.isDragging) {
+          cleanup();
+        }
+        return;
+      }
       const touch = e.touches[0];
       const s = stateRef.current;
       s.startX = touch.clientX;
@@ -131,6 +144,11 @@ export function useTouchDragDrop({ onDrop }) {
       // no-op. A native {passive:false} listener is the only reliable way to
       // prevent the page from scrolling while a drag is in progress.
       const nativeMoveHandler = (e) => {
+        // Abort drag if multiple fingers are detected
+        if (e.touches.length > 1) {
+          cleanup();
+          return;
+        }
         const t = e.touches[0];
         if (!t) return;
         const dx = t.clientX - s.startX;

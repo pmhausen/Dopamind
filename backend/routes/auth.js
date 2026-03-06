@@ -67,7 +67,6 @@ router.post(
       res.status(201).json({
         token,
         user: { id, email, name, role: "user", emailVerified: false },
-        verificationToken,
       });
     } catch (err) {
       console.error("Register error:", err);

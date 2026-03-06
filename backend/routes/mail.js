@@ -22,7 +22,7 @@ function createImapClient(config) {
     secure: config.tls !== false,
     auth: { user: config.user, pass: config.password },
     logger: false,
-    tls: { rejectUnauthorized: false },
+    tls: { rejectUnauthorized: config.rejectUnauthorized !== false },
   });
 }
 
@@ -70,7 +70,7 @@ router.post("/send", async (req, res) => {
       port,
       secure: port === 465,
       auth: { user: smtp.user || config.user, pass: smtp.password || config.password },
-      tls: { rejectUnauthorized: false },
+      tls: { rejectUnauthorized: smtp.rejectUnauthorized !== false },
     });
 
     await transporter.sendMail({
