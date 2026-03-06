@@ -522,7 +522,7 @@ export default function GlobalQuickAdd() {
                               <div className="text-[9px] text-muted-light dark:text-muted-dark uppercase tracking-wider font-semibold mb-1.5">
                                 {t("tasks.sectionWhen")}
                               </div>
-                              <div className="flex gap-1.5">
+                              <div className="flex gap-1.5 flex-wrap">
                                 {["morning", "afternoon", "evening"].map((tod) => (
                                   <button
                                     key={tod}
@@ -536,7 +536,25 @@ export default function GlobalQuickAdd() {
                                     {t(`tasks.timeOfDayOptions.${tod}`)}
                                   </button>
                                 ))}
+                                <button
+                                  onClick={() => setWhenTimeOfDay("exact")}
+                                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                    whenTimeOfDay === "exact"
+                                      ? "bg-accent/15 text-accent ring-1 ring-accent/30 scale-105"
+                                      : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
+                                  }`}
+                                >
+                                  {t("tasks.timeOfDayOptions.exact")}
+                                </button>
                               </div>
+                              {whenTimeOfDay === "exact" && (
+                                <input
+                                  type="time"
+                                  value={detailScheduledTime}
+                                  onChange={(e) => setDetailScheduledTime(e.target.value)}
+                                  className="mt-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
+                                />
+                              )}
                             </div>
                             <button
                               onClick={advance}
@@ -624,37 +642,6 @@ export default function GlobalQuickAdd() {
                             {/* Inline details form */}
                             {showDetails && (
                               <div className="space-y-3 pt-2 border-t border-gray-200/50 dark:border-white/10 animate-fade-in">
-                                {/* Time of day */}
-                                <div>
-                                  <label className="text-[10px] font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1 block">
-                                    {t("tasks.sectionWhen")}
-                                  </label>
-                                  <div className="flex gap-1 flex-wrap">
-                                    {TIME_OF_DAY_OPTIONS.map((opt) => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => setDetailTimeOfDay(detailTimeOfDay === opt ? "" : opt)}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                                          detailTimeOfDay === opt
-                                            ? "bg-accent/10 text-accent ring-1 ring-accent/20"
-                                            : "bg-gray-50 dark:bg-white/5 text-muted-light dark:text-muted-dark hover:bg-gray-100 dark:hover:bg-white/10"
-                                        }`}
-                                      >
-                                        {t(`tasks.timeOfDayOptions.${opt}`)}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  {detailTimeOfDay === "exact" && (
-                                    <input
-                                      type="time"
-                                      value={detailScheduledTime}
-                                      onChange={(e) => setDetailScheduledTime(e.target.value)}
-                                      className="mt-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-accent/30"
-                                    />
-                                  )}
-                                </div>
-
                                 {/* Deadline */}
                                 <div className="flex items-center gap-2">
                                   <AlertCircle className="w-3.5 h-3.5 text-muted-light dark:text-muted-dark flex-shrink-0" />
