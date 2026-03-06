@@ -40,12 +40,12 @@ function Input({ value, onChange, type = "text", ...props }) {
   );
 }
 
-function Toggle({ checked, onChange, label }) {
+function Toggle({ checked, onChange, label, description }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer">
+    <label className="flex items-start gap-3 cursor-pointer">
       <div
         onClick={() => onChange(!checked)}
-        className={`w-10 h-6 rounded-full flex items-center transition-colors duration-200 ${
+        className={`w-10 h-6 rounded-full flex items-center transition-colors duration-200 shrink-0 mt-0.5 ${
           checked ? "bg-accent" : "bg-gray-300 dark:bg-gray-600"
         }`}
       >
@@ -55,7 +55,10 @@ function Toggle({ checked, onChange, label }) {
           }`}
         />
       </div>
-      <span className="text-sm">{label}</span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm">{label}</span>
+        {description && <span className="text-xs text-muted-light dark:text-muted-dark leading-snug">{description}</span>}
+      </span>
     </label>
   );
 }
@@ -912,51 +915,61 @@ export default function SettingsPage() {
                 checked={settings.gamification.xpEnabled}
                 onChange={(v) => updateSettings("gamification", { xpEnabled: v })}
                 label={t("settings.xpEnabled")}
+                description={t("settings.xpEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.soundEnabled}
                 onChange={(v) => updateSettings("gamification", { soundEnabled: v })}
                 label={t("settings.soundEnabled")}
+                description={t("settings.soundEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.compassionModeEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { compassionModeEnabled: v })}
                 label={t("settings.compassionModeEnabled")}
+                description={t("settings.compassionModeEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.microConfettiEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { microConfettiEnabled: v })}
                 label={t("settings.microConfettiEnabled")}
+                description={t("settings.microConfettiEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.variableRewardsEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { variableRewardsEnabled: v })}
                 label={t("settings.variableRewardsEnabled")}
+                description={t("settings.variableRewardsEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.flowShieldEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { flowShieldEnabled: v })}
                 label={t("settings.flowShieldEnabled")}
+                description={t("settings.flowShieldEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.countdownStartEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { countdownStartEnabled: v })}
                 label={t("settings.countdownStartEnabled")}
+                description={t("settings.countdownStartEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.energyCheckinEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { energyCheckinEnabled: v })}
                 label={t("settings.energyCheckinEnabled")}
+                description={t("settings.energyCheckinEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.dailyChallengeEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { dailyChallengeEnabled: v })}
                 label={t("settings.dailyChallengeEnabled")}
+                description={t("settings.dailyChallengeEnabledDesc")}
               />
               <Toggle
                 checked={settings.gamification.weeklyReportEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { weeklyReportEnabled: v })}
                 label={t("settings.weeklyReportEnabled")}
+                description={t("settings.weeklyReportEnabledDesc")}
               />
             </Section>
           )}
