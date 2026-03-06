@@ -5,7 +5,7 @@ import { useResourceMonitor } from "../context/ResourceMonitorContext";
 import AchievementsPanel from "../components/AchievementsPanel";
 import { BarChart, TrendIndicator, HeatmapGrid } from "../components/charts";
 import { useFilteredStats } from "../hooks/useFilteredStats";
-import { Download, Trophy, BarChart2, Brain, TrendingUp } from "lucide-react";
+import { Download, Trophy, BarChart2, Brain, TrendingUp, Activity, Coffee } from "lucide-react";
 
 // Shared helpers
 
@@ -645,17 +645,125 @@ function AnalysisTab({ t, state }) {
 
 // Tabs
 
+function formatMinutes(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${h}h ${String(m).padStart(2, "0")}min`;
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function ActivityTab({ t, state, getTodayActivity }) {
+  const today = getTodayActivity();
+  const recentSessions = (state.activitySessions || []).slice(0, 14);
+
+  return (
+    <div className="space-y-5">
+      {/* Today's activity card */}
+      <div className="glass-card p-6">
+        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+          {t("resourceMonitor.todayActivity")}
+        </h3>
+        {today ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-sm font-medium">{t("resourceMonitor.activeSince")} {formatTime(today.firstActivity)}</span>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="glass-card p-3 text-center">
+                <p className="text-xl font-bold font-mono text-accent">{formatTime(today.firstActivity)}</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.firstActivity")}</p>
+              </div>
+              <div className="glass-card p-3 text-center">
+                <p className="text-xl font-bold font-mono">{formatTime(today.lastActivity)}</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.lastActivity")}</p>
+              </div>
+              <div className="glass-card p-3 text-center">
+                <p className="text-xl font-bold font-mono text-accent">{(today.focusBlocks || []).length}</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.focusBlocks")}</p>
+              </div>
+              <div className="glass-card p-3 text-center">
+                <p className="text-xl font-bold font-mono">{today.tasksCompleted || 0}</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mt-1">{t("resourceMonitor.tasksCompleted")}</p>
+              </div>
+            </div>
+            {(today.impliedBreaks || []).length > 0 && (
+              <div>
+                <p className="text-xs text-muted-light dark:text-muted-dark uppercase tracking-wider mb-2">{t("resourceMonitor.impliedBreaks")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {today.impliedBreaks.map((b, i) => {
+                    const durMin = Math.round((b.end - b.start) / 60000);
+                    return (
+                      <span key={i} className="badge bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs">
+                        <Coffee className="w-3 h-3 mr-1 inline" />
+                        {formatTime(b.start)} – {formatTime(b.end)} ({durMin}min)
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-light dark:text-muted-dark text-center py-4">
+            {t("resourceMonitor.noActivityYet")}
+          </p>
+        )}
+      </div>
+
+      {/* Recent activity sessions */}
+      {recentSessions.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+            {t("resourceMonitor.weekPattern")}
+          </h3>
+          <div className="space-y-2">
+            {recentSessions.map((session) => {
+              const durMin = session.lastActivity && session.firstActivity
+                ? Math.round((session.lastActivity - session.firstActivity) / 60000)
+                : 0;
+              return (
+                <div key={session.id || session.date} className="flex items-center gap-3 py-2 px-1">
+                  <div className="text-xs font-mono text-muted-light dark:text-muted-dark w-20">
+                    {new Date(session.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "2-digit" })}
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-xs font-mono">{formatTime(session.firstActivity)}</span>
+                    <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
+                      <div className="h-full bg-accent rounded-full" style={{ width: `${Math.min(durMin / 480 * 100, 100)}%` }} />
+                    </div>
+                    <span className="text-xs font-mono">{formatTime(session.lastActivity)}</span>
+                  </div>
+                  <span className="text-xs font-mono font-medium w-16 text-right">{formatMinutes(durMin)}</span>
+                  <div className="flex gap-2 text-[10px] text-muted-light dark:text-muted-dark">
+                    <span>🎯 {session.tasksCompleted || 0}</span>
+                    <span>🧠 {(session.focusBlocks || []).length}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TABS = [
   { key: "report",       icon: Brain,      labelKey: "stats.tabReport"       },
   { key: "achievements", icon: Trophy,     labelKey: "stats.tabAchievements" },
   { key: "xp",          icon: TrendingUp, labelKey: "stats.tabXP"           },
   { key: "analysis",    icon: BarChart2,  labelKey: "stats.tabAnalysis"     },
+  { key: "activity",    icon: Activity,   labelKey: "stats.tabActivity"     },
 ];
 
 export default function AchievementsPage() {
   const { t } = useI18n();
   const { state } = useApp();
-  const { state: rmState } = useResourceMonitor();
+  const { state: rmState, getTodayActivity } = useResourceMonitor();
   const [activeTab, setActiveTab] = useState("report");
 
   return (
@@ -677,6 +785,7 @@ export default function AchievementsPage() {
       {activeTab === "achievements" && <AchievementsPanel />}
       {activeTab === "xp"           && <XpHistoryTab t={t} state={state} />}
       {activeTab === "analysis"     && <AnalysisTab t={t} state={state} />}
+      {activeTab === "activity"     && <ActivityTab t={t} state={rmState} getTodayActivity={getTodayActivity} />}
     </div>
   );
 }

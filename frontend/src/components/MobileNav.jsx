@@ -1,12 +1,11 @@
 import { NavLink } from "react-router-dom";
 import { useI18n } from "../i18n/I18nContext";
 import { useSettings } from "../context/SettingsContext";
-import { Home, CheckSquare, Calendar, Mail, Clock } from "lucide-react";
+import { Home, CheckSquare, Calendar, Mail } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, key: "home" },
   { to: "/tasks", icon: CheckSquare, key: "tasks" },
-  { to: "/time", icon: Clock, key: "time" },
   { to: "/planner", icon: Calendar, key: "planner" },
   { to: "/mail", icon: Mail, key: "mail" },
 ];
@@ -19,7 +18,6 @@ export default function MobileNav() {
   const visibleNavItems = NAV_ITEMS.filter(({ key }) => {
     if (key === "mail" && !features.mailEnabled) return false;
     if (key === "planner" && !features.calendarEnabled) return false;
-    if (key === "time" && !features.resourceMonitorEnabled) return false;
     return true;
   });
 

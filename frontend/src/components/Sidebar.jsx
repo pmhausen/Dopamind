@@ -9,7 +9,6 @@ import {
   CheckSquare,
   Calendar,
   Mail,
-  Clock,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -24,7 +23,6 @@ const NAV_ITEMS = [
   { to: "/tasks", icon: CheckSquare, key: "tasks" },
   { to: "/planner", icon: Calendar, key: "planner" },
   { to: "/mail", icon: Mail, key: "mail" },
-  { to: "/time", icon: Clock, key: "time" },
   { to: "/achievements", icon: Trophy, key: "achievements" },
   { to: "/settings", icon: Settings, key: "settings" },
 ];
@@ -44,7 +42,6 @@ export default function Sidebar() {
   const visibleNavItems = NAV_ITEMS.filter(({ key }) => {
     if (key === "mail" && !features.mailEnabled) return false;
     if (key === "planner" && !features.calendarEnabled) return false;
-    if (key === "time" && !features.resourceMonitorEnabled) return false;
     if (key === "achievements" && !features.gamificationEnabled) return false;
     return true;
   });

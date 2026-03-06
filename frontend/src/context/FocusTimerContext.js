@@ -8,7 +8,6 @@ const initialState = {
   running: false,
   completed: false,
   flowDetected: false,
-  pauseSuggestion: null,
   // Task-specific timer state
   activeTaskId: null,   // id of task being timed
   activeTaskText: null,  // text for display
@@ -22,7 +21,7 @@ const initialState = {
 function reducer(state, action) {
   switch (action.type) {
     case "SET_DURATION":
-      return { ...state, duration: action.payload, secondsLeft: action.payload * 60, completed: false, pauseSuggestion: null, flowDetected: false };
+      return { ...state, duration: action.payload, secondsLeft: action.payload * 60, completed: false, flowDetected: false };
     case "TICK":
       return { ...state, secondsLeft: Math.max(0, state.secondsLeft - 1) };
     case "START":
@@ -30,9 +29,9 @@ function reducer(state, action) {
     case "PAUSE":
       return { ...state, running: false };
     case "COMPLETE":
-      return { ...state, running: false, completed: true, pauseSuggestion: action.payload?.pauseSuggestion || null };
+      return { ...state, running: false, completed: true };
     case "RESET":
-      return { ...state, running: false, completed: false, secondsLeft: state.duration * 60, flowDetected: false, pauseSuggestion: null };
+      return { ...state, running: false, completed: false, secondsLeft: state.duration * 60, flowDetected: false };
     case "SET_FLOW":
       return { ...state, flowDetected: action.payload };
     // Task timer actions

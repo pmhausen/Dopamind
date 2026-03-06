@@ -223,7 +223,8 @@
     "xpFromChallenges": "Tägliche Challenges",
     "xpFromFocusStart": "Fokus-Start",
     "xpFromStreak": "Streak-Bonus",
-    "avgXpPerDay": "Ø XP/Tag"
+    "avgXpPerDay": "Ø XP/Tag",
+    "tabActivity": "Aktivität"
   },
   "calendar": {
     "title": "Kalender",
@@ -524,7 +525,8 @@
     "timeRangeMode_fullDay": "24 Stunden",
     "timeRangeMode_custom": "Benutzerdefiniert",
     "customTimeStart": "Zeitfenster Start",
-    "customTimeEnd": "Zeitfenster Ende"
+    "customTimeEnd": "Zeitfenster Ende",
+    "tabAbsence": "Abwesenheiten"
   },
   "home": {
     "greeting": "Ein Schritt nach dem anderen.",

@@ -4,8 +4,9 @@ import { useTheme } from "../context/ThemeContext";
 import { useSettings } from "../context/SettingsContext";
 import { useAuth } from "../context/AuthContext";
 import { useApp, computeCalibratedMappings } from "../context/AppContext";
+import { useResourceMonitor } from "../context/ResourceMonitorContext";
 import { discoverCalendars } from "../services/calendarService";
-import { Check, Sun, Moon, Globe, Filter, Search, Loader2, SlidersHorizontal, Briefcase, Mail, Calendar, Gamepad2, User, AlertTriangle } from "lucide-react";
+import { Check, Sun, Moon, Globe, Filter, Search, Loader2, SlidersHorizontal, Briefcase, Mail, Calendar, CalendarOff, Gamepad2, User, AlertTriangle, Trash2 } from "lucide-react";
 
 function Section({ title, children }) {
   return (
@@ -292,11 +293,153 @@ function AccountSection({ t }) {
   );
 }
 
+function AbsenceTab({ t, state, dispatch }) {
+  const isAbsent = !!state.absenceMode;
+  const isSick = state.absenceMode?.type === "sick";
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [vacationStart, setVacationStart] = useState(todayStr);
+  const [vacationEnd, setVacationEnd] = useState(todayStr);
+  const [note, setNote] = useState("");
+
+  return (
+    <div className="space-y-5">
+      {/* Active absence mode */}
+      {isAbsent && (
+        <div className={`glass-card p-6 ${isSick ? "border-l-4 border-danger" : "border-l-4 border-accent"}`}>
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">{isSick ? "🤒" : "🏖️"}</span>
+            <div>
+              <h3 className="text-base font-semibold">{isSick ? t("absence.sickMode") : t("absence.vacationMode")}</h3>
+              <p className="text-sm text-muted-light dark:text-muted-dark">
+                {isSick
+                  ? t("absence.sickActive")
+                  : t("absence.vacationActive").replace("{endDate}", state.absenceMode?.endDate || "")}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => dispatch({ type: "DEACTIVATE_ABSENCE" })}
+            className="btn-primary text-sm"
+          >
+            {t("absence.deactivate")}
+          </button>
+        </div>
+      )}
+
+      {/* Activate absence mode */}
+      {!isAbsent && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Sick mode */}
+          <div className="glass-card p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🤒</span>
+              <h3 className="text-sm font-semibold">{t("absence.sickMode")}</h3>
+            </div>
+            <p className="text-xs text-muted-light dark:text-muted-dark">{t("absence.frozen")}</p>
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t("absence.note")}
+              className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            />
+            <button
+              onClick={() => { dispatch({ type: "ACTIVATE_SICK_MODE", payload: { note } }); setNote(""); }}
+              className="btn-primary text-sm w-full bg-danger/90 hover:bg-danger"
+            >
+              {t("absence.activateSick")}
+            </button>
+          </div>
+
+          {/* Vacation mode */}
+          <div className="glass-card p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏖️</span>
+              <h3 className="text-sm font-semibold">{t("absence.vacationMode")}</h3>
+            </div>
+            <p className="text-xs text-muted-light dark:text-muted-dark">{t("absence.shifted")}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1 block">{t("absence.startDate")}</label>
+                <input
+                  type="date"
+                  value={vacationStart}
+                  onChange={(e) => setVacationStart(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider mb-1 block">{t("absence.endDate")}</label>
+                <input
+                  type="date"
+                  value={vacationEnd}
+                  min={vacationStart}
+                  onChange={(e) => setVacationEnd(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+            </div>
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t("absence.note")}
+              className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            />
+            <button
+              onClick={() => { dispatch({ type: "ACTIVATE_VACATION_MODE", payload: { startDate: vacationStart, endDate: vacationEnd, note } }); setNote(""); }}
+              className="btn-primary text-sm w-full"
+            >
+              {t("absence.activateVacation")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Absence history */}
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-semibold text-muted-light dark:text-muted-dark uppercase tracking-wider mb-4">
+          {t("absence.history")}
+        </h3>
+        {(state.absenceHistory || []).length === 0 ? (
+          <p className="text-sm text-muted-light dark:text-muted-dark text-center py-4">{t("absence.noHistory")}</p>
+        ) : (
+          <div className="space-y-2">
+            {state.absenceHistory.map((a) => {
+              const isRange = a.startDate !== a.endDate;
+              return (
+                <div key={a.id} className="group flex items-center gap-3 py-2">
+                  <span className="text-lg">{a.type === "sick" ? "🤒" : "🏖️"}</span>
+                  <span className="text-xs font-mono text-muted-light dark:text-muted-dark">
+                    {new Date(a.startDate + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}
+                    {isRange && <> – {new Date(a.endDate + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}</>}
+                  </span>
+                  <span className={`badge text-[10px] ${a.type === "sick" ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent"}`}>
+                    {a.type === "sick" ? t("absence.sickMode") : t("absence.vacationMode")}
+                  </span>
+                  {a.note && <span className="text-xs text-muted-light dark:text-muted-dark truncate flex-1">{a.note}</span>}
+                  <button
+                    onClick={() => dispatch({ type: "DELETE_ABSENCE_HISTORY", payload: a.id })}
+                    className="w-6 h-6 rounded flex items-center justify-center text-muted-light hover:text-danger transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { t, lang, switchLang, availableLanguages } = useI18n();
   const { dark, toggle } = useTheme();
   const { settings, updateSettings } = useSettings();
   const { state: appState } = useApp();
+  const { state: rmState, dispatch: rmDispatch } = useResourceMonitor();
   const calibrated = useMemo(() => computeCalibratedMappings(appState.timeLog, settings.estimation?.sizeMappings), [appState.timeLog, settings.estimation?.sizeMappings]);
   const [activeTab, setActiveTab] = useState("general");
 
@@ -306,6 +449,7 @@ export default function SettingsPage() {
     { key: "email",        icon: Mail,               label: t("settings.tabEmail") },
     { key: "calendar",     icon: Calendar,           label: t("settings.tabCalendar") },
     { key: "gamification", icon: Gamepad2,           label: t("settings.tabGamification") },
+    { key: "absence",      icon: CalendarOff,        label: t("settings.tabAbsence") },
     { key: "account",      icon: User,               label: t("settings.tabAccount") },
   ];
 
@@ -810,11 +954,6 @@ export default function SettingsPage() {
                 label={t("settings.dailyChallengeEnabled")}
               />
               <Toggle
-                checked={settings.gamification.pauseSuggestionsEnabled !== false}
-                onChange={(v) => updateSettings("gamification", { pauseSuggestionsEnabled: v })}
-                label={t("settings.pauseSuggestionsEnabled")}
-              />
-              <Toggle
                 checked={settings.gamification.weeklyReportEnabled !== false}
                 onChange={(v) => updateSettings("gamification", { weeklyReportEnabled: v })}
                 label={t("settings.weeklyReportEnabled")}
@@ -825,6 +964,11 @@ export default function SettingsPage() {
           {/* Account tab */}
           {activeTab === "account" && (
             <AccountSection t={t} />
+          )}
+
+          {/* Absence tab */}
+          {activeTab === "absence" && (
+            <AbsenceTab t={t} state={rmState} dispatch={rmDispatch} />
           )}
 
         </div>

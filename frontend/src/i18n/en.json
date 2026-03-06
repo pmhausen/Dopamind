@@ -297,7 +297,8 @@
     "xpFromChallenges": "Daily Challenges",
     "xpFromFocusStart": "Focus Start",
     "xpFromStreak": "Streak Bonus",
-    "avgXpPerDay": "Avg XP/day"
+    "avgXpPerDay": "Avg XP/day",
+    "tabActivity": "Activity"
   },
   "calendar": {
     "title": "Calendar",
@@ -598,7 +599,8 @@
     "timeRangeMode_fullDay": "24 Hours",
     "timeRangeMode_custom": "Custom",
     "customTimeStart": "Time Window Start",
-    "customTimeEnd": "Time Window End"
+    "customTimeEnd": "Time Window End",
+    "tabAbsence": "Absences"
   },
   "rewards": {
     "levelUp": "Level {level} reached – {title}!",

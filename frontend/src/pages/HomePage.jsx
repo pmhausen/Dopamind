@@ -8,6 +8,7 @@ import { useSettings } from "../context/SettingsContext";
 import { useQuickAdd } from "../context/QuickAddContext";
 import CountdownStart from "../components/CountdownStart";
 import TaskFormModal from "../components/TaskFormModal";
+import FocusTimer from "../components/FocusTimer";
 import { useTouchDragDrop } from "../hooks/useTouchDragDrop";
 import {
   CheckCircle, Calendar, Plus,
@@ -2149,43 +2150,35 @@ export default function HomePage() {
         );
       })()}
 
-      {/* Greeting + Quick Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold">{t("home.greeting")}</h2>
-          <p className="text-sm text-muted-light dark:text-muted-dark mt-0.5">{t("home.subtitle")}</p>
+      {/* Greeting + Focus Timer */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">{t("home.greeting")}</h2>
+            <p className="text-sm text-muted-light dark:text-muted-dark mt-0.5">{t("home.subtitle")}</p>
+          </div>
+          {/* Compassion Mode button */}
+          <div className="flex gap-2">
+            {isToday && settings.gamification?.compassionModeEnabled && !state.compassionModeDate && (
+              <button
+                onClick={() => dispatch({ type: "SET_COMPASSION_MODE" })}
+                className="glass-card px-3 py-2 text-center hover:bg-pink-50 dark:hover:bg-pink-900/20 transition-colors"
+                title={t("home.compassionMode")}
+              >
+                <p className="text-lg">💙</p>
+                <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider whitespace-nowrap">{t("home.notMyDay")}</p>
+              </button>
+            )}
+            {isToday && state.compassionModeDate === todayStr && (
+              <div className="glass-card px-3 py-2 text-center bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800/30">
+                <p className="text-lg">💙</p>
+                <p className="text-[10px] text-pink-600 dark:text-pink-400 uppercase tracking-wider whitespace-nowrap">{t("home.compassionActive")}</p>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex gap-3">
-          <div className="glass-card px-4 py-2 text-center">
-            <p className="text-lg font-bold font-mono text-success">{state.completedToday}</p>
-            <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.completed")}</p>
-          </div>
-          <div className="glass-card px-4 py-2 text-center">
-            <p className="text-lg font-bold font-mono">{pendingTasks.length}</p>
-            <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.open")}</p>
-          </div>
-          <div className="glass-card px-4 py-2 text-center">
-            <p className="text-lg font-bold font-mono text-accent">{state.focusMinutesToday}<span className="text-xs ml-0.5">{t("stats.min")}</span></p>
-            <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider">{t("stats.focusMin")}</p>
-          </div>
-          {/* Compassion Mode button (Feature 1) */}
-          {isToday && settings.gamification?.compassionModeEnabled && !state.compassionModeDate && (
-            <button
-              onClick={() => dispatch({ type: "SET_COMPASSION_MODE" })}
-              className="glass-card px-3 py-2 text-center hover:bg-pink-50 dark:hover:bg-pink-900/20 transition-colors"
-              title={t("home.compassionMode")}
-            >
-              <p className="text-lg">💙</p>
-              <p className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wider whitespace-nowrap">{t("home.notMyDay")}</p>
-            </button>
-          )}
-          {isToday && state.compassionModeDate === todayStr && (
-            <div className="glass-card px-3 py-2 text-center bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800/30">
-              <p className="text-lg">💙</p>
-              <p className="text-[10px] text-pink-600 dark:text-pink-400 uppercase tracking-wider whitespace-nowrap">{t("home.compassionActive")}</p>
-            </div>
-          )}
-        </div>
+        {/* Horizontal FocusTimer */}
+        <FocusTimer layout="horizontal" />
       </div>
 
       {/* All-day events banner */}

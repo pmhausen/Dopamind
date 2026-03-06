@@ -24,8 +24,6 @@ import TasksPage from "./pages/TasksPage";
 import CalendarPage from "./pages/CalendarPage";
 import PlannerPage from "./pages/PlannerPage";
 import MailPage from "./pages/MailPage";
-import TimeTrackingPage from "./pages/TimeTrackingPage";
-import TimeManagementPage from "./pages/TimeManagementPage";
 import SettingsPage from "./pages/SettingsPage";
 import AchievementsPage from "./pages/AchievementsPage";
 import LoginPage from "./pages/LoginPage";
@@ -117,8 +115,6 @@ function AppLayout() {
                           <Route path="/planner" element={<PlannerPage />} />
                           <Route path="/calendar" element={<Navigate to="/planner" replace />} />
                           <Route path="/mail" element={<MailPage />} />
-                          <Route path="/time" element={<TimeTrackingPage />} />
-                          <Route path="/zeitmanagement" element={<Navigate to="/time?tab=focus" replace />} />
                           <Route path="/settings" element={<SettingsPage />} />
                           <Route path="/achievements" element={<AchievementsPage />} />
                           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
