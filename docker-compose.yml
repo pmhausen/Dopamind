@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dopamind_dev}
       POSTGRES_DB: ${POSTGRES_DB:-dopamind}
     volumes:
-      - ${POSTGRES_VOLUME:-pgdata}:/var/lib/postgresql/data
+      - ${POSTGRES_VOLUME:-./pgdata}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dopamind}"]
       interval: 5s
@@ -64,6 +64,3 @@ services:
     depends_on:
       - frontend
       - backend
-
-volumes:
-  pgdata:
